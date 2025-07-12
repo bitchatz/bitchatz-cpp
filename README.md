@@ -1,6 +1,12 @@
 # Bitchat C++
 
+<div align="center">
+  <img src="extras/images/logo.jpg" alt="Bitchat Logo" width="200">
+</div>
+
 A cross-platform Bluetooth mesh chat application written in C++ with platform abstraction. Bitchat enables peer-to-peer messaging over Bluetooth Low Energy (BLE) without requiring internet connectivity or centralized servers.
+
+[![Build](https://github.com/bitchatz/bitchatz-cpp/actions/workflows/build.yml/badge.svg)](https://github.com/bitchatz/bitchatz-cpp/actions/workflows/build.yml)
 
 ## How It Works
 
