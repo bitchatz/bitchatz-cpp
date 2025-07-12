@@ -12,6 +12,15 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 # Include CPM for dependency management
 include(cmake/CPM.cmake)
 
+# Library options
+set(BUILD_SHARED_LIBS OFF)
+set(BUILD_STATIC_LIBS ON)
+
+# LZ4 options
+set(LZ4_BUILD_CLI OFF)
+set(LZ4_BUILD_LEGACY_LZ4C OFF)
+set(LZ4_BUNDLED_MODE OFF)
+
 # Platform-specific settings
 if(APPLE)
     set(PLATFORM_APPLE TRUE)
@@ -87,7 +96,7 @@ target_link_libraries(bitchat
     spdlog::spdlog
     OpenSSL::SSL
     OpenSSL::Crypto
-    lz4
+    lz4_static
 )
 
 # Platform-specific linking
