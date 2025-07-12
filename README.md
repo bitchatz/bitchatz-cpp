@@ -282,7 +282,7 @@ The application logs detailed information including:
 
 ## License
 
-[Add your license here]
+MIT
 
 ## Contributing
 
@@ -294,12 +294,20 @@ The application logs detailed information including:
 
 ## TODO
 
+- [x] macOS Bluetooth implementation
 - [ ] Windows Bluetooth implementation
 - [ ] Linux Bluetooth implementation
 - [ ] Unit tests and integration tests
-- [ ] CI/CD pipeline
+- [x] CI/CD pipeline
 - [ ] Performance optimizations
-- [ ] Message encryption (end-to-end)
+- [x] Message encryption (end-to-end)
 - [ ] File sharing support
 - [ ] Group chat features
 - [ ] Offline message storage
+
+## Original Projects
+
+This C++ implementation is based on the original Bitchat projects:
+
+- [Bitchat Android](https://github.com/permissionlesstech/bitchat-android) - Android implementation
+- [Bitchat iOS](https://github.com/permissionlesstech/bitchat) - Original project
