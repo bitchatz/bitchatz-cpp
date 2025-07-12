@@ -17,6 +17,7 @@ __pycache__
 Brewfile.lock.json
 .metals
 .ruff_cache
+.cache
 
 # node
 node_modules

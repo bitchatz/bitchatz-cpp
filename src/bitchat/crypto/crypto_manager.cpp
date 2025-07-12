@@ -7,6 +7,7 @@
 #include <iostream>
 #include <memory>
 #include <algorithm>
+#include <iomanip>
 
 namespace bitchat {
 
