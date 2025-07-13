@@ -1,6 +1,7 @@
 #include "platforms/linux/bluetooth.h"
 #include "bitchat/protocol/packet.h"
 #include "bitchat/protocol/packet_serializer.h"
+#include <algorithm>
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/hci.h>
 #include <bluetooth/hci_lib.h>
@@ -8,6 +9,7 @@
 #include <bluetooth/sdp.h>
 #include <bluetooth/sdp_lib.h>
 #include <chrono>
+#include <cstring>
 #include <iostream>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
@@ -22,6 +24,8 @@ LinuxBluetooth::LinuxBluetooth()
     , hciSocket(-1)
     , rfcommSocket(-1)
     , stopThreads(false)
+    , peerDisconnectedCallback(nullptr)
+    , packetReceivedCallback(nullptr)
 {
     deviceId = hci_get_route(nullptr);
     if (deviceId < 0)
@@ -116,18 +120,21 @@ bool LinuxBluetooth::sendPacket(const BitchatPacket &packet)
         return false;
     }
 
+    bool sentToAny = false;
     for (auto const &[key, val] : connectedSockets)
     {
         if (write(val, data.data(), data.size()) < 0)
         {
             spdlog::error("Failed to write to socket for peer {}: {}", key, strerror(errno));
-            return false;
+            // Don't return false here, try to send to other peers
+            continue;
         }
 
         spdlog::debug("Sent packet to peer: {}", key);
+        sentToAny = true;
     }
 
-    return true;
+    return sentToAny;
 }
 
 bool LinuxBluetooth::sendPacketToPeer(const BitchatPacket &packet, const std::string &peerId)
@@ -314,18 +321,79 @@ void LinuxBluetooth::readerThreadFunc(const std::string &deviceId, int socket)
 {
     char buf[4096];
     ssize_t bytesRead;
+    std::vector<uint8_t> accumulatedData;
+    PacketSerializer serializer;
+    const size_t maxPacketSize = 65536; // 64KB max packet size
 
     spdlog::info("Reader thread started for device: {}", deviceId);
 
     while ((bytesRead = read(socket, buf, sizeof(buf))) > 0)
     {
-        if (packetReceivedCallback)
+        // Add received data to accumulated buffer
+        accumulatedData.insert(accumulatedData.end(), buf, buf + bytesRead);
+
+        // Process complete packets from accumulated data
+        while (accumulatedData.size() >= 21) // Minimum packet size (header + senderID)
         {
-            std::vector<uint8_t> data(buf, buf + bytesRead);
-            PacketSerializer serializer;
-            BitchatPacket packet = serializer.deserializePacket(data);
-            packetReceivedCallback(packet);
-            spdlog::debug("Received packet from device: {}", deviceId);
+            // Read payload length from the packet header (offset 12-13)
+            uint16_t payloadLength = (accumulatedData[12] << 8) | accumulatedData[13];
+            uint8_t flags = accumulatedData[11]; // flags byte
+
+            // Calculate total expected packet size
+            size_t expectedSize = 21; // header + senderID
+            if (flags & FLAG_HAS_RECIPIENT)
+            {
+                expectedSize += 8; // recipientID
+            }
+            expectedSize += payloadLength; // payload
+            if (flags & FLAG_HAS_SIGNATURE)
+            {
+                expectedSize += 64; // signature
+            }
+
+            // Check for invalid or too large packets
+            if (expectedSize > maxPacketSize || payloadLength > maxPacketSize - 21)
+            {
+                spdlog::error("Invalid or too large packet from device: {} (size: {})", deviceId, expectedSize);
+                accumulatedData.clear();
+                break;
+            }
+
+            // Check if we have enough data for the complete packet
+            if (accumulatedData.size() < expectedSize)
+            {
+                // Not enough data for complete packet, wait for more
+                break;
+            }
+
+            // Try to deserialize the packet
+            try
+            {
+                BitchatPacket packet = serializer.deserializePacket(accumulatedData);
+
+                // Validate the packet
+                if (packet.version == 0 || packet.version > 1)
+                {
+                    spdlog::warn("Invalid packet version {} from device: {}", packet.version, deviceId);
+                    accumulatedData.erase(accumulatedData.begin());
+                    continue;
+                }
+
+                if (packetReceivedCallback)
+                {
+                    packetReceivedCallback(packet);
+                    spdlog::debug("Received packet from device: {}", deviceId);
+                }
+
+                // Remove the consumed packet from accumulated data
+                accumulatedData.erase(accumulatedData.begin(), accumulatedData.begin() + expectedSize);
+            }
+            catch (const std::exception &e)
+            {
+                spdlog::error("Failed to deserialize packet from device {}: {}", deviceId, e.what());
+                // Remove one byte and try again
+                accumulatedData.erase(accumulatedData.begin());
+            }
         }
     }
 
@@ -338,12 +406,14 @@ void LinuxBluetooth::readerThreadFunc(const std::string &deviceId, int socket)
         spdlog::error("Failed to read from device {}: {}", deviceId, strerror(errno));
     }
 
+    // Notify about disconnection
     if (peerDisconnectedCallback)
     {
         peerDisconnectedCallback(deviceId);
         spdlog::info("Peer disconnected callback invoked for device: {}", deviceId);
     }
 
+    // Clean up socket
     std::lock_guard<std::mutex> lock(socketsMutex);
     connectedSockets.erase(deviceId);
     close(socket);
