@@ -89,7 +89,7 @@ if(PLATFORM_APPLE)
     set(SOURCES ${SOURCES} src/platforms/apple/bluetooth.mm)
     set_source_files_properties(src/platforms/apple/bluetooth.mm PROPERTIES COMPILE_FLAGS "-x objective-c++")
 elseif(PLATFORM_LINUX)
-    set(SOURCES ${SOURCES} src/platforms/linux/bluetooth.cpp)  
+    set(SOURCES ${SOURCES} src/platforms/linux/bluetooth.cpp src/platforms/linux/bluetooth_factory.cpp)
 endif()
 
 # Create executable
@@ -114,7 +114,7 @@ if(PLATFORM_APPLE)
     # Only compile .mm files as Objective-C++, not the entire target
     # target_compile_options(bitchat PRIVATE -x objective-c++)
 elseif(PLATFORM_LINUX)
-    target_link_libraries(bitchat ${BLUEZ_LIBRARIES}) 
+    target_link_libraries(bitchat ${BLUEZ_LIBRARIES})
     target_include_directories(bitchat PRIVATE ${BLUEZ_INCLUDE_DIRS})
 endif()
 

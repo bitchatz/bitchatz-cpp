@@ -1,21 +1,25 @@
 #include "bitchat/compression/compression_manager.h"
 #include "lz4.h"
-#include <set>
 #include <algorithm>
+#include <set>
 
-namespace bitchat {
+namespace bitchat
+{
 
 CompressionManager::CompressionManager() = default;
 
-std::vector<uint8_t> CompressionManager::compressData(const std::vector<uint8_t>& data) {
+std::vector<uint8_t> CompressionManager::compressData(const std::vector<uint8_t> &data)
+{
     // Skip compression for small data
-    if (data.size() < COMPRESSION_THRESHOLD) {
+    if (data.size() < COMPRESSION_THRESHOLD)
+    {
         return data;
     }
 
     // Calculate maximum compressed size
     int maxCompressedSize = calculateCompressionBound(data.size());
-    if (maxCompressedSize <= 0) {
+    if (maxCompressedSize <= 0)
+    {
         return data; // Return original on error
     }
 
@@ -24,18 +28,19 @@ std::vector<uint8_t> CompressionManager::compressData(const std::vector<uint8_t>
 
     // Compress using LZ4
     int compressedSize = LZ4_compress_default(
-        reinterpret_cast<const char*>(data.data()),
-        reinterpret_cast<char*>(compressed.data()),
+        reinterpret_cast<const char *>(data.data()),
+        reinterpret_cast<char *>(compressed.data()),
         static_cast<int>(data.size()),
-        maxCompressedSize
-    );
+        maxCompressedSize);
 
-    if (compressedSize <= 0) {
+    if (compressedSize <= 0)
+    {
         return data; // Return original on error
     }
 
     // Only return compressed if it's actually smaller
-    if (compressedSize < static_cast<int>(data.size())) {
+    if (compressedSize < static_cast<int>(data.size()))
+    {
         compressed.resize(compressedSize);
         return compressed;
     }
@@ -43,24 +48,26 @@ std::vector<uint8_t> CompressionManager::compressData(const std::vector<uint8_t>
     return data; // Return original if compression didn't help
 }
 
-std::vector<uint8_t> CompressionManager::decompressData(const std::vector<uint8_t>& compressedData, 
-                                                       size_t originalSize) {
+std::vector<uint8_t> CompressionManager::decompressData(const std::vector<uint8_t> &compressedData,
+                                                        size_t originalSize)
+{
     // Allocate buffer for decompressed data
     std::vector<uint8_t> decompressed(originalSize);
 
     // Decompress using LZ4
     int decompressedSize = LZ4_decompress_safe(
-        reinterpret_cast<const char*>(compressedData.data()),
-        reinterpret_cast<char*>(decompressed.data()),
+        reinterpret_cast<const char *>(compressedData.data()),
+        reinterpret_cast<char *>(decompressed.data()),
         static_cast<int>(compressedData.size()),
-        static_cast<int>(originalSize)
-    );
+        static_cast<int>(originalSize));
 
-    if (decompressedSize <= 0) {
+    if (decompressedSize <= 0)
+    {
         return compressedData; // Return original on error
     }
 
-    if (decompressedSize != static_cast<int>(originalSize)) {
+    if (decompressedSize != static_cast<int>(originalSize))
+    {
         // Size mismatch, resize to actual size
         decompressed.resize(decompressedSize);
     }
@@ -68,9 +75,11 @@ std::vector<uint8_t> CompressionManager::decompressData(const std::vector<uint8_
     return decompressed;
 }
 
-bool CompressionManager::shouldCompress(const std::vector<uint8_t>& data) const {
+bool CompressionManager::shouldCompress(const std::vector<uint8_t> &data) const
+{
     // Don't compress if data is too small
-    if (data.size() < COMPRESSION_THRESHOLD) {
+    if (data.size() < COMPRESSION_THRESHOLD)
+    {
         return false;
     }
 
@@ -78,13 +87,14 @@ bool CompressionManager::shouldCompress(const std::vector<uint8_t>& data) const 
     std::set<uint8_t> uniqueBytes(data.begin(), data.end());
 
     // If we have very high byte diversity, data is likely already compressed
-    double uniqueByteRatio = static_cast<double>(uniqueBytes.size()) / 
+    double uniqueByteRatio = static_cast<double>(uniqueBytes.size()) /
                              std::min(data.size(), static_cast<size_t>(256));
     return uniqueByteRatio < 0.9; // Compress if less than 90% unique bytes
 }
 
-int CompressionManager::calculateCompressionBound(size_t dataSize) const {
+int CompressionManager::calculateCompressionBound(size_t dataSize) const
+{
     return LZ4_compressBound(static_cast<int>(dataSize));
 }
 
-} // namespace bitchat 
+} // namespace bitchat

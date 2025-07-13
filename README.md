@@ -56,7 +56,7 @@ bitchat-cpp/
 │   │   │   └── packet_serializer.h
 │   │   └── platform/          # Platform abstraction layer
 │   │       ├── bluetooth_interface.h
-│   │       └── bluetooth_bridge.h
+│   │       └── bluetooth_factory.h
 │   └── platforms/             # Platform-specific headers
 │       └── apple/             # macOS/iOS CoreBluetooth
 │           └── bluetooth.h

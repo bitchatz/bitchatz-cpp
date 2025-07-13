@@ -15,10 +15,10 @@ help:
 	@echo ""
 
 format:
-	find -E src/ -regex '.*\.(cpp|hpp|cc|cxx|c|h|m|mm)' -exec clang-format -style=file -i {} \;
+	find -E src/ include/ -regex '.*\.(cpp|hpp|cc|cxx|c|h|m|mm)' -exec clang-format -style=file -i {} \;
 
 windows-format:
-	powershell -Command "Get-ChildItem -Path src -Recurse -Include *.cpp,*.hpp,*.cc,*.cxx,*.c,*.h,*.m,*.mm | ForEach-Object { clang-format -style=file -i $$_.FullName }"
+	powershell -Command "Get-ChildItem -Path src,include -Recurse -Include *.cpp,*.hpp,*.cc,*.cxx,*.c,*.h,*.m,*.mm | ForEach-Object { clang-format -style=file -i $$_.FullName }"
 
 clean:
 	rm -rf build
@@ -27,7 +27,7 @@ clean:
 build:
 	rm -rf build
 	cmake -B build .
-	cmake --build build
+	cmake --build build -j$(or $(jobs),$(shell sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4))
 
 run:
 	./build/bin/bitchat
