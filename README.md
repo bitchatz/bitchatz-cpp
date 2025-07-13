@@ -127,7 +127,7 @@ make
 
 ```bash
 # Install dependencies
-sudo apt-get install cmake libssl-dev libbluetooth-dev
+sudo apt-get install cmake libssl-dev libbluetooth-dev libsigc++-3.0-dev libpopt-dev libdbus-1-dev pkg-config
 
 # Build
 mkdir build && cd build
@@ -137,6 +137,15 @@ make
 # Run
 ./bin/bitchat
 ```
+
+**Dependencies for Linux:**
+- `cmake` - Build system
+- `libssl-dev` - OpenSSL development libraries
+- `libbluetooth-dev` - BlueZ Bluetooth development libraries
+- `libsigc++-3.0-dev` - libsigc++ library (required by dbus-cxx)
+- `libpopt-dev` - POPT library (required by dbus-cxx)
+- `libdbus-1-dev` - D-Bus development libraries
+- `pkg-config` - Package configuration tool
 
 ### Windows
 

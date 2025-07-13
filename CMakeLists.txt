@@ -37,6 +37,7 @@ elseif(UNIX AND NOT APPLE)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(BLUEZ REQUIRED bluez)
     pkg_check_modules(DBUS REQUIRED dbus-1)
+    pkg_check_modules(SIGC REQUIRED sigc++-3.0)
 endif()
 
 # Add dependencies via CPM
@@ -64,6 +65,12 @@ endif()
 
 # Find OpenSSL
 find_package(OpenSSL REQUIRED)
+
+# Find Threads
+if(PLATFORM_LINUX)
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
+endif()
 
 # Include directories
 include_directories(
@@ -116,8 +123,34 @@ if(PLATFORM_APPLE)
     # Only compile .mm files as Objective-C++, not the entire target
     # target_compile_options(bitchat PRIVATE -x objective-c++)
 elseif(PLATFORM_LINUX)
-    target_link_libraries(bitchat ${BLUEZ_LIBRARIES} ${DBUS_LIBRARIES})
-    target_include_directories(bitchat PRIVATE ${BLUEZ_INCLUDE_DIRS} ${DBUS_INCLUDE_DIRS})
+    CPMAddPackage(
+        NAME dbus-cxx
+        GITHUB_REPOSITORY dbus-cxx/dbus-cxx
+        GIT_TAG 2.5.2
+        OPTIONS 
+            "BUILD_TESTING OFF"
+            "ENABLE_EXAMPLES OFF" 
+            "ENABLE_TESTS OFF"
+            "ENABLE_TOOLS OFF"
+            "ENABLE_GLIB_SUPPORT OFF"
+            "ENABLE_QT_SUPPORT OFF"
+            "ENABLE_UV_SUPPORT OFF"
+            "BUILD_SITE OFF"
+            "LINK_LIBRT OFF"
+    )
+
+    target_link_libraries(bitchat 
+        dbus-cxx
+        ${SIGC_LIBRARIES}
+        Threads::Threads
+        ${BLUEZ_LIBRARIES} 
+        ${DBUS_LIBRARIES}
+    )
+    target_include_directories(bitchat PRIVATE 
+        ${BLUEZ_INCLUDE_DIRS} 
+        ${DBUS_INCLUDE_DIRS}
+        ${SIGC_INCLUDE_DIRS}
+    )
 endif()
 
 # Compiler-specific flags
