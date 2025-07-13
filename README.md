@@ -43,7 +43,7 @@ Bitchat creates a decentralized mesh network where devices communicate directly 
 
 ```
 bitchat-cpp/
-├── include/                    # Public headers
+├── include/                   # Public headers
 │   ├── bitchat/               # Core library headers
 │   │   ├── core/              # Main application logic
 │   │   │   └── bitchat_manager.h
@@ -78,9 +78,7 @@ bitchat-cpp/
 ├── cmake/                     # CMake utilities
 │   └── CPM.cmake              # CPM dependency manager
 ├── main.cpp                   # Application entry point
-├── CMakeLists.txt            # Build configuration
-├── build.sh                  # Build script
-└── README.md                 # This file
+├── CMakeLists.txt             # Build configuration
 ```
 
 ## Key Components

@@ -16,7 +16,7 @@ void onMessageReceived(const bitchat::BitchatMessage& message) {
     char timebuf[10];
     std::tm* tinfo = std::localtime(&timestamp);
     std::strftime(timebuf, sizeof(timebuf), "%H:%M", tinfo);
-    
+
     // Display message
     spdlog::info("[{}] {}: {}", timebuf, message.sender, message.content);
 }
@@ -35,23 +35,23 @@ void onStatusUpdate(const std::string& status) {
 
 void showOnlinePeers() {
     if (!g_manager) return;
-    
+
     auto peers = g_manager->getOnlinePeers();
     spdlog::info("\nPeople online:");
-    
+
     time_t now = time(nullptr);
     bool found = false;
-    
+
     for (const auto& [peerId, peer] : peers) {
         // Show all peers that have been seen recently (within 3 minutes)
         if ((now - peer.lastSeen) < 180) {
             std::string peerInfo = "- " + peer.nick;
-            
+
             // Check if this is us (by comparing peer ID)
             if (peerId == g_manager->getPeerId()) {
                 peerInfo += " (you)";
             }
-            
+
             if (!peer.canal.empty()) {
                 peerInfo += " (channel: " + peer.canal + ")";
             }
@@ -62,7 +62,7 @@ void showOnlinePeers() {
             found = true;
         }
     }
-    
+
     if (!found) {
         spdlog::info("No one online at the moment.");
     }
@@ -82,9 +82,9 @@ void showHelp() {
 
 void clearScreen() {
 #ifdef _WIN32
-    system("cls");
+    (void)system("cls");
 #else
-    system("clear");
+    (void)system("clear");
 #endif
 }
 
@@ -94,34 +94,34 @@ int main() {
     auto logger = std::make_shared<spdlog::logger>("bitchat", console_sink);
     spdlog::set_default_logger(logger);
     spdlog::set_pattern("[%H:%M:%S] %v");
-    
+
     spdlog::info("=== Bitchat Terminal Client ===");
-    
+
     // Create and initialize manager
     g_manager = std::make_unique<bitchat::BitchatManager>();
-    
+
     // Set callbacks
     g_manager->setMessageCallback(onMessageReceived);
     g_manager->setPeerJoinedCallback(onPeerJoined);
     g_manager->setPeerLeftCallback(onPeerLeft);
     g_manager->setStatusCallback(onStatusUpdate);
-    
+
     // Initialize
     if (!g_manager->initialize()) {
         spdlog::error("Failed to initialize BitchatManager");
         return 1;
     }
-    
+
     // Start
     if (!g_manager->start()) {
         spdlog::error("Failed to start BitchatManager");
         return 1;
     }
-    
+
     spdlog::info("Connected! Type /help for commands.");
     spdlog::info("Peer ID: {}", g_manager->getPeerId());
     spdlog::info("Nickname: {}", g_manager->getNickname());
-    
+
     // Main command loop
     std::string line;
     while (true) {
@@ -162,15 +162,15 @@ int main() {
                 }
             }
         }
-        
+
         // Small delay to prevent busy waiting
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-    
+
     // Cleanup
     g_manager->stop();
     g_manager.reset();
-    
+
     spdlog::info("Disconnected.");
     return 0;
-} 
+}
