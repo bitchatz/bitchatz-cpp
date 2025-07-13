@@ -33,26 +33,50 @@ public:
     void setPacketReceivedCallback(PacketReceivedCallback callback) override;
     size_t getConnectedPeersCount() const override;
 
+    // GATT Service handling (public for static handler)
+    DBusHandlerResult handleGattMessage(DBusConnection *conn, DBusMessage *msg);
+
 private:
     // BLE Central (Scanner/Client) methods
     void scanThreadFunc();
-    void connectToDevice(const std::string &deviceAddress);
+    bool connectToDevice(const std::string &deviceAddress);
     void handleDeviceFound(const std::string &deviceAddress, const std::string &deviceName);
+    bool startBLEScanning();
+    bool stopBLEScanning();
+    void processDiscoveredDevices();
+    bool deviceAdvertisesService(const char *devicePath);
+    std::string getDeviceAddress(const char *devicePath);
+    std::string getDeviceName(const char *devicePath);
+    std::string findDevicePath(const std::string &deviceAddress);
 
     // BLE Peripheral (Advertiser/Server) methods
     void advertiseThreadFunc();
-    void setupGattService();
-    void startAdvertising();
+    bool setupGattService();
+    bool startAdvertising();
     void stopAdvertising();
+    bool createGattCharacteristic();
 
     // GATT Service handling
+    bool registerGattApplication();
+    bool createGattApplicationObject();
+    DBusHandlerResult handleGattGetProperty(DBusConnection *conn, DBusMessage *msg);
+    DBusHandlerResult handleGattGetAllProperties(DBusConnection *conn, DBusMessage *msg);
+    DBusHandlerResult handleGattGetManagedObjects(DBusConnection *conn, DBusMessage *msg);
+    DBusHandlerResult handleGattReadValue(DBusConnection *conn, DBusMessage *msg);
+    DBusHandlerResult handleGattWriteValue(DBusConnection *conn, DBusMessage *msg);
+    DBusHandlerResult handleGattStartNotify(DBusConnection *conn, DBusMessage *msg);
+    DBusHandlerResult handleGattStopNotify(DBusConnection *conn, DBusMessage *msg);
     void handleWriteRequest(const std::string &deviceAddress, const std::vector<uint8_t> &data);
     void handleReadRequest(const std::string &deviceAddress);
     void notifySubscribers(const std::vector<uint8_t> &data);
+    bool writeCharacteristicValue(const std::string &deviceAddress, const std::vector<uint8_t> &data);
+    std::string findCharacteristicPath(const std::string &devicePath);
+    std::string getCharacteristicUUID(const char *charPath);
 
     // DBus communication
     bool initDbus();
     void cleanupDbus();
+    bool findBluetoothAdapter();
     bool sendDbusMessage(const std::string &path, const std::string &interface,
                          const std::string &method, DBusMessageIter *args = nullptr);
     bool getDbusProperty(const std::string &path, const std::string &interface,
@@ -92,6 +116,7 @@ private:
     std::string adapterPath;
     std::string servicePath;
     std::string characteristicPath;
+    std::string gattApplicationPath;
 
     // Service UUIDs from constants
     static const std::string SERVICE_UUID;

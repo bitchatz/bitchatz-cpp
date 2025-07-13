@@ -82,9 +82,13 @@ void showHelp() {
 
 void clearScreen() {
 #ifdef _WIN32
-    (void)system("cls");
+    if (system("cls") != 0) {
+        // Ignore system call failure
+    }
 #else
-    (void)system("clear");
+    if (system("clear") != 0) {
+        // Ignore system call failure
+    }
 #endif
 }
 

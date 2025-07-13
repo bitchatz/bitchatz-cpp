@@ -36,6 +36,7 @@ elseif(UNIX AND NOT APPLE)
     set(PLATFORM_LINUX TRUE)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(BLUEZ REQUIRED bluez)
+    pkg_check_modules(DBUS REQUIRED dbus-1)
 endif()
 
 # Add dependencies via CPM
@@ -115,8 +116,8 @@ if(PLATFORM_APPLE)
     # Only compile .mm files as Objective-C++, not the entire target
     # target_compile_options(bitchat PRIVATE -x objective-c++)
 elseif(PLATFORM_LINUX)
-    target_link_libraries(bitchat ${BLUEZ_LIBRARIES})
-    target_include_directories(bitchat PRIVATE ${BLUEZ_INCLUDE_DIRS})
+    target_link_libraries(bitchat ${BLUEZ_LIBRARIES} ${DBUS_LIBRARIES})
+    target_include_directories(bitchat PRIVATE ${BLUEZ_INCLUDE_DIRS} ${DBUS_INCLUDE_DIRS})
 endif()
 
 # Compiler-specific flags
