@@ -123,5 +123,6 @@ private:
 
 // Factory function for creating platform-specific Bluetooth interface
 std::unique_ptr<BluetoothInterface> createAppleBluetoothBridge();
+std::unique_ptr<BluetoothInterface> createLinuxBluetoothBridge();
 
 } // namespace bitchat

@@ -38,25 +38,22 @@ bool BitchatManager::initialize() {
     }
 
     // Create Bluetooth interface
-#if __APPLE__
     try {
-        auto bluetooth = createAppleBluetoothBridge();
-    } catch (const std::exception& e) {
-        std::cerr << "Failed to create Bluetooth interface: " << e.what() << std::endl;
-        return false;
-    }
+#if __APPLE__
+        bluetooth = createAppleBluetoothBridge();
 #elif _WIN32 || _WIN64
-    // TODO: Initialize Windows Bluetooth interface
-    std::cerr << "Bluetooth not implemented for Windows platform" << std::endl;
-    return false;
+        // TODO: Initialize Windows Bluetooth interface
+        throw std::runtime_error("Windows Bluetooth interface not implemented");
 #elif __linux__
-    // TODO: Initialize Linux/Unix Bluetooth interface
-    std::cerr << "Bluetooth not implemented for Unix/Linux platform" << std::endl;
-    return false;
+        bluetooth = createLinuxBluetoothBridge();
 #else
-    std::cerr << "Unsupported platform for Bluetooth interface" << std::endl;
-    return false;
+        std::cerr << "Unsupported platform for Bluetooth interface" << std::endl;
+        throw std::runtime_error("Unsupported platform for Bluetooth interface");
 #endif
+    } catch (const std::exception& e) {
+    std::cerr << "Failed to create Bluetooth interface: " << e.what() << std::endl;
+    return false;
+    }
 
     // Set Bluetooth callbacks
     bluetooth->setPeerDisconnectedCallback([this](const std::string& peerId) {
