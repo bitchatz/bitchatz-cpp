@@ -1,4 +1,5 @@
 #import "platforms/apple/bluetooth.h"
+#include "bitchat/core/constants.h"
 #include "bitchat/platform/bluetooth_interface.h"
 #include "bitchat/protocol/packet_serializer.h"
 #include <memory>
@@ -163,9 +164,9 @@ std::unique_ptr<BluetoothInterface> createBluetoothInterface()
 // Objective-C Implementation - PURE BLE ONLY
 // ============================================================================
 
-// Constants
-static NSString *const SERVICE_UUID = @"F47B5E2D-4A9E-4C5A-9B3F-8E1D2C3A4B5C";
-static NSString *const CHARACTERISTIC_UUID = @"A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D";
+// Platform-specific constants (using C++ constants)
+static NSString *const SERVICE_UUID = @(bitchat::constants::BLE_SERVICE_UUID.c_str());
+static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTERISTIC_UUID.c_str());
 
 @implementation AppleBluetooth
 {
@@ -225,7 +226,7 @@ static NSString *const CHARACTERISTIC_UUID = @"A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4
            self.peripheralManager.state != CBManagerStatePoweredOn)
     {
         [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
-                                 beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.1]];
+                                 beforeDate:[NSDate dateWithTimeIntervalSinceNow:bitchat::constants::BLE_SCAN_INTERVAL_SECONDS]];
     }
 
     self.ready = YES;
@@ -334,7 +335,7 @@ static NSString *const CHARACTERISTIC_UUID = @"A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4
         // Simple random ID generation (8 hex characters)
         NSMutableString *peerId = [NSMutableString string];
 
-        for (int i = 0; i < 8; i++)
+        for (size_t i = 0; i < bitchat::constants::BLE_PEER_ID_LENGTH_CHARS; i++)
         {
             [peerId appendFormat:@"%02x", arc4random_uniform(256)];
         }
@@ -437,7 +438,7 @@ static NSString *const CHARACTERISTIC_UUID = @"A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4
 {
     for (CBATTRequest *request in requests)
     {
-        if (request.value && request.value.length >= 21)
+        if (request.value && request.value.length >= bitchat::constants::BLE_MIN_PACKET_SIZE_BYTES)
         {
             // PURE BLE: Just forward the raw packet data to C++
             if (self.packetReceivedCallback)
@@ -516,7 +517,7 @@ static NSString *const CHARACTERISTIC_UUID = @"A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4
 {
     NSData *data = characteristic.value;
 
-    if (!data || data.length < 21)
+    if (!data || data.length < bitchat::constants::BLE_MIN_PACKET_SIZE_BYTES)
     {
         return;
     }
