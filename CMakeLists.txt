@@ -86,8 +86,9 @@ set(SOURCES
 
 # Platform-specific source files
 if(PLATFORM_APPLE)
-    set(SOURCES ${SOURCES} src/platforms/apple/bluetooth.mm)
+    set(SOURCES ${SOURCES} src/platforms/apple/bluetooth.mm src/platforms/apple/bluetooth_bridge.mm)
     set_source_files_properties(src/platforms/apple/bluetooth.mm PROPERTIES COMPILE_FLAGS "-x objective-c++")
+    set_source_files_properties(src/platforms/apple/bluetooth_bridge.mm PROPERTIES COMPILE_FLAGS "-x objective-c++")
 elseif(PLATFORM_LINUX)
     set(SOURCES ${SOURCES} src/platforms/linux/bluetooth.cpp src/platforms/linux/bluetooth_factory.cpp)
 endif()

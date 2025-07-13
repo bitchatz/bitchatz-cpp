@@ -2,12 +2,12 @@
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
-#include <iostream>
 #include <memory>
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include <openssl/rand.h>
+#include <spdlog/spdlog.h>
 
 namespace bitchat
 {
@@ -69,20 +69,20 @@ bool CryptoManager::generateOrLoadKeyPair(const std::string &keyFile)
     EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_ED25519, nullptr);
     if (!ctx)
     {
-        std::cerr << "Error creating Ed25519 key context" << std::endl;
+        spdlog::error("Error creating Ed25519 key context");
         return false;
     }
 
     if (EVP_PKEY_keygen_init(ctx) <= 0)
     {
-        std::cerr << "Error initializing key generation" << std::endl;
+        spdlog::error("Error initializing key generation");
         EVP_PKEY_CTX_free(ctx);
         return false;
     }
 
     if (EVP_PKEY_keygen(ctx, &signingPrivateKey) <= 0)
     {
-        std::cerr << "Error generating private key" << std::endl;
+        spdlog::error("Error generating private key");
         EVP_PKEY_CTX_free(ctx);
         return false;
     }
@@ -101,21 +101,21 @@ std::vector<uint8_t> CryptoManager::signData(const std::vector<uint8_t> &data)
 
     if (!signingPrivateKey)
     {
-        std::cerr << "Private key not available for signing" << std::endl;
+        spdlog::error("Private key not available for signing");
         return std::vector<uint8_t>();
     }
 
     EVP_MD_CTX *ctx = EVP_MD_CTX_new();
     if (!ctx)
     {
-        std::cerr << "Error creating signature context" << std::endl;
+        spdlog::error("Error creating signature context");
         return std::vector<uint8_t>();
     }
 
     size_t sigLen = 0;
     if (EVP_DigestSignInit(ctx, nullptr, nullptr, nullptr, signingPrivateKey) <= 0)
     {
-        std::cerr << "Error initializing signature" << std::endl;
+        spdlog::error("Error initializing signature");
         EVP_MD_CTX_free(ctx);
         return std::vector<uint8_t>();
     }
@@ -123,7 +123,7 @@ std::vector<uint8_t> CryptoManager::signData(const std::vector<uint8_t> &data)
     // Calculate signature size
     if (EVP_DigestSign(ctx, nullptr, &sigLen, data.data(), data.size()) <= 0)
     {
-        std::cerr << "Error calculating signature size" << std::endl;
+        spdlog::error("Error calculating signature size");
         EVP_MD_CTX_free(ctx);
         return std::vector<uint8_t>();
     }
@@ -132,7 +132,7 @@ std::vector<uint8_t> CryptoManager::signData(const std::vector<uint8_t> &data)
     std::vector<uint8_t> signature(sigLen);
     if (EVP_DigestSign(ctx, signature.data(), &sigLen, data.data(), data.size()) <= 0)
     {
-        std::cerr << "Error creating signature" << std::endl;
+        spdlog::error("Error creating signature");
         EVP_MD_CTX_free(ctx);
         return std::vector<uint8_t>();
     }
@@ -165,13 +165,13 @@ bool CryptoManager::verifySignature(const std::vector<uint8_t> &data,
     EVP_MD_CTX *ctx = EVP_MD_CTX_new();
     if (!ctx)
     {
-        std::cerr << "Error creating verification context" << std::endl;
+        spdlog::error("Error creating verification context");
         return false;
     }
 
     if (EVP_DigestVerifyInit(ctx, nullptr, nullptr, nullptr, peerKey) <= 0)
     {
-        std::cerr << "Error initializing verification" << std::endl;
+        spdlog::error("Error initializing verification");
         EVP_MD_CTX_free(ctx);
         return false;
     }
@@ -187,7 +187,7 @@ bool CryptoManager::addPeerPublicKey(const std::string &peerId, const std::vecto
 {
     if (combinedKeyData.size() != 96)
     {
-        std::cerr << "Invalid combined key data size: " << combinedKeyData.size() << " (expected 96)" << std::endl;
+        spdlog::error("Invalid combined key data size: {} (expected 96)", combinedKeyData.size());
         return false;
     }
 

@@ -2,7 +2,7 @@
 #include "bitchat/compression/compression_manager.h"
 #include "bitchat/crypto/crypto_manager.h"
 #include <algorithm>
-#include <iostream>
+#include <spdlog/spdlog.h>
 
 namespace bitchat
 {
@@ -88,7 +88,7 @@ BitchatPacket PacketSerializer::deserializePacket(const std::vector<uint8_t> &da
     // Verify minimum size: headerSize (13) + senderIDSize (8) = 21 bytes
     if (data.size() < 21)
     {
-        std::cerr << "ERROR: Packet too short: " << data.size() << " bytes (minimum 21)" << std::endl;
+        spdlog::error("Packet too short: {} bytes (minimum 21)", data.size());
         return packet;
     }
 
@@ -119,8 +119,7 @@ BitchatPacket PacketSerializer::deserializePacket(const std::vector<uint8_t> &da
 
     if (!validatePacketSize(data, expectedSize))
     {
-        std::cerr << "ERROR: Packet size mismatch. Expected: " << expectedSize
-                  << ", got: " << data.size() << std::endl;
+        spdlog::error("Packet size mismatch. Expected: {}, got: {}", expectedSize, data.size());
         return packet;
     }
 
@@ -141,7 +140,7 @@ BitchatPacket PacketSerializer::deserializePacket(const std::vector<uint8_t> &da
         // First 2 bytes are original size
         if (packet.payloadLength < 2)
         {
-            std::cerr << "ERROR: Compressed payload too small for size header" << std::endl;
+            spdlog::error("Compressed payload too small for size header");
             return packet;
         }
 
@@ -198,6 +197,7 @@ std::vector<uint8_t> PacketSerializer::makeMessagePayload(const BitchatMessage &
         flags |= 0x40;
     if (message.isEncrypted)
         flags |= 0x80;
+
     writeUint8(data, flags);
 
     // Timestamp (8 bytes, milliseconds)
@@ -275,7 +275,7 @@ BitchatMessage PacketSerializer::parseMessagePayload(const std::vector<uint8_t> 
     // Minimum size: flags(1) + timestamp(8) + id_len(1) + sender_len(1) + content_len(2) = 13 bytes
     if (payload.size() < 13)
     {
-        std::cerr << "ERROR: Payload too small: " << payload.size() << " < 13" << std::endl;
+        spdlog::error("Payload too small: {} < 13", payload.size());
         return message;
     }
 
@@ -299,7 +299,7 @@ BitchatMessage PacketSerializer::parseMessagePayload(const std::vector<uint8_t> 
     // Message ID (variable length)
     if (offset + idLen > payload.size())
     {
-        std::cerr << "ERROR: Buffer overflow reading ID data" << std::endl;
+        spdlog::error("Buffer overflow reading ID data");
         return message;
     }
     message.id = std::string(payload.begin() + offset, payload.begin() + offset + idLen);
@@ -311,7 +311,7 @@ BitchatMessage PacketSerializer::parseMessagePayload(const std::vector<uint8_t> 
     // Sender (variable length)
     if (offset + senderLen > payload.size())
     {
-        std::cerr << "ERROR: Buffer overflow reading sender data" << std::endl;
+        spdlog::error("Buffer overflow reading sender data");
         return message;
     }
     message.sender = std::string(payload.begin() + offset, payload.begin() + offset + senderLen);
@@ -323,7 +323,7 @@ BitchatMessage PacketSerializer::parseMessagePayload(const std::vector<uint8_t> 
     // Content (variable length)
     if (offset + contentLen > payload.size())
     {
-        std::cerr << "ERROR: Buffer overflow reading content data" << std::endl;
+        spdlog::error("Buffer overflow reading content data");
         return message;
     }
 

@@ -3,7 +3,7 @@
 #include <chrono>
 #include <ctime>
 #include <fstream>
-#include <iostream>
+#include <spdlog/spdlog.h>
 
 namespace bitchat
 {
@@ -33,13 +33,13 @@ bool BitchatManager::initialize()
     // Initialize crypto
     if (!cryptoManager->initialize())
     {
-        std::cerr << "Failed to initialize crypto manager" << std::endl;
+        spdlog::error("Failed to initialize crypto manager");
         return false;
     }
 
     if (!cryptoManager->generateOrLoadKeyPair())
     {
-        std::cerr << "Failed to generate or load key pair" << std::endl;
+        spdlog::error("Failed to generate or load key pair");
         return false;
     }
 
@@ -54,7 +54,7 @@ bool BitchatManager::initialize()
     }
     catch (const std::exception &e)
     {
-        std::cerr << "Failed to create Bluetooth interface: " << e.what() << std::endl;
+        spdlog::error("Failed to create Bluetooth interface: {}", e.what());
         return false;
     }
 
@@ -72,21 +72,21 @@ bool BitchatManager::start()
 {
     if (!bluetooth)
     {
-        std::cerr << "Bluetooth interface not initialized" << std::endl;
+        spdlog::error("Bluetooth interface not initialized");
         return false;
     }
 
     // Initialize Bluetooth
     if (!bluetooth->initialize())
     {
-        std::cerr << "Failed to initialize Bluetooth" << std::endl;
+        spdlog::error("Failed to initialize Bluetooth");
         return false;
     }
 
     // Start Bluetooth
     if (!bluetooth->start())
     {
-        std::cerr << "Failed to start Bluetooth" << std::endl;
+        spdlog::error("Failed to start Bluetooth");
         return false;
     }
 
@@ -154,7 +154,7 @@ bool BitchatManager::sendMessage(const std::string &content)
     auto signature = cryptoManager->signData(payload);
     if (signature.empty())
     {
-        std::cerr << "Failed to sign message" << std::endl;
+        spdlog::error("Failed to sign message");
         return false;
     }
     packet.signature = signature;
@@ -162,7 +162,7 @@ bool BitchatManager::sendMessage(const std::string &content)
     // Send packet
     if (!bluetooth->sendPacket(packet))
     {
-        std::cerr << "Failed to send message packet" << std::endl;
+        spdlog::error("Failed to send message packet");
         return false;
     }
 
