@@ -1,10 +1,11 @@
 #pragma once
 
 #include <cstdint>
-#include <vector>
 #include <string>
+#include <vector>
 
-namespace bitchat {
+namespace bitchat
+{
 
 // Packet type constants
 constexpr uint8_t PKT_VERSION = 1;
@@ -30,7 +31,8 @@ constexpr uint8_t FLAG_IS_COMPRESSED = 0x04;
 constexpr uint8_t PKT_TTL = 7;
 
 // BitchatPacket: represents a protocol packet sent via Bluetooth
-struct BitchatPacket {
+struct BitchatPacket
+{
     uint8_t version = PKT_VERSION;
     uint8_t type = 0;
     uint8_t ttl = PKT_TTL;
@@ -46,7 +48,8 @@ struct BitchatPacket {
 };
 
 // BitchatMessage: represents a chat message
-struct BitchatMessage {
+struct BitchatMessage
+{
     std::string id;
     std::string sender;
     std::string content;
@@ -65,7 +68,8 @@ struct BitchatMessage {
 };
 
 // OnlinePeer: represents an online peer in the network
-struct OnlinePeer {
+struct OnlinePeer
+{
     std::string nick;
     std::string canal;
     std::vector<uint8_t> peerid;
@@ -79,13 +83,13 @@ struct OnlinePeer {
 
 // Utility functions
 std::string packetTypeToString(uint8_t type);
-std::string toHex(const std::vector<uint8_t>& data);
-std::string toHexCompact(const std::vector<uint8_t>& data);
-std::vector<uint8_t> stringToVector(const std::string& str);
-std::string vectorToString(const std::vector<uint8_t>& vec);
-std::string normalizePeerId(const std::string& peerId);
+std::string toHex(const std::vector<uint8_t> &data);
+std::string toHexCompact(const std::vector<uint8_t> &data);
+std::vector<uint8_t> stringToVector(const std::string &str);
+std::string vectorToString(const std::vector<uint8_t> &vec);
+std::string normalizePeerId(const std::string &peerId);
 std::string randomPeerId();
 std::string uuidv4();
 std::string randomNickname();
 
-} // namespace bitchat 
+} // namespace bitchat

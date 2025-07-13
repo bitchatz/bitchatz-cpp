@@ -7,7 +7,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 // Global manager instance
-std::unique_ptr<bitchat::BitchatManager> g_manager;
+std::unique_ptr<bitchat::BitchatManager> manager;
 
 // Callback functions for UI updates
 void onMessageReceived(const bitchat::BitchatMessage& message) {
@@ -16,7 +16,7 @@ void onMessageReceived(const bitchat::BitchatMessage& message) {
     char timebuf[10];
     std::tm* tinfo = std::localtime(&timestamp);
     std::strftime(timebuf, sizeof(timebuf), "%H:%M", tinfo);
-    
+
     // Display message
     spdlog::info("[{}] {}: {}", timebuf, message.sender, message.content);
 }
@@ -34,24 +34,24 @@ void onStatusUpdate(const std::string& status) {
 }
 
 void showOnlinePeers() {
-    if (!g_manager) return;
-    
-    auto peers = g_manager->getOnlinePeers();
+    if (!manager) return;
+
+    auto peers = manager->getOnlinePeers();
     spdlog::info("\nPeople online:");
-    
+
     time_t now = time(nullptr);
     bool found = false;
-    
+
     for (const auto& [peerId, peer] : peers) {
         // Show all peers that have been seen recently (within 3 minutes)
         if ((now - peer.lastSeen) < 180) {
             std::string peerInfo = "- " + peer.nick;
-            
+
             // Check if this is us (by comparing peer ID)
-            if (peerId == g_manager->getPeerId()) {
+            if (peerId == manager->getPeerId()) {
                 peerInfo += " (you)";
             }
-            
+
             if (!peer.canal.empty()) {
                 peerInfo += " (channel: " + peer.canal + ")";
             }
@@ -62,7 +62,7 @@ void showOnlinePeers() {
             found = true;
         }
     }
-    
+
     if (!found) {
         spdlog::info("No one online at the moment.");
     }
@@ -82,9 +82,9 @@ void showHelp() {
 
 void clearScreen() {
 #ifdef _WIN32
-    system("cls");
+    (void)system("cls");
 #else
-    system("clear");
+    (void)system("clear");
 #endif
 }
 
@@ -94,34 +94,34 @@ int main() {
     auto logger = std::make_shared<spdlog::logger>("bitchat", console_sink);
     spdlog::set_default_logger(logger);
     spdlog::set_pattern("[%H:%M:%S] %v");
-    
+
     spdlog::info("=== Bitchat Terminal Client ===");
-    
+
     // Create and initialize manager
-    g_manager = std::make_unique<bitchat::BitchatManager>();
-    
+    manager = std::make_unique<bitchat::BitchatManager>();
+
     // Set callbacks
-    g_manager->setMessageCallback(onMessageReceived);
-    g_manager->setPeerJoinedCallback(onPeerJoined);
-    g_manager->setPeerLeftCallback(onPeerLeft);
-    g_manager->setStatusCallback(onStatusUpdate);
-    
+    manager->setMessageCallback(onMessageReceived);
+    manager->setPeerJoinedCallback(onPeerJoined);
+    manager->setPeerLeftCallback(onPeerLeft);
+    manager->setStatusCallback(onStatusUpdate);
+
     // Initialize
-    if (!g_manager->initialize()) {
+    if (!manager->initialize()) {
         spdlog::error("Failed to initialize BitchatManager");
         return 1;
     }
-    
+
     // Start
-    if (!g_manager->start()) {
+    if (!manager->start()) {
         spdlog::error("Failed to start BitchatManager");
         return 1;
     }
-    
+
     spdlog::info("Connected! Type /help for commands.");
-    spdlog::info("Peer ID: {}", g_manager->getPeerId());
-    spdlog::info("Nickname: {}", g_manager->getNickname());
-    
+    spdlog::info("Peer ID: {}", manager->getPeerId());
+    spdlog::info("Nickname: {}", manager->getNickname());
+
     // Main command loop
     std::string line;
     while (true) {
@@ -132,14 +132,14 @@ int main() {
                 showHelp();
             } else if (line.rfind("/j ", 0) == 0) {
                 std::string channel = line.substr(3);
-                g_manager->joinChannel(channel);
+                manager->joinChannel(channel);
                 spdlog::info("Joined channel: {}", channel);
             } else if (line == "/j") {
-                g_manager->joinChannel("#general");
+                manager->joinChannel("#general");
                 spdlog::info("Joined general chat");
             } else if (line.rfind("/nick ", 0) == 0) {
                 std::string nickname = line.substr(6);
-                g_manager->setNickname(nickname);
+                manager->setNickname(nickname);
                 spdlog::info("Nickname changed to: {}", nickname);
             } else if (line == "/w") {
                 showOnlinePeers();
@@ -151,7 +151,7 @@ int main() {
                 spdlog::warn("Unknown command. Type /help for available commands.");
             } else {
                 // Send message
-                if (g_manager->sendMessage(line)) {
+                if (manager->sendMessage(line)) {
                     time_t now = time(nullptr);
                     char timebuf[10];
                     std::tm* tinfo = std::localtime(&now);
@@ -162,15 +162,15 @@ int main() {
                 }
             }
         }
-        
+
         // Small delay to prevent busy waiting
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-    
+
     // Cleanup
-    g_manager->stop();
-    g_manager.reset();
-    
+    manager->stop();
+    manager.reset();
+
     spdlog::info("Disconnected.");
     return 0;
-} 
+}

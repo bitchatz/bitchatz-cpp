@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 3.20)
 project(bitchat)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -86,10 +86,11 @@ set(SOURCES
 
 # Platform-specific source files
 if(PLATFORM_APPLE)
-    set(SOURCES ${SOURCES} src/platforms/apple/bluetooth.mm)
+    set(SOURCES ${SOURCES} src/platforms/apple/bluetooth.mm src/platforms/apple/bluetooth_bridge.mm)
     set_source_files_properties(src/platforms/apple/bluetooth.mm PROPERTIES COMPILE_FLAGS "-x objective-c++")
+    set_source_files_properties(src/platforms/apple/bluetooth_bridge.mm PROPERTIES COMPILE_FLAGS "-x objective-c++")
 elseif(PLATFORM_LINUX)
-    set(SOURCES ${SOURCES} src/platforms/linux/bluetooth.cpp)  
+    set(SOURCES ${SOURCES} src/platforms/linux/bluetooth.cpp src/platforms/linux/bluetooth_factory.cpp)
 endif()
 
 # Create executable
@@ -114,7 +115,7 @@ if(PLATFORM_APPLE)
     # Only compile .mm files as Objective-C++, not the entire target
     # target_compile_options(bitchat PRIVATE -x objective-c++)
 elseif(PLATFORM_LINUX)
-    target_link_libraries(bitchat ${BLUEZ_LIBRARIES}) 
+    target_link_libraries(bitchat ${BLUEZ_LIBRARIES})
     target_include_directories(bitchat PRIVATE ${BLUEZ_INCLUDE_DIRS})
 endif()
 
