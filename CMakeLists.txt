@@ -36,8 +36,6 @@ elseif(UNIX AND NOT APPLE)
     set(PLATFORM_LINUX TRUE)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(BLUEZ REQUIRED bluez)
-    pkg_check_modules(DBUS REQUIRED dbus-1)
-    pkg_check_modules(SIGC REQUIRED sigc++-3.0)
 endif()
 
 # Add dependencies via CPM
@@ -61,6 +59,28 @@ CPMAddPackage(
 
 if (lz4_ADDED)
     add_subdirectory(${lz4_SOURCE_DIR}/build/cmake lz4_build)
+endif()
+
+if(PLATFORM_LINUX)
+    CPMAddPackage(
+        NAME sdbus-cpp
+        GITHUB_REPOSITORY Kistler-Group/sdbus-cpp
+        GIT_TAG "7fbfcec455a2af6efe3910baa3089ecba48a9d6d"
+        OPTIONS
+            "SDBUSCPP_BUILD_LIBSYSTEMD OFF"
+            "SDBUSCPP_BUILD_TESTS OFF"
+            "SDBUSCPP_BUILD_CODEGEN OFF"
+            "SDBUSCPP_BUILD_EXAMPLES OFF"
+            "SDBUSCPP_BUILD_DOCS OFF"
+            "SDBUSCPP_INSTALL OFF"
+            "SDBUSCPP_SDBUS_LIB default"
+    )
+
+    CPMAddPackage(
+        NAME bluez-dbus-cpp
+        GITHUB_REPOSITORY weareaudiofile/bluez-dbus-cpp
+        GIT_TAG "257f0a84b49175f3ac21d3f81a38d8a0c6e8e986"
+    )
 endif()
 
 # Find OpenSSL
@@ -120,36 +140,17 @@ if(PLATFORM_APPLE)
         ${FRAMEWORK_IOKIT}
         ${FRAMEWORK_COREFOUNDATION}
     )
-    # Only compile .mm files as Objective-C++, not the entire target
-    # target_compile_options(bitchat PRIVATE -x objective-c++)
 elseif(PLATFORM_LINUX)
-    CPMAddPackage(
-        NAME dbus-cxx
-        GITHUB_REPOSITORY dbus-cxx/dbus-cxx
-        GIT_TAG 2.5.2
-        OPTIONS 
-            "BUILD_TESTING OFF"
-            "ENABLE_EXAMPLES OFF" 
-            "ENABLE_TESTS OFF"
-            "ENABLE_TOOLS OFF"
-            "ENABLE_GLIB_SUPPORT OFF"
-            "ENABLE_QT_SUPPORT OFF"
-            "ENABLE_UV_SUPPORT OFF"
-            "BUILD_SITE OFF"
-            "LINK_LIBRT OFF"
-    )
-
-    target_link_libraries(bitchat 
-        dbus-cxx
-        ${SIGC_LIBRARIES}
+    target_link_libraries(bitchat
+        bluez-dbus-cpp
+        sdbus-c++
         Threads::Threads
-        ${BLUEZ_LIBRARIES} 
-        ${DBUS_LIBRARIES}
+        ${BLUEZ_LIBRARIES}
     )
-    target_include_directories(bitchat PRIVATE 
-        ${BLUEZ_INCLUDE_DIRS} 
-        ${DBUS_INCLUDE_DIRS}
-        ${SIGC_INCLUDE_DIRS}
+    target_include_directories(bitchat PRIVATE
+        ${BLUEZ_INCLUDE_DIRS}
+        ${bluez-dbus-cpp_SOURCE_DIR}/include
+        ${sdbus-cpp_SOURCE_DIR}/src
     )
 endif()
 
