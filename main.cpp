@@ -82,9 +82,9 @@ void showHelp() {
 
 void clearScreen() {
 #ifdef _WIN32
-    (void)system("cls");
+    [[maybe_unused]] auto ignored = system("clear");
 #else
-    (void)system("clear");
+    std::cout << "\033[2J\033[H"; //student.cs.uwaterloo.ca/~cs452/terminal.html
 #endif
 }
 
