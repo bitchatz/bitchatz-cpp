@@ -126,8 +126,27 @@ make
 ### Linux
 
 ```bash
-# Install dependencies
-sudo apt-get install cmake libssl-dev libbluetooth-dev libsigc++-3.0-dev libpopt-dev libdbus-1-dev libsystemd-dev pkg-config
+# Install system dependencies
+sudo apt-get install cmake libssl-dev libbluetooth-dev libsigc++-3.0-dev libpopt-dev libdbus-1-dev libsystemd-dev pkg-config git build-essential
+
+# Install sdbus-cpp library
+git clone https://github.com/Kistler-Group/sdbus-cpp.git
+cd sdbus-cpp
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make -j$(nproc)
+sudo make install
+
+# Install bluez-dbus-cpp library
+git clone https://github.com/weareaudiofile/bluez-dbus-cpp.git
+cd bluez-dbus-cpp
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make -j$(nproc)
+sudo make install
+
+# Update library cache
+sudo ldconfig
 
 # Build
 mkdir build && cd build

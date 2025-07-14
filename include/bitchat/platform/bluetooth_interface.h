@@ -12,11 +12,11 @@ namespace bitchat
 struct BitchatPacket;
 struct BitchatMessage;
 
-// Callback types for Bluetooth transport events - PURE TRANSPORT ONLY
+// Callback types for Bluetooth transport events
 using PeerDisconnectedCallback = std::function<void(const std::string &peerId)>;
 using PacketReceivedCallback = std::function<void(const BitchatPacket &packet)>;
 
-// Abstract Bluetooth interface that platforms must implement - PURE TRANSPORT ONLY
+// Abstract Bluetooth interface that platforms must implement
 // This interface handles only BLE transport, all business logic is in BitchatManager
 class BluetoothInterface
 {
@@ -32,10 +32,10 @@ public:
     // Stop all Bluetooth operations
     virtual void stop() = 0;
 
-    // Send packet to all connected peers - PURE TRANSPORT
+    // Send packet to all connected peers
     virtual bool sendPacket(const BitchatPacket &packet) = 0;
 
-    // Send packet to specific peer - PURE TRANSPORT
+    // Send packet to specific peer
     virtual bool sendPacketToPeer(const BitchatPacket &packet, const std::string &peerId) = 0;
 
     // Check if Bluetooth is ready
@@ -44,7 +44,7 @@ public:
     // Get local peer ID
     virtual std::string getLocalPeerId() const = 0;
 
-    // Set callbacks - PURE TRANSPORT ONLY
+    // Set callbacks
     virtual void setPeerDisconnectedCallback(PeerDisconnectedCallback callback) = 0;
     virtual void setPacketReceivedCallback(PacketReceivedCallback callback) = 0;
 

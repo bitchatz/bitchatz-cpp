@@ -15,7 +15,7 @@ help:
 	@echo ""
 
 format:
-	find -E src/ include/ -regex '.*\.(cpp|hpp|cc|cxx|c|h|m|mm)' -exec clang-format -style=file -i {} \;
+	find src/ include/ \( -name '*.cpp' -o -name '*.hpp' -o -name '*.cc' -o -name '*.cxx' -o -name '*.c' -o -name '*.h' -o -name '*.m' -o -name '*.mm' \) -exec clang-format -style=file -i {} +
 
 windows-format:
 	powershell -Command "Get-ChildItem -Path src,include -Recurse -Include *.cpp,*.hpp,*.cc,*.cxx,*.c,*.h,*.m,*.mm | ForEach-Object { clang-format -style=file -i $$_.FullName }"
