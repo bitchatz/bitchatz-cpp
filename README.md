@@ -127,7 +127,7 @@ make
 
 ```bash
 # Install system dependencies
-sudo apt-get install cmake libssl-dev libbluetooth-dev libsigc++-3.0-dev libpopt-dev libdbus-1-dev libsystemd-dev pkg-config git build-essential
+sudo apt-get install cmake libssl-dev libbluetooth-dev libsigc++-3.0-dev libpopt-dev libdbus-1-dev libsystemd-dev libsdbus-c++-dev pkg-config git build-essential
 
 # Install sdbus-cpp library
 git clone https://github.com/Kistler-Group/sdbus-cpp.git
