@@ -107,17 +107,15 @@ public:
     }
 
 protected:
-    virtual std::vector<uint8_t> ReadValue(const std::map<std::string, sdbus::Variant> &options) override
+    virtual std::vector<uint8_t> ReadValue([[maybe_unused]] const std::map<std::string, sdbus::Variant> &options) override
     {
-        (void)options; // Suppress unused parameter warning
         // Return current value for read operations
         spdlog::debug("ChatCharacteristic::ReadValue called, returning {} bytes", value_.size());
         return value_;
     }
 
-    virtual void WriteValue(const std::vector<uint8_t> &value, const std::map<std::string, sdbus::Variant> &options) override
+    virtual void WriteValue(const std::vector<uint8_t> &value, [[maybe_unused]] const std::map<std::string, sdbus::Variant> &options) override
     {
-        (void)options; // Suppress unused parameter warning
         // Update the characteristic value
         value_ = value;
 
@@ -294,49 +292,6 @@ struct LinuxBluetooth::Impl
             // Connect to the device
             device->Connect();
             spdlog::info("Connection initiated to device: {}", devicePath);
-
-            // Set up a simple timeout-based connection check
-            std::thread([this, devicePath]()
-                        {
-                try {
-                    auto device = discoveredDevices[devicePath];
-                    
-                    // Wait for connection to be established (max 3 seconds)
-                    int attempts = 0;
-                    const int maxAttempts = 30; // 3 seconds (30 * 100ms)
-                    
-                    while (attempts < maxAttempts && this->scanning && this->ready) {
-                        try {
-                            if (device->Connected()) {
-                                spdlog::info("Device connected: {}", devicePath);
-                                
-                                // Add to connected devices
-                                std::lock_guard<std::mutex> lock(connectionsMutex);
-                                std::string peerId = device->Alias().empty() ? device->Address() : device->Alias();
-                                connectedDevices[peerId] = device;
-                                
-                                // Discover services
-                                discoverServices(devicePath);
-                                return; // Success, exit thread
-                            }
-                        } catch (const std::exception& e) {
-                            spdlog::debug("Error checking connection status: {}", e.what());
-                        }
-                        
-                        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                        attempts++;
-                    }
-                    
-                    if (attempts >= maxAttempts) {
-                        spdlog::warn("Connection timeout for device: {}", devicePath);
-                    } else if (!this->scanning || !this->ready) {
-                        spdlog::info("Connection monitoring stopped for device: {}", devicePath);
-                    }
-                    
-                } catch (const std::exception& e) {
-                    spdlog::error("Error monitoring device connection for {}: {}", devicePath, e.what());
-                } })
-                .detach();
         }
         catch (const std::exception &e)
         {
@@ -354,12 +309,6 @@ struct LinuxBluetooth::Impl
             if (!device->ServicesResolved())
             {
                 spdlog::info("Services not yet resolved for device: {}", devicePath);
-                // Wait a bit and try again
-                std::thread([this, devicePath]()
-                            {
-                    std::this_thread::sleep_for(std::chrono::seconds(2));
-                    discoverServices(devicePath); })
-                    .detach();
                 return;
             }
 
@@ -710,27 +659,8 @@ void LinuxBluetooth::startScanning()
         impl->adapter->StartDiscovery();
         spdlog::info("Discovery started on adapter");
 
-        // Set up device monitoring
+        // Set up device monitoring via D-Bus signals
         setupDeviceMonitoring();
-
-        // Set up a timer to stop discovery after a while and restart it
-        // This helps with device discovery
-        std::thread([this]()
-                    {
-            while (impl->scanning && impl->ready) {
-                std::this_thread::sleep_for(std::chrono::seconds(10));
-                
-                try {
-                    // Stop and restart discovery periodically
-                    impl->adapter->StopDiscovery();
-                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                    impl->adapter->StartDiscovery();
-                    spdlog::info("Discovery restarted");
-                } catch (const std::exception& e) {
-                    spdlog::error("Error restarting discovery: {}", e.what());
-                }
-            } })
-            .detach();
     }
     catch (const std::exception &e)
     {
@@ -782,6 +712,9 @@ void LinuxBluetooth::setupDeviceMonitoring()
                     if (!address.empty()) {
                         spdlog::info("New device discovered via DBus signal: {} ({}) at {}", name, address, path);
                         impl->onDeviceFound(path, address, name);
+                        
+                        // Set up PropertiesChanged monitoring for this specific device
+                        this->setupDevicePropertiesMonitoring(path);
                     }
                 }
             } });
@@ -794,7 +727,7 @@ void LinuxBluetooth::setupDeviceMonitoring()
                 for (const auto& interface : interfaces) {
                     if (interface == "org.bluez.Device1") {
                         spdlog::info("Device removed via DBus signal: {}", path);
-                        onDeviceRemoved(path);
+                        this->onDeviceRemoved(path);
                         break;
                     }
                 }
@@ -861,68 +794,6 @@ void LinuxBluetooth::onDeviceRemoved(const std::string &devicePath)
 
     // Remove from discovered devices
     impl->discoveredDevices.erase(devicePath);
-}
-
-void LinuxBluetooth::cleanupDisconnectedDevices()
-{
-    std::lock_guard<std::mutex> lock(impl->connectionsMutex);
-
-    // Check connected devices
-    for (auto it = impl->connectedDevices.begin(); it != impl->connectedDevices.end();)
-    {
-        try
-        {
-            if (!it->second->Connected())
-            {
-                std::string peerId = it->first;
-                spdlog::info("Cleaning up disconnected device: {}", peerId);
-
-                // Remove from connected devices
-                it = impl->connectedDevices.erase(it);
-                impl->deviceClients.erase(peerId);
-
-                // Notify callback
-                if (impl->peerDisconnectedCallback)
-                {
-                    impl->peerDisconnectedCallback(peerId);
-                }
-            }
-            else
-            {
-                ++it;
-            }
-        }
-        catch (const std::exception &e)
-        {
-            // If we can't check the connection status, assume it's disconnected
-            std::string peerId = it->first;
-            spdlog::info("Cleaning up device that appears disconnected: {}", peerId);
-
-            it = impl->connectedDevices.erase(it);
-            impl->deviceClients.erase(peerId);
-
-            if (impl->peerDisconnectedCallback)
-            {
-                impl->peerDisconnectedCallback(peerId);
-            }
-        }
-    }
-
-    // Clean up discovered devices that are no longer available
-    for (auto it = impl->discoveredDevices.begin(); it != impl->discoveredDevices.end();)
-    {
-        try
-        {
-            // Try to access the device to see if it still exists
-            it->second->Address(); // This will throw if device is gone
-            ++it;
-        }
-        catch (const std::exception &e)
-        {
-            spdlog::debug("Removing unavailable discovered device: {}", it->first);
-            it = impl->discoveredDevices.erase(it);
-        }
-    }
 }
 
 bool LinuxBluetooth::sendPacket(const bitchat::BitchatPacket &packet)
@@ -1120,6 +991,54 @@ void LinuxBluetooth::removeSubscribedClient(std::shared_ptr<ChatClient> client)
     impl->subscribedClients.erase(client);
 }
 
+void LinuxBluetooth::setupDevicePropertiesMonitoring(const std::string &devicePath)
+{
+    try
+    {
+        // Create a proxy for this specific device to monitor its properties
+        auto deviceProxy = sdbus::createProxy(*impl->connection, "org.bluez", devicePath);
+
+        // Listen for PropertiesChanged signals on this device
+        deviceProxy->uponSignal("PropertiesChanged").onInterface("org.freedesktop.DBus.Properties").call([this, devicePath](const std::string &interface, const std::map<std::string, sdbus::Variant> &changedProperties, [[maybe_unused]] const std::vector<std::string> &invalidatedProperties)
+                                                                                                         {
+            // Check if this is a Device1 interface
+            if (interface == "org.bluez.Device1") {
+                // Check for Connected property changes
+                auto connectedIt = changedProperties.find("Connected");
+                if (connectedIt != changedProperties.end()) {
+                    bool connected = connectedIt->second.get<bool>();
+                    spdlog::info("Device {} Connected property changed to: {}", devicePath, connected);
+                    
+                    if (connected) {
+                        this->onDeviceConnected(devicePath);
+                    } else {
+                        this->onDeviceDisconnected(devicePath);
+                    }
+                }
+                
+                // Check for ServicesResolved property changes
+                auto servicesResolvedIt = changedProperties.find("ServicesResolved");
+                if (servicesResolvedIt != changedProperties.end()) {
+                    bool servicesResolved = servicesResolvedIt->second.get<bool>();
+                    spdlog::info("Device {} ServicesResolved property changed to: {}", devicePath, servicesResolved);
+                    
+                    if (servicesResolved) {
+                        this->onDeviceServicesResolved(devicePath);
+                    }
+                }
+            } });
+
+        // Finish registration
+        deviceProxy->finishRegistration();
+
+        spdlog::debug("Properties monitoring set up for device: {}", devicePath);
+    }
+    catch (const std::exception &e)
+    {
+        spdlog::error("Error setting up properties monitoring for device {}: {}", devicePath, e.what());
+    }
+}
+
 // New method to handle data received from other devices
 void LinuxBluetooth::onDataReceived(const std::vector<uint8_t> &data)
 {
@@ -1152,6 +1071,78 @@ void LinuxBluetooth::onDataReceived(const std::vector<uint8_t> &data)
     {
         spdlog::error("Error deserializing packet: {}", e.what());
     }
+}
+
+void LinuxBluetooth::onDeviceConnected(const std::string &devicePath)
+{
+    spdlog::info("Device connected: {}", devicePath);
+
+    try
+    {
+        auto device = impl->discoveredDevices[devicePath];
+        if (!device)
+        {
+            spdlog::error("Device not found in discovered devices: {}", devicePath);
+            return;
+        }
+
+        // Add to connected devices
+        std::lock_guard<std::mutex> lock(impl->connectionsMutex);
+        std::string peerId = device->Alias().empty() ? device->Address() : device->Alias();
+        impl->connectedDevices[peerId] = device;
+
+        spdlog::info("Device {} added to connected devices", peerId);
+    }
+    catch (const std::exception &e)
+    {
+        spdlog::error("Error handling device connection for {}: {}", devicePath, e.what());
+    }
+}
+
+void LinuxBluetooth::onDeviceDisconnected(const std::string &devicePath)
+{
+    spdlog::info("Device disconnected: {}", devicePath);
+
+    try
+    {
+        // Find and remove from connected devices
+        std::lock_guard<std::mutex> lock(impl->connectionsMutex);
+
+        // Find the device in discoveredDevices to get its peer ID
+        auto deviceIt = impl->discoveredDevices.find(devicePath);
+        if (deviceIt != impl->discoveredDevices.end())
+        {
+            std::string peerId = deviceIt->second->Alias().empty() ? deviceIt->second->Address() : deviceIt->second->Alias();
+
+            // Remove from connected devices
+            auto connectedIt = impl->connectedDevices.find(peerId);
+            if (connectedIt != impl->connectedDevices.end())
+            {
+                spdlog::info("Removing disconnected device: {}", peerId);
+
+                impl->connectedDevices.erase(connectedIt);
+                impl->deviceClients.erase(peerId);
+
+                // Notify callback
+                if (impl->peerDisconnectedCallback)
+                {
+                    impl->peerDisconnectedCallback(peerId);
+                }
+            }
+        }
+    }
+    catch (const std::exception &e)
+    {
+        spdlog::error("Error handling device disconnection for {}: {}", devicePath, e.what());
+    }
+}
+
+void LinuxBluetooth::onDeviceServicesResolved(const std::string &devicePath)
+{
+    spdlog::info("Device services resolved: {}", devicePath);
+
+    // Now that services are resolved, we can discover them
+    impl->discoverServices(devicePath);
 }
 
 void LinuxBluetooth::registerAdvertisement()

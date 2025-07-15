@@ -44,8 +44,11 @@ private:
     void startScanning();
     void registerAdvertisement();
     void setupDeviceMonitoring();
+    void setupDevicePropertiesMonitoring(const std::string &devicePath);
     void onDeviceRemoved(const std::string &devicePath);
-    void cleanupDisconnectedDevices();
+    void onDeviceConnected(const std::string &devicePath);
+    void onDeviceDisconnected(const std::string &devicePath);
+    void onDeviceServicesResolved(const std::string &devicePath);
     struct Impl;
     std::unique_ptr<Impl> impl;
 };
