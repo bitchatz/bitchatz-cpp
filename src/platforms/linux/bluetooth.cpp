@@ -351,21 +351,21 @@ struct LinuxBluetooth::Impl
                     {
             try {
                 auto device = discoveredDevices[devicePath];
-                
+
                 // Wait for connection to be established
                 int attempts = 0;
                 const int maxAttempts = 50; // 5 seconds timeout
-                
+
                 while (attempts < maxAttempts && scanning && ready) {
                     try {
                         if (device->Connected()) {
                             spdlog::info("Device connected: {}", devicePath);
-                            
+
                             // Add to connected devices
                             std::lock_guard<std::mutex> lock(connectionsMutex);
                             std::string peerId = device->Alias().empty() ? device->Address() : device->Alias();
                             connectedDevices[peerId] = device;
-                            
+
                             // Discover services
                             discoverServices(devicePath);
                             return; // Success, exit thread
@@ -373,17 +373,17 @@ struct LinuxBluetooth::Impl
                     } catch (const std::exception& e) {
                         spdlog::debug("Error checking connection status: {}", e.what());
                     }
-                    
+
                     std::this_thread::sleep_for(std::chrono::milliseconds(100));
                     attempts++;
                 }
-                
+
                 if (attempts >= maxAttempts) {
                     spdlog::warn("Connection timeout for device: {}", devicePath);
                 } else if (!scanning || !ready) {
                     spdlog::info("Connection monitoring stopped for device: {}", devicePath);
                 }
-                
+
             } catch (const std::exception& e) {
                 spdlog::error("Error monitoring device connection for {}: {}", devicePath, e.what());
             } })
@@ -761,7 +761,7 @@ void LinuxBluetooth::startScanning()
                     {
             while (impl->scanning && impl->ready) {
                 std::this_thread::sleep_for(std::chrono::seconds(10));
-                
+
                 try {
                     // Stop and restart discovery periodically
                     impl->adapter->StopDiscovery();
@@ -792,7 +792,7 @@ void LinuxBluetooth::setupDeviceMonitoring()
                 // Poll for new devices by scanning /org/bluez/hci0/dev_*
                 auto proxy = sdbus::createProxy(*impl->connection, "org.bluez", "/");
                 std::map<sdbus::ObjectPath, std::map<std::string, std::map<std::string, sdbus::Variant>>> objects;
-                
+
                 proxy->callMethod("GetManagedObjects")
                      .onInterface("org.freedesktop.DBus.ObjectManager")
                      .storeResultsTo(objects);
@@ -809,17 +809,17 @@ void LinuxBluetooth::setupDeviceMonitoring()
                                     // Extract device information
                                     std::string address = "";
                                     std::string name = "";
-                                    
+
                                     auto addrIt = deviceIface->second.find("Address");
                                     if (addrIt != deviceIface->second.end()) {
                                         address = addrIt->second.get<std::string>();
                                     }
-                                    
+
                                     auto nameIt = deviceIface->second.find("Name");
                                     if (nameIt != deviceIface->second.end()) {
                                         name = nameIt->second.get<std::string>();
                                     }
-                                    
+
                                     auto aliasIt = deviceIface->second.find("Alias");
                                     if (aliasIt != deviceIface->second.end()) {
                                         // Use alias if name is empty
@@ -827,7 +827,7 @@ void LinuxBluetooth::setupDeviceMonitoring()
                                             name = aliasIt->second.get<std::string>();
                                         }
                                     }
-                                    
+
                                     // Only process if we have an address
                                     if (!address.empty()) {
                                         spdlog::info("Found new device: {} ({}) at {}", name, address, path);
@@ -843,7 +843,7 @@ void LinuxBluetooth::setupDeviceMonitoring()
                 }
 
                 std::this_thread::sleep_for(std::chrono::seconds(2));
-                
+
                 // Periodically clean up disconnected devices
                 static int cleanupCounter = 0;
                 if (++cleanupCounter >= 15) { // Every 30 seconds (15 * 2 seconds)

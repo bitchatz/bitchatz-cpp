@@ -103,8 +103,8 @@ The Bluetooth functionality is abstracted through the `BluetoothInterface` class
 
 ### Prerequisites
 
-- CMake 3.30 or higher
-- C++17 compatible compiler
+- CMake 3.20 or higher
+- C++20 compatible compiler
 - OpenSSL development libraries
 - Platform-specific Bluetooth libraries
 
@@ -285,7 +285,7 @@ Each packet contains:
 
 ### Code Style
 
-- Use C++17 features
+- Use C++20 features
 - Follow RAII principles
 - Use smart pointers for memory management
 - Thread-safe design with proper mutex usage
@@ -316,10 +316,6 @@ The application logs detailed information including:
 - Peer discovery
 - Error conditions
 
-## License
-
-MIT
-
 ## Contributing
 
 1. Fork the repository
@@ -347,3 +343,7 @@ This C++ implementation is based on the original Bitchat projects:
 
 - [Bitchat Android](https://github.com/permissionlesstech/bitchat-android) - Android implementation
 - [Bitchat iOS](https://github.com/permissionlesstech/bitchat) - Original project
+
+## License
+
+MIT
