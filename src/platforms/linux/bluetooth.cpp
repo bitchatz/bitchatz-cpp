@@ -29,56 +29,6 @@ constexpr const char *ADV_PATH = "/org/bluez/bitchat/advertisement1";
 // Forward declarations
 class LinuxBluetooth;
 
-// RemoteCharacteristic wrapper class to handle remote characteristics
-class RemoteCharacteristic
-{
-public:
-    RemoteCharacteristic(std::shared_ptr<sdbus::IConnection> connection, const std::string &path)
-        : connection(connection)
-        , path(path)
-    {
-    }
-
-    bool writeValue(const std::vector<uint8_t> &data)
-    {
-        try
-        {
-            // Use DBus directly to write to the characteristic
-            auto proxy = sdbus::createProxy(*connection, "org.bluez", path);
-            proxy->callMethod("WriteValue")
-                .onInterface("org.bluez.GattCharacteristic1")
-                .withArguments(data, std::map<std::string, sdbus::Variant>{});
-            return true;
-        }
-        catch (const std::exception &e)
-        {
-            spdlog::error("Error writing to remote characteristic: {}", e.what());
-            return false;
-        }
-    }
-
-    bool startNotify()
-    {
-        try
-        {
-            auto proxy = sdbus::createProxy(*connection, "org.bluez", path);
-            proxy->callMethod("StartNotify")
-                .onInterface("org.bluez.GattCharacteristic1")
-                .withArguments(std::map<std::string, sdbus::Variant>{});
-            return true;
-        }
-        catch (const std::exception &e)
-        {
-            spdlog::info("Could not start notify (this is normal): {}", e.what());
-            return false;
-        }
-    }
-
-private:
-    std::shared_ptr<sdbus::IConnection> connection;
-    std::string path;
-};
-
 // ChatClient class for managing individual device connections
 class ChatClient : public Client
 {
@@ -114,19 +64,23 @@ private:
 };
 
 // ChatCharacteristic class for handling BLE communication
-class ChatCharacteristic : public GattCharacteristicBuilder<GenericCharacteristic>
+class ChatCharacteristic : public GattCharacteristic1
 {
 public:
     ChatCharacteristic(std::shared_ptr<GattService1> service,
                        std::shared_ptr<sdbus::IConnection> connection,
                        std::string uuid,
                        LinuxBluetooth *bluetooth)
-        : GattCharacteristicBuilder{std::move(service), std::move(uuid), true, true, true, false}
+        : GattCharacteristic1{std::move(service), std::move(uuid), false, false, true, false}
         , connection{std::move(connection)}
         , bluetooth(bluetooth)
     {
-        // Flags are set in the constructor of GattCharacteristicBuilder
-        // Parameters: service, uuid, read, write, notify, indicate
+        // Properties are set in the constructor: read=true, write=true, notify=true, indicate=false
+        // Add flags for the characteristic
+        addFlag("read");
+        addFlag("write");
+        addFlag("write-without-response");
+        addFlag("notify");
     }
 
     static std::shared_ptr<ChatCharacteristic> create(std::shared_ptr<GattService1> service,
@@ -134,36 +88,36 @@ public:
                                                       std::string uuid,
                                                       LinuxBluetooth *bluetooth)
     {
-        return std::shared_ptr<ChatCharacteristic>(new ChatCharacteristic(std::move(service), std::move(connection), std::move(uuid), bluetooth));
+        auto characteristic = std::shared_ptr<ChatCharacteristic>(new ChatCharacteristic(std::move(service), std::move(connection), std::move(uuid), bluetooth));
+        // Register with service
+        characteristic->registerWithService(characteristic);
+        return characteristic;
     }
 
     // Public method to send notifications
     void sendNotification(const std::vector<uint8_t> &data)
     {
-        // Send to all subscribed clients
-        for (auto &client : clients)
-        {
-            directedQueue.insert(std::make_pair(client.first, std::vector<std::vector<uint8_t>>{data}));
-        }
-        if (!clients.empty())
-        {
-            emitPropertyChangedSignal("DirectedValue");
-        }
+        // Update the characteristic value
+        value_ = data;
+
+        // Emit property changed signal to notify subscribers
+        emitPropertyChangedSignal("Value");
+
+        spdlog::info("ChatCharacteristic::sendNotification sent {} bytes to {} clients", data.size(), clients.size());
     }
 
 protected:
-    virtual std::vector<uint8_t> ReadValue(const std::map<std::string, sdbus::Variant> &options) override
+    virtual std::vector<uint8_t> ReadValue([[maybe_unused]] const std::map<std::string, sdbus::Variant> &options) override
     {
         // Return current value for read operations
-        auto client = getClient(options);
-        return client->getDataRef();
+        spdlog::debug("ChatCharacteristic::ReadValue called, returning {} bytes", value_.size());
+        return value_;
     }
 
-    virtual void WriteValue(const std::vector<uint8_t> &value, const std::map<std::string, sdbus::Variant> &options) override
+    virtual void WriteValue(const std::vector<uint8_t> &value, [[maybe_unused]] const std::map<std::string, sdbus::Variant> &options) override
     {
-        // Process incoming data - this is where we receive packets from other devices
-        auto client = getClient(options);
-        client->setData(value);
+        // Update the characteristic value
+        value_ = value;
 
         spdlog::info("ChatCharacteristic::WriteValue received {} bytes", value.size());
 
@@ -180,8 +134,11 @@ protected:
 
     void StartNotify(const std::map<std::string, sdbus::Variant> &options) override
     {
+        spdlog::info("ChatCharacteristic::StartNotify called");
+
+        // Get client info for tracking
         auto client = getClient(options);
-        spdlog::info("ChatCharacteristic::StartNotify '{}'", client->getPath());
+        spdlog::info("ChatCharacteristic::StartNotify for client '{}'", client->getPath());
 
         // Add to subscribed clients
         if (bluetooth)
@@ -192,10 +149,12 @@ protected:
 
     void StopNotify(const std::map<std::string, sdbus::Variant> &options) override
     {
+        spdlog::info("ChatCharacteristic::StopNotify called");
+
         if (options.size() != 0)
         {
             auto client = getClient(options);
-            spdlog::info("ChatCharacteristic::StopNotify '{}'", client->getPath());
+            spdlog::info("ChatCharacteristic::StopNotify for client '{}'", client->getPath());
 
             // Remove from subscribed clients
             if (bluetooth)
@@ -203,11 +162,6 @@ protected:
                 bluetooth->removeSubscribedClient(client);
             }
         }
-    }
-
-    std::map<sdbus::ObjectPath, std::vector<std::vector<uint8_t>>> DirectedValue() override
-    {
-        return std::move(directedQueue);
     }
 
 protected:
@@ -227,7 +181,6 @@ protected:
         return iter->second;
     }
 
-    std::map<sdbus::ObjectPath, std::vector<std::vector<uint8_t>>> directedQueue;
     std::map<sdbus::ObjectPath, std::shared_ptr<ChatClient>> clients;
     std::shared_ptr<sdbus::IConnection> connection;
     LinuxBluetooth *bluetooth;
@@ -243,13 +196,13 @@ struct LinuxBluetooth::Impl
     std::shared_ptr<ChatCharacteristic> chatCharacteristic;
     std::shared_ptr<LEAdvertisingManager1> advManager;
     std::shared_ptr<Adapter1> adapter;
+    std::shared_ptr<LEAdvertisement1> advertisement; // Store advertisement object
 
     // Collections for managing BLE connections (equivalent to Objective-C)
-    std::map<std::string, std::shared_ptr<Device1>> connectedDevices;                   // Connected devices
-    std::map<std::string, std::shared_ptr<ChatClient>> deviceClients;                   // Clients for each device
-    std::set<std::shared_ptr<ChatClient>> subscribedClients;                            // Subscribed clients
-    std::map<std::string, std::shared_ptr<Device1>> discoveredDevices;                  // Discovered devices
-    std::map<std::string, std::shared_ptr<RemoteCharacteristic>> remoteCharacteristics; // ADD: Remote characteristics for Central role
+    std::map<std::string, std::shared_ptr<Device1>> connectedDevices;  // Connected devices
+    std::map<std::string, std::shared_ptr<ChatClient>> deviceClients;  // Clients for each device
+    std::set<std::shared_ptr<ChatClient>> subscribedClients;           // Subscribed clients
+    std::map<std::string, std::shared_ptr<Device1>> discoveredDevices; // Discovered devices
     std::mutex connectionsMutex;
 
     std::atomic<bool> ready{false};
@@ -269,6 +222,7 @@ struct LinuxBluetooth::Impl
         // Check if we already know this device
         if (discoveredDevices.find(devicePath) != discoveredDevices.end())
         {
+            spdlog::debug("Device already known: {}", devicePath);
             return;
         }
 
@@ -291,12 +245,16 @@ struct LinuxBluetooth::Impl
 
             // Check if device is advertising our service
             auto uuids = device->UUIDs();
+            spdlog::debug("Device {} has {} UUIDs", name, uuids.size());
+
             bool hasOurService = false;
             for (const auto &uuid : uuids)
             {
+                spdlog::debug("  UUID: {}", uuid);
                 if (uuid == bitchat::constants::BLE_SERVICE_UUID)
                 {
                     hasOurService = true;
+                    spdlog::info("Found our service UUID: {}", uuid);
                     break;
                 }
             }
@@ -334,60 +292,11 @@ struct LinuxBluetooth::Impl
             // Connect to the device
             device->Connect();
             spdlog::info("Connection initiated to device: {}", devicePath);
-
-            // Set up connection monitoring
-            monitorDeviceConnection(devicePath);
         }
         catch (const std::exception &e)
         {
             spdlog::error("Error connecting to device {}: {}", devicePath, e.what());
         }
-    }
-
-    void monitorDeviceConnection(const std::string &devicePath)
-    {
-        // Start a thread to monitor the device connection status
-        std::thread([this, devicePath]()
-                    {
-            try {
-                auto device = discoveredDevices[devicePath];
-
-                // Wait for connection to be established
-                int attempts = 0;
-                const int maxAttempts = 50; // 5 seconds timeout
-
-                while (attempts < maxAttempts && scanning && ready) {
-                    try {
-                        if (device->Connected()) {
-                            spdlog::info("Device connected: {}", devicePath);
-
-                            // Add to connected devices
-                            std::lock_guard<std::mutex> lock(connectionsMutex);
-                            std::string peerId = device->Alias().empty() ? device->Address() : device->Alias();
-                            connectedDevices[peerId] = device;
-
-                            // Discover services
-                            discoverServices(devicePath);
-                            return; // Success, exit thread
-                        }
-                    } catch (const std::exception& e) {
-                        spdlog::debug("Error checking connection status: {}", e.what());
-                    }
-
-                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                    attempts++;
-                }
-
-                if (attempts >= maxAttempts) {
-                    spdlog::warn("Connection timeout for device: {}", devicePath);
-                } else if (!scanning || !ready) {
-                    spdlog::info("Connection monitoring stopped for device: {}", devicePath);
-                }
-
-            } catch (const std::exception& e) {
-                spdlog::error("Error monitoring device connection for {}: {}", devicePath, e.what());
-            } })
-            .detach();
     }
 
     void discoverServices(const std::string &devicePath)
@@ -400,12 +309,6 @@ struct LinuxBluetooth::Impl
             if (!device->ServicesResolved())
             {
                 spdlog::info("Services not yet resolved for device: {}", devicePath);
-                // Wait a bit and try again
-                std::thread([this, devicePath]()
-                            {
-                    std::this_thread::sleep_for(std::chrono::seconds(2));
-                    discoverServices(devicePath); })
-                    .detach();
                 return;
             }
 
@@ -423,71 +326,7 @@ struct LinuxBluetooth::Impl
 
             if (hasOurService)
             {
-                spdlog::info("Device has our service, discovering characteristics...");
-
-                // Discover remote characteristics from peer via DBus
-                try
-                {
-                    // Use DBus directly to get managed objects
-                    auto proxy = sdbus::createProxy(*connection, "org.bluez", "/");
-                    std::map<sdbus::ObjectPath, std::map<std::string, std::map<std::string, sdbus::Variant>>> objects;
-                    proxy->callMethod("GetManagedObjects")
-                        .onInterface("org.freedesktop.DBus.ObjectManager")
-                        .storeResultsTo(objects);
-
-                    for (const auto &[path, ifaces] : objects)
-                    {
-                        // Ensure it's a child of the device
-                        if (path.find(devicePath) == 0)
-                        {
-                            auto charIface = ifaces.find("org.bluez.GattCharacteristic1");
-                            if (charIface != ifaces.end())
-                            {
-                                auto uuidIt = charIface->second.find("UUID");
-                                if (uuidIt != charIface->second.end())
-                                {
-                                    try
-                                    {
-                                        auto uuid = uuidIt->second.get<std::string>();
-                                        if (uuid == bitchat::constants::BLE_CHARACTERISTIC_UUID)
-                                        {
-                                            // Found the correct characteristic!
-                                            auto remoteChar = std::make_shared<RemoteCharacteristic>(connection, path);
-                                            remoteCharacteristics[devicePath] = remoteChar;
-
-                                            // Try to start notifications
-                                            if (remoteChar->startNotify())
-                                            {
-                                                spdlog::info("Discovered and subscribed to remote characteristic at: {}", path);
-                                            }
-                                            else
-                                            {
-                                                spdlog::info("Discovered remote characteristic at: {} (notifications not available)", path);
-                                            }
-                                            break; // Found our characteristic, no need to continue
-                                        }
-                                    }
-                                    catch (const std::exception &e)
-                                    {
-                                        spdlog::debug("Error getting UUID from characteristic: {}", e.what());
-                                        continue;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if (remoteCharacteristics.find(devicePath) == remoteCharacteristics.end())
-                    {
-                        spdlog::warn("Could not find remote characteristic for device: {}", devicePath);
-                    }
-                }
-                catch (const std::exception &e)
-                {
-                    spdlog::error("Error discovering remote characteristics via DBus: {}", e.what());
-                    // Continue with normal setup even if characteristic discovery fails
-                }
-
+                spdlog::info("Device has our service, setting up communication...");
                 setupDeviceCommunication(devicePath);
             }
             else
@@ -568,6 +407,37 @@ bool LinuxBluetooth::initialize()
         impl->connection = sdbus::createSystemBusConnection();
         spdlog::info("System bus connection created");
 
+        // 1.5. Check if BlueZ service is available
+        try
+        {
+            auto proxy = sdbus::createProxy(*impl->connection, "org.bluez", "/");
+            proxy->callMethod("GetManagedObjects")
+                .onInterface("org.freedesktop.DBus.ObjectManager")
+                .withArguments();
+            spdlog::info("BlueZ service is available");
+        }
+        catch (const std::exception &e)
+        {
+            spdlog::error("BlueZ service not available: {}", e.what());
+            spdlog::error("Please ensure BlueZ is running: sudo systemctl start bluetooth");
+            return false;
+        }
+
+        // 1.6. Check Bluetooth permissions
+        try
+        {
+            auto proxy = sdbus::createProxy(*impl->connection, "org.bluez", "/org/bluez/hci0");
+            proxy->callMethod("Get").onInterface("org.freedesktop.DBus.Properties").withArguments("org.bluez.Adapter1", "Powered");
+            spdlog::info("Bluetooth permissions OK");
+        }
+        catch (const std::exception &e)
+        {
+            spdlog::error("Bluetooth permission error: {}", e.what());
+            spdlog::error("Please ensure user is in bluetooth group: sudo usermod -a -G bluetooth $USER");
+            spdlog::error("Then log out and log back in, or restart the system");
+            return false;
+        }
+
         // 2. Get Bluetooth Adapter (hci0)
         constexpr const char *BLUEZ_SERVICE = "org.bluez";
         constexpr const char *DEVICE0 = "/org/bluez/hci0";
@@ -584,9 +454,22 @@ bool LinuxBluetooth::initialize()
             std::this_thread::sleep_for(std::chrono::milliseconds(500)); // Wait for power on
         }
 
+        // Configure adapter for advertising
         impl->adapter->Discoverable(true);
         impl->adapter->Pairable(true);
         impl->adapter->Alias(impl->localPeerId);
+
+        // Additional adapter configuration for better visibility
+        try
+        {
+            // Set discoverable timeout to 0 (always discoverable)
+            impl->adapter->DiscoverableTimeout(0);
+            spdlog::info("Set discoverable timeout to 0 (always discoverable)");
+        }
+        catch (const std::exception &e)
+        {
+            spdlog::warn("Could not set discoverable timeout: {}", e.what());
+        }
 
         spdlog::info("Adapter configured:");
         spdlog::info("  Name: {}", impl->adapter->Name());
@@ -594,6 +477,7 @@ bool LinuxBluetooth::initialize()
         spdlog::info("  Powered: {}", impl->adapter->Powered());
         spdlog::info("  Discoverable: {}", impl->adapter->Discoverable());
         spdlog::info("  Pairable: {}", impl->adapter->Pairable());
+        spdlog::info("  Alias: {}", impl->adapter->Alias());
 
         // 3. Create GATT application/service/characteristic
         spdlog::info("Using Service UUID: {}", bitchat::constants::BLE_SERVICE_UUID);
@@ -608,10 +492,7 @@ bool LinuxBluetooth::initialize()
         // Create characteristic with notify/write-without-response/read
         impl->chatCharacteristic = ChatCharacteristic::create(
             impl->chatService, impl->connection, bitchat::constants::BLE_CHARACTERISTIC_UUID, this);
-        spdlog::info("GATT characteristic created");
-
-        impl->chatCharacteristic->finalize();
-        spdlog::info("GATT characteristic finalized");
+        spdlog::info("GATT characteristic created and registered");
 
         // Add service to app and register
         auto gattMgr = GattManager1(impl->connection, "org.bluez", "/org/bluez/hci0");
@@ -624,8 +505,18 @@ bool LinuxBluetooth::initialize()
                     spdlog::info("Bluetooth app registered successfully.");
                     // Only register advertisement after GATT application is fully registered
                     registerAdvertisement();
+
+                    // Wait a bit for advertisement to be processed
+                    std::thread([this]() {
+                        std::this_thread::sleep_for(std::chrono::seconds(2));
+                        if (impl->advertisementRegistered) {
+                            spdlog::info("✅ Advertisement is active and device should be visible");
+                        } else {
+                            spdlog::warn("⚠️ Advertisement registration may have failed");
+                        }
+                    }).detach();
                 } else {
-                    spdlog::error("Bluetooth registration error: {}", error->getMessage());
+                    spdlog::error("Bluetooth registration error: {} - {}", error->getName(), error->getMessage());
                 } });
 
         impl->ready = true;
@@ -648,6 +539,23 @@ bool LinuxBluetooth::start()
     {
         spdlog::warn("LinuxBluetooth not ready, cannot start");
         return false;
+    }
+
+    // Check advertisement status
+    if (impl->advertisementRegistered && impl->advManager)
+    {
+        spdlog::info("Advertisement status check:");
+        spdlog::info("  ActiveInstances: {}", impl->advManager->ActiveInstances());
+        spdlog::info("  Advertisement registered: {}", static_cast<bool>(impl->advertisementRegistered));
+
+        if (impl->advManager->ActiveInstances() > 0)
+        {
+            spdlog::info("✅ Advertisement is active - device should be visible to scanners");
+        }
+        else
+        {
+            spdlog::warn("⚠️ Advertisement not active - device may not be visible");
+        }
     }
 
     // Start scanning for other devices
@@ -689,7 +597,6 @@ void LinuxBluetooth::stop()
         impl->deviceClients.clear();
         impl->subscribedClients.clear();
         impl->discoveredDevices.clear();
-        impl->remoteCharacteristics.clear();
     }
 
     // Unregister advertisement if it was registered
@@ -752,27 +659,8 @@ void LinuxBluetooth::startScanning()
         impl->adapter->StartDiscovery();
         spdlog::info("Discovery started on adapter");
 
-        // Set up device monitoring
+        // Set up device monitoring via D-Bus signals
         setupDeviceMonitoring();
-
-        // Set up a timer to stop discovery after a while and restart it
-        // This helps with device discovery
-        std::thread([this]()
-                    {
-            while (impl->scanning && impl->ready) {
-                std::this_thread::sleep_for(std::chrono::seconds(10));
-
-                try {
-                    // Stop and restart discovery periodically
-                    impl->adapter->StopDiscovery();
-                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                    impl->adapter->StartDiscovery();
-                    spdlog::info("Discovery restarted");
-                } catch (const std::exception& e) {
-                    spdlog::error("Error restarting discovery: {}", e.what());
-                }
-            } })
-            .detach();
     }
     catch (const std::exception &e)
     {
@@ -782,81 +670,78 @@ void LinuxBluetooth::startScanning()
 
 void LinuxBluetooth::setupDeviceMonitoring()
 {
-    spdlog::info("Device monitoring set up with polling");
+    spdlog::info("Setting up DBus signal monitoring for device discovery");
 
-    // Start a thread to periodically check for new devices
-    std::thread([this]()
-                {
-        while (impl->scanning && impl->ready) {
-            try {
-                // Poll for new devices by scanning /org/bluez/hci0/dev_*
-                auto proxy = sdbus::createProxy(*impl->connection, "org.bluez", "/");
-                std::map<sdbus::ObjectPath, std::map<std::string, std::map<std::string, sdbus::Variant>>> objects;
+    // Set up DBus signal monitoring for device discovery
+    try
+    {
+        // Monitor for new devices being added to the adapter
+        auto proxy = sdbus::createProxy(*impl->connection, "org.bluez", "/");
 
-                proxy->callMethod("GetManagedObjects")
-                     .onInterface("org.freedesktop.DBus.ObjectManager")
-                     .storeResultsTo(objects);
+        // Listen for InterfacesAdded signals
+        proxy->uponSignal("InterfacesAdded").onInterface("org.freedesktop.DBus.ObjectManager").call([this](const sdbus::ObjectPath &path, const std::map<std::string, std::map<std::string, sdbus::Variant>> &interfaces)
+                                                                                                    {
+            // Check if this is a device path (starts with /org/bluez/hci0/dev_)
+            if (path.find("/org/bluez/hci0/dev_") == 0) {
+                // Check if it has Device1 interface
+                auto deviceIface = interfaces.find("org.bluez.Device1");
+                if (deviceIface != interfaces.end()) {
+                    // Extract device information
+                    std::string address = "";
+                    std::string name = "";
 
-                for (const auto& [path, interfaces] : objects) {
-                    // Check if this is a device path (starts with /org/bluez/hci0/dev_)
-                    if (path.find("/org/bluez/hci0/dev_") == 0) {
-                        // Check if we already know this device
-                        if (impl->discoveredDevices.count(path) == 0) {
-                            try {
-                                // Check if it has Device1 interface
-                                auto deviceIface = interfaces.find("org.bluez.Device1");
-                                if (deviceIface != interfaces.end()) {
-                                    // Extract device information
-                                    std::string address = "";
-                                    std::string name = "";
+                    auto addrIt = deviceIface->second.find("Address");
+                    if (addrIt != deviceIface->second.end()) {
+                        address = addrIt->second.get<std::string>();
+                    }
 
-                                    auto addrIt = deviceIface->second.find("Address");
-                                    if (addrIt != deviceIface->second.end()) {
-                                        address = addrIt->second.get<std::string>();
-                                    }
+                    auto nameIt = deviceIface->second.find("Name");
+                    if (nameIt != deviceIface->second.end()) {
+                        name = nameIt->second.get<std::string>();
+                    }
 
-                                    auto nameIt = deviceIface->second.find("Name");
-                                    if (nameIt != deviceIface->second.end()) {
-                                        name = nameIt->second.get<std::string>();
-                                    }
-
-                                    auto aliasIt = deviceIface->second.find("Alias");
-                                    if (aliasIt != deviceIface->second.end()) {
-                                        // Use alias if name is empty
-                                        if (name.empty()) {
-                                            name = aliasIt->second.get<std::string>();
-                                        }
-                                    }
-
-                                    // Only process if we have an address
-                                    if (!address.empty()) {
-                                        spdlog::info("Found new device: {} ({}) at {}", name, address, path);
-                                        impl->onDeviceFound(path, address, name);
-                                    }
-                                }
-                            } catch (const std::exception& e) {
-                                spdlog::debug("Error processing device {}: {}", path, e.what());
-                                // Continue with next device
-                            }
+                    auto aliasIt = deviceIface->second.find("Alias");
+                    if (aliasIt != deviceIface->second.end()) {
+                        // Use alias if name is empty
+                        if (name.empty()) {
+                            name = aliasIt->second.get<std::string>();
                         }
                     }
-                }
 
-                std::this_thread::sleep_for(std::chrono::seconds(2));
+                    // Only process if we have an address
+                    if (!address.empty()) {
+                        spdlog::info("New device discovered via DBus signal: {} ({}) at {}", name, address, path);
+                        impl->onDeviceFound(path, address, name);
 
-                // Periodically clean up disconnected devices
-                static int cleanupCounter = 0;
-                if (++cleanupCounter >= 15) { // Every 30 seconds (15 * 2 seconds)
-                    cleanupCounter = 0;
-                    // Note: cleanupDisconnectedDevices() is called from the main class
-                    // This is handled by the main monitoring loop
+                        // Set up PropertiesChanged monitoring for this specific device
+                        this->setupDevicePropertiesMonitoring(path);
+                    }
                 }
-            } catch (const std::exception& e) {
-                spdlog::error("Error in device monitoring: {}", e.what());
-                std::this_thread::sleep_for(std::chrono::seconds(5)); // Longer delay on error
-            }
-        } })
-        .detach();
+            } });
+
+        // Listen for InterfacesRemoved signals
+        proxy->uponSignal("InterfacesRemoved").onInterface("org.freedesktop.DBus.ObjectManager").call([this](const sdbus::ObjectPath &path, const std::vector<std::string> &interfaces)
+                                                                                                      {
+            // Check if this is a device path and if Device1 interface was removed
+            if (path.find("/org/bluez/hci0/dev_") == 0) {
+                for (const auto& interface : interfaces) {
+                    if (interface == "org.bluez.Device1") {
+                        spdlog::info("Device removed via DBus signal: {}", path);
+                        this->onDeviceRemoved(path);
+                        break;
+                    }
+                }
+            } });
+
+        // Finish registration
+        proxy->finishRegistration();
+
+        spdlog::info("DBus signal monitoring set up successfully");
+    }
+    catch (const std::exception &e)
+    {
+        spdlog::error("Error setting up DBus signal monitoring: {}", e.what());
+    }
 }
 
 void LinuxBluetooth::onDeviceRemoved(const std::string &devicePath)
@@ -909,71 +794,6 @@ void LinuxBluetooth::onDeviceRemoved(const std::string &devicePath)
 
     // Remove from discovered devices
     impl->discoveredDevices.erase(devicePath);
-
-    // Remove from remote characteristics
-    impl->remoteCharacteristics.erase(devicePath);
-}
-
-void LinuxBluetooth::cleanupDisconnectedDevices()
-{
-    std::lock_guard<std::mutex> lock(impl->connectionsMutex);
-
-    // Check connected devices
-    for (auto it = impl->connectedDevices.begin(); it != impl->connectedDevices.end();)
-    {
-        try
-        {
-            if (!it->second->Connected())
-            {
-                std::string peerId = it->first;
-                spdlog::info("Cleaning up disconnected device: {}", peerId);
-
-                // Remove from connected devices
-                it = impl->connectedDevices.erase(it);
-                impl->deviceClients.erase(peerId);
-
-                // Notify callback
-                if (impl->peerDisconnectedCallback)
-                {
-                    impl->peerDisconnectedCallback(peerId);
-                }
-            }
-            else
-            {
-                ++it;
-            }
-        }
-        catch (const std::exception &e)
-        {
-            // If we can't check the connection status, assume it's disconnected
-            std::string peerId = it->first;
-            spdlog::info("Cleaning up device that appears disconnected: {}", peerId);
-
-            it = impl->connectedDevices.erase(it);
-            impl->deviceClients.erase(peerId);
-
-            if (impl->peerDisconnectedCallback)
-            {
-                impl->peerDisconnectedCallback(peerId);
-            }
-        }
-    }
-
-    // Clean up discovered devices that are no longer available
-    for (auto it = impl->discoveredDevices.begin(); it != impl->discoveredDevices.end();)
-    {
-        try
-        {
-            // Try to access the device to see if it still exists
-            it->second->Address(); // This will throw if device is gone
-            ++it;
-        }
-        catch (const std::exception &e)
-        {
-            spdlog::debug("Removing unavailable discovered device: {}", it->first);
-            it = impl->discoveredDevices.erase(it);
-        }
-    }
 }
 
 bool LinuxBluetooth::sendPacket(const bitchat::BitchatPacket &packet)
@@ -991,24 +811,7 @@ bool LinuxBluetooth::sendPacket(const bitchat::BitchatPacket &packet)
 
     bool sent = false;
 
-    // Send to all remote characteristics
-    for (const auto &rc : impl->remoteCharacteristics)
-    {
-        try
-        {
-            if (rc.second->writeValue(data))
-            {
-                spdlog::info("Sent packet via remote characteristic to device: {}", rc.first);
-                sent = true;
-            }
-        }
-        catch (const std::exception &e)
-        {
-            spdlog::error("Error sending to remote characteristic {}: {}", rc.first, e.what());
-        }
-    }
-
-    // Send to all connected devices (old method as fallback)
+    // Send to all connected devices via our characteristic
     for (auto &devicePair : impl->connectedDevices)
     {
         auto peerId = devicePair.first;
@@ -1021,7 +824,7 @@ bool LinuxBluetooth::sendPacket(const bitchat::BitchatPacket &packet)
             {
                 // Send via our characteristic to the connected device
                 impl->chatCharacteristic->sendNotification(data);
-                spdlog::info("Sent packet to device (fallback): {}", peerId);
+                spdlog::info("Sent packet to device: {}", peerId);
                 sent = true;
             }
             catch (const std::exception &e)
@@ -1034,9 +837,21 @@ bool LinuxBluetooth::sendPacket(const bitchat::BitchatPacket &packet)
     // Send to subscribed clients (devices connected to us)
     if (!impl->subscribedClients.empty())
     {
-        impl->chatCharacteristic->sendNotification(data);
-        spdlog::info("Sent packet to {} subscribed clients", impl->subscribedClients.size());
-        sent = true;
+        try
+        {
+            impl->chatCharacteristic->sendNotification(data);
+            spdlog::info("Sent packet to {} subscribed clients", impl->subscribedClients.size());
+            sent = true;
+        }
+        catch (const std::exception &e)
+        {
+            spdlog::error("Error sending to subscribed clients: {}", e.what());
+        }
+    }
+
+    if (!sent)
+    {
+        spdlog::warn("No devices connected or subscribed - packet not sent");
     }
 
     return sent;
@@ -1054,48 +869,7 @@ bool LinuxBluetooth::sendPacketToPeer(const bitchat::BitchatPacket &packet, cons
 
     std::lock_guard<std::mutex> lock(impl->connectionsMutex);
 
-    // Send via remote characteristic of the peer
-    // First, try to find the device path for this peer
-    std::string devicePath;
-    for (const auto &devicePair : impl->connectedDevices)
-    {
-        if (devicePair.first == peerId)
-        {
-            // Find the corresponding device path
-            for (const auto &discoveredPair : impl->discoveredDevices)
-            {
-                if (discoveredPair.second == devicePair.second)
-                {
-                    devicePath = discoveredPair.first;
-                    break;
-                }
-            }
-            break;
-        }
-    }
-
-    // If found the device path, try to send via remote characteristic
-    if (!devicePath.empty())
-    {
-        auto it = impl->remoteCharacteristics.find(devicePath);
-        if (it != impl->remoteCharacteristics.end())
-        {
-            try
-            {
-                if (it->second->writeValue(data))
-                {
-                    spdlog::info("Sent packet via remote characteristic to peer: {}", peerId);
-                    return true;
-                }
-            }
-            catch (const std::exception &e)
-            {
-                spdlog::error("Error sending to remote characteristic: {}", e.what());
-            }
-        }
-    }
-
-    // Fallback: try old method (for compatibility)
+    // Try to send to connected device
     auto deviceIter = impl->connectedDevices.find(peerId);
     if (deviceIter != impl->connectedDevices.end())
     {
@@ -1108,7 +882,7 @@ bool LinuxBluetooth::sendPacketToPeer(const bitchat::BitchatPacket &packet, cons
             {
                 // Send targeted notification to specific peer
                 impl->chatCharacteristic->sendNotification(data);
-                spdlog::info("Sent packet to specific peer (fallback): {}", peerId);
+                spdlog::info("Sent packet to specific peer: {}", peerId);
                 return true;
             }
             catch (const std::exception &e)
@@ -1154,6 +928,47 @@ size_t LinuxBluetooth::getConnectedPeersCount() const
     return impl->connectedDevices.size();
 }
 
+bool LinuxBluetooth::isAdvertising() const
+{
+    if (!impl->advManager)
+    {
+        return false;
+    }
+
+    try
+    {
+        return impl->advManager->ActiveInstances() > 0 && impl->advertisementRegistered;
+    }
+    catch (const std::exception &e)
+    {
+        spdlog::error("Error checking advertisement status: {}", e.what());
+        return false;
+    }
+}
+
+std::string LinuxBluetooth::getAdvertisementStatus() const
+{
+    if (!impl->advManager)
+    {
+        return "No advertising manager";
+    }
+
+    try
+    {
+        std::string status = "Advertisement Status:\n";
+        status += "  ActiveInstances: " + std::to_string(impl->advManager->ActiveInstances()) + "\n";
+        status += "  SupportedInstances: " + std::to_string(impl->advManager->SupportedInstances()) + "\n";
+        status += "  Registered: " + std::string(static_cast<bool>(impl->advertisementRegistered) ? "Yes" : "No") + "\n";
+        status += "  Local Name: " + impl->localPeerId + "\n";
+        status += "  Service UUID: " + bitchat::constants::BLE_SERVICE_UUID + "\n";
+        return status;
+    }
+    catch (const std::exception &e)
+    {
+        return "Error getting advertisement status: " + std::string(e.what());
+    }
+}
+
 void LinuxBluetooth::setPeerDisconnectedCallback(bitchat::PeerDisconnectedCallback callback)
 {
     impl->peerDisconnectedCallback = std::move(callback);
@@ -1174,6 +989,54 @@ void LinuxBluetooth::removeSubscribedClient(std::shared_ptr<ChatClient> client)
 {
     std::lock_guard<std::mutex> lock(impl->connectionsMutex);
     impl->subscribedClients.erase(client);
+}
+
+void LinuxBluetooth::setupDevicePropertiesMonitoring(const std::string &devicePath)
+{
+    try
+    {
+        // Create a proxy for this specific device to monitor its properties
+        auto deviceProxy = sdbus::createProxy(*impl->connection, "org.bluez", devicePath);
+
+        // Listen for PropertiesChanged signals on this device
+        deviceProxy->uponSignal("PropertiesChanged").onInterface("org.freedesktop.DBus.Properties").call([this, devicePath](const std::string &interface, const std::map<std::string, sdbus::Variant> &changedProperties, [[maybe_unused]] const std::vector<std::string> &invalidatedProperties)
+                                                                                                         {
+            // Check if this is a Device1 interface
+            if (interface == "org.bluez.Device1") {
+                // Check for Connected property changes
+                auto connectedIt = changedProperties.find("Connected");
+                if (connectedIt != changedProperties.end()) {
+                    bool connected = connectedIt->second.get<bool>();
+                    spdlog::info("Device {} Connected property changed to: {}", devicePath, connected);
+
+                    if (connected) {
+                        this->onDeviceConnected(devicePath);
+                    } else {
+                        this->onDeviceDisconnected(devicePath);
+                    }
+                }
+
+                // Check for ServicesResolved property changes
+                auto servicesResolvedIt = changedProperties.find("ServicesResolved");
+                if (servicesResolvedIt != changedProperties.end()) {
+                    bool servicesResolved = servicesResolvedIt->second.get<bool>();
+                    spdlog::info("Device {} ServicesResolved property changed to: {}", devicePath, servicesResolved);
+
+                    if (servicesResolved) {
+                        this->onDeviceServicesResolved(devicePath);
+                    }
+                }
+            } });
+
+        // Finish registration
+        deviceProxy->finishRegistration();
+
+        spdlog::debug("Properties monitoring set up for device: {}", devicePath);
+    }
+    catch (const std::exception &e)
+    {
+        spdlog::error("Error setting up properties monitoring for device {}: {}", devicePath, e.what());
+    }
 }
 
 // New method to handle data received from other devices
@@ -1210,8 +1073,82 @@ void LinuxBluetooth::onDataReceived(const std::vector<uint8_t> &data)
     }
 }
 
+void LinuxBluetooth::onDeviceConnected(const std::string &devicePath)
+{
+    spdlog::info("Device connected: {}", devicePath);
+
+    try
+    {
+        auto device = impl->discoveredDevices[devicePath];
+        if (!device)
+        {
+            spdlog::error("Device not found in discovered devices: {}", devicePath);
+            return;
+        }
+
+        // Add to connected devices
+        std::lock_guard<std::mutex> lock(impl->connectionsMutex);
+        std::string peerId = device->Alias().empty() ? device->Address() : device->Alias();
+        impl->connectedDevices[peerId] = device;
+
+        spdlog::info("Device {} added to connected devices", peerId);
+    }
+    catch (const std::exception &e)
+    {
+        spdlog::error("Error handling device connection for {}: {}", devicePath, e.what());
+    }
+}
+
+void LinuxBluetooth::onDeviceDisconnected(const std::string &devicePath)
+{
+    spdlog::info("Device disconnected: {}", devicePath);
+
+    try
+    {
+        // Find and remove from connected devices
+        std::lock_guard<std::mutex> lock(impl->connectionsMutex);
+
+        // Find the device in discoveredDevices to get its peer ID
+        auto deviceIt = impl->discoveredDevices.find(devicePath);
+        if (deviceIt != impl->discoveredDevices.end())
+        {
+            std::string peerId = deviceIt->second->Alias().empty() ? deviceIt->second->Address() : deviceIt->second->Alias();
+
+            // Remove from connected devices
+            auto connectedIt = impl->connectedDevices.find(peerId);
+            if (connectedIt != impl->connectedDevices.end())
+            {
+                spdlog::info("Removing disconnected device: {}", peerId);
+
+                impl->connectedDevices.erase(connectedIt);
+                impl->deviceClients.erase(peerId);
+
+                // Notify callback
+                if (impl->peerDisconnectedCallback)
+                {
+                    impl->peerDisconnectedCallback(peerId);
+                }
+            }
+        }
+    }
+    catch (const std::exception &e)
+    {
+        spdlog::error("Error handling device disconnection for {}: {}", devicePath, e.what());
+    }
+}
+
+void LinuxBluetooth::onDeviceServicesResolved(const std::string &devicePath)
+{
+    spdlog::info("Device services resolved: {}", devicePath);
+
+    // Now that services are resolved, we can discover them
+    impl->discoverServices(devicePath);
+}
+
 void LinuxBluetooth::registerAdvertisement()
 {
+    spdlog::info("=== Starting Advertisement Registration ===");
+
     // 4. Advertising - Only called after GATT application is fully registered
     impl->advManager = std::make_shared<LEAdvertisingManager1>(impl->connection, "org.bluez", "/org/bluez/hci0");
 
@@ -1220,6 +1157,21 @@ void LinuxBluetooth::registerAdvertisement()
     spdlog::info("  ActiveInstances: {}", impl->advManager->ActiveInstances());
     spdlog::info("  SupportedInstances: {}", impl->advManager->SupportedInstances());
 
+    // Check supported includes
+    try
+    {
+        auto includes = impl->advManager->SupportedIncludes();
+        spdlog::info("  SupportedIncludes: ");
+        for (const auto &include : includes)
+        {
+            spdlog::info("    - {}", include);
+        }
+    }
+    catch (const std::exception &e)
+    {
+        spdlog::warn("Could not get supported includes: {}", e.what());
+    }
+
     // Wait for any existing advertising to be cleaned up
     if (impl->advManager->ActiveInstances() > 0)
     {
@@ -1227,36 +1179,50 @@ void LinuxBluetooth::registerAdvertisement()
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
 
-    // Create advertisement using the builder pattern and register it
-    // Use unique path with timestamp to avoid conflicts
-    std::string uniqueAdvPath = std::string(ADV_PATH) + "_" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-
-    spdlog::info("Creating advertisement with path: {}", uniqueAdvPath);
+    // Create advertisement using the correct API pattern from the example
+    spdlog::info("Creating advertisement with path: {}", ADV_PATH);
     spdlog::info("Service UUID: {}", bitchat::constants::BLE_SERVICE_UUID);
     spdlog::info("Local name: {}", impl->localPeerId);
 
-    // Try minimal advertising configuration
     try
     {
-        LEAdvertisement1::create(*impl->connection, uniqueAdvPath)
-            .withLocalName(impl->localPeerId)
-            .withServiceUUIDs(std::vector{bitchat::constants::BLE_SERVICE_UUID})
-            .withType("peripheral")
-            .onReleaseCall([]()
-                           { spdlog::info("advertisement released"); })
-            .registerWith(impl->advManager, [this](const sdbus::Error *error)
-                          {
+        spdlog::info("Creating LEAdvertisement1 object...");
+
+        // Create advertisement with more explicit configuration
+        auto ad = LEAdvertisement1::create(*impl->connection, ADV_PATH)
+                      .withLocalName(impl->localPeerId)
+                      .withServiceUUIDs(std::vector{bitchat::constants::BLE_SERVICE_UUID})
+                      .withType("peripheral")
+                      .withDiscoverable(true)
+                      .withAppearance(0x03C0) // Generic Computer appearance
+                      .onReleaseCall([]()
+                                     { spdlog::info("advertisement released"); })
+                      .registerWith(impl->advManager, [this](const sdbus::Error *error)
+                                    {
                 if (error == nullptr) {
-                    spdlog::info("Advertisement registered successfully.");
+                    spdlog::info("✅ Advertisement registered successfully.");
+                    spdlog::info("✅ Device should now be visible to scanners like nRF Connect");
+                    spdlog::info("✅ Device name: {}", impl->localPeerId);
+                    spdlog::info("✅ Service UUID: {}", bitchat::constants::BLE_SERVICE_UUID);
                     impl->advertisementRegistered = true;
                 } else {
-                    spdlog::error("Advertisement registration failed: {} - {}", error->getName(), error->getMessage());
+                    spdlog::error("❌ Advertisement registration failed: {} - {}", error->getName(), error->getMessage());
                     impl->advertisementRegistered = false;
                 } });
+
+        // Store the advertisement object to prevent it from being destroyed
+        impl->advertisement = ad;
+        spdlog::info("Advertisement object created and stored");
+
+        // Verify advertisement was created properly
+        spdlog::info("Advertisement verification:");
+        spdlog::info("  Path: {}", impl->advertisement->getPath());
     }
     catch (const std::exception &e)
     {
-        spdlog::error("Exception during advertisement creation: {}", e.what());
+        spdlog::error("❌ Exception during advertisement creation: {}", e.what());
         impl->advertisementRegistered = false;
     }
+
+    spdlog::info("=== Advertisement Registration Process Complete ===");
 }

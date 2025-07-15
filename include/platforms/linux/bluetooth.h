@@ -26,6 +26,10 @@ public:
     std::string getLocalPeerId() const override;
     size_t getConnectedPeersCount() const override;
 
+    // Advertisement status methods
+    bool isAdvertising() const;
+    std::string getAdvertisementStatus() const;
+
     void setPeerDisconnectedCallback(bitchat::PeerDisconnectedCallback callback) override;
     void setPacketReceivedCallback(bitchat::PacketReceivedCallback callback) override;
 
@@ -40,8 +44,11 @@ private:
     void startScanning();
     void registerAdvertisement();
     void setupDeviceMonitoring();
+    void setupDevicePropertiesMonitoring(const std::string &devicePath);
     void onDeviceRemoved(const std::string &devicePath);
-    void cleanupDisconnectedDevices();
+    void onDeviceConnected(const std::string &devicePath);
+    void onDeviceDisconnected(const std::string &devicePath);
+    void onDeviceServicesResolved(const std::string &devicePath);
     struct Impl;
     std::unique_ptr<Impl> impl;
 };
