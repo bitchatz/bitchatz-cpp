@@ -26,6 +26,10 @@ public:
     std::string getLocalPeerId() const override;
     size_t getConnectedPeersCount() const override;
 
+    // Advertisement status methods
+    bool isAdvertising() const;
+    std::string getAdvertisementStatus() const;
+
     void setPeerDisconnectedCallback(bitchat::PeerDisconnectedCallback callback) override;
     void setPacketReceivedCallback(bitchat::PacketReceivedCallback callback) override;
 

@@ -53,4 +53,4 @@ poetry.lock
 /*.pem
 /*.log
 /peers_keys.txt
-/bluez-dbus-cpp
+/temp

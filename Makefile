@@ -26,8 +26,8 @@ clean:
 
 build:
 	rm -rf build
-	cmake -B build .
-	cmake --build build -j$(or $(jobs),$(shell sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4))
+	cmake -B build . -G Ninja
+	cmake --build build
 
 run:
 	./build/bin/bitchat
