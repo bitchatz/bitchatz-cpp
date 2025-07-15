@@ -48,8 +48,7 @@ build_*/
 poetry.lock
 
 # bitchat
-/android
-/ios
 /*.pem
 /*.log
 /peers_keys.txt
+/temp
