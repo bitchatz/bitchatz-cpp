@@ -1,4 +1,4 @@
-.PHONY: build
+.PHONY: help format windows-format clean build run run-windows
 .DEFAULT_GOAL := help
 
 help:
@@ -15,7 +15,7 @@ help:
 	@echo ""
 
 format:
-	find -E src/ include/ -regex '.*\.(cpp|hpp|cc|cxx|c|h|m|mm)' -exec clang-format -style=file -i {} \;
+	find src/ include/ \( -name "*.cpp" -o -name "*.hpp" -o -name "*.cc" -o -name "*.cxx" -o -name "*.c" -o -name "*.h" -o -name "*.m" -o -name "*.mm" \) -exec clang-format -style=file -i {} +
 
 windows-format:
 	powershell -Command "Get-ChildItem -Path src,include -Recurse -Include *.cpp,*.hpp,*.cc,*.cxx,*.c,*.h,*.m,*.mm | ForEach-Object { clang-format -style=file -i $$_.FullName }"
@@ -26,8 +26,8 @@ clean:
 
 build:
 	rm -rf build
-	cmake -B build .
-	cmake --build build -j$(or $(jobs),$(shell sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4))
+	cmake -B build . -G Ninja
+	cmake --build build 
 
 run:
 	./build/bin/bitchat
