@@ -1,53 +1,54 @@
 #pragma once
 
 #include "bitchat/platform/bluetooth_interface.h"
-#include <atomic>
 #include <functional>
-#include <map>
-#include <mutex>
+#include <memory>
 #include <string>
-#include <thread>
 #include <vector>
 
-namespace bitchat
-{
+// Forward declarations
+class ChatClient;
 
-class LinuxBluetooth : public BluetoothInterface
+class LinuxBluetooth : public bitchat::BluetoothInterface
 {
 public:
     LinuxBluetooth();
-    ~LinuxBluetooth() override;
+    ~LinuxBluetooth();
 
     bool initialize() override;
     bool start() override;
     void stop() override;
-    bool sendPacket(const BitchatPacket &packet) override;
-    bool sendPacketToPeer(const BitchatPacket &packet, const std::string &peerId) override;
+
+    bool sendPacket(const bitchat::BitchatPacket &packet) override;
+    bool sendPacketToPeer(const bitchat::BitchatPacket &packet, const std::string &peerId) override;
+
     bool isReady() const override;
     std::string getLocalPeerId() const override;
-    void setPeerDisconnectedCallback(PeerDisconnectedCallback callback) override;
-    void setPacketReceivedCallback(PacketReceivedCallback callback) override;
     size_t getConnectedPeersCount() const override;
 
+    // Advertisement status methods
+    bool isAdvertising() const;
+    std::string getAdvertisementStatus() const;
+
+    void setPeerDisconnectedCallback(bitchat::PeerDisconnectedCallback callback) override;
+    void setPacketReceivedCallback(bitchat::PacketReceivedCallback callback) override;
+
+    // Method to handle data received from other devices
+    void onDataReceived(const std::vector<uint8_t> &data);
+
+    // Methods for managing subscribed clients (used by ChatCharacteristic)
+    void addSubscribedClient(std::shared_ptr<ChatClient> client);
+    void removeSubscribedClient(std::shared_ptr<ChatClient> client);
+
 private:
-    void scanThreadFunc();
-    void readerThreadFunc(const std::string &deviceId, int socket);
-    void acceptThreadFunc();
-
-    int deviceId;
-    int hciSocket;
-    int rfcommSocket;
-    std::string localPeerId;
-
-    std::thread scanThread;
-    std::thread acceptThread;
-    std::atomic<bool> stopThreads;
-
-    PacketReceivedCallback packetReceivedCallback;
-    PeerDisconnectedCallback peerDisconnectedCallback;
-
-    std::map<std::string, int> connectedSockets;
-    mutable std::mutex socketsMutex;
+    void startScanning();
+    void registerAdvertisement();
+    void setupDeviceMonitoring();
+    void setupDevicePropertiesMonitoring(const std::string &devicePath);
+    void onDeviceRemoved(const std::string &devicePath);
+    void onDeviceConnected(const std::string &devicePath);
+    void onDeviceDisconnected(const std::string &devicePath);
+    void onDeviceServicesResolved(const std::string &devicePath);
+    struct Impl;
+    std::unique_ptr<Impl> impl;
 };
-
-} // namespace bitchat

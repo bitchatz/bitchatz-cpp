@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.20)
 project(bitchat)
 
+# policies
+cmake_policy(SET CMP0054 NEW) # only interpret if() arguments as variables or keywords when unquoted
+cmake_policy(SET CMP0076 NEW) # target_sources() command converts relative paths to absolute
+set(CMAKE_POLICY_DEFAULT_CMP0091 NEW) # msvc runtime library flags are selected by an abstraction
+set(CMAKE_POLICY_DEFAULT_CMP0135 NEW) # set the timestamps of all extracted contents to the time of the extraction
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -36,6 +42,8 @@ elseif(UNIX AND NOT APPLE)
     set(PLATFORM_LINUX TRUE)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(BLUEZ REQUIRED bluez)
+    pkg_check_modules(BLUEZ_DBUS_CPP REQUIRED bluez-dbus-cpp)
+    pkg_check_modules(SDBUS_CPP REQUIRED sdbus-c++)
 endif()
 
 # Add dependencies via CPM
@@ -63,6 +71,12 @@ endif()
 
 # Find OpenSSL
 find_package(OpenSSL REQUIRED)
+
+# Find Threads
+if(PLATFORM_LINUX)
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
+endif()
 
 # Include directories
 include_directories(
@@ -112,11 +126,19 @@ if(PLATFORM_APPLE)
         ${FRAMEWORK_IOKIT}
         ${FRAMEWORK_COREFOUNDATION}
     )
-    # Only compile .mm files as Objective-C++, not the entire target
-    # target_compile_options(bitchat PRIVATE -x objective-c++)
 elseif(PLATFORM_LINUX)
-    target_link_libraries(bitchat ${BLUEZ_LIBRARIES})
-    target_include_directories(bitchat PRIVATE ${BLUEZ_INCLUDE_DIRS})
+    target_link_libraries(bitchat
+        Threads::Threads
+        ${BLUEZ_DBUS_CPP_LIBRARIES}
+        ${SDBUS_CPP_LIBRARIES}
+        ${BLUEZ_LIBRARIES}
+    )
+    target_include_directories(bitchat PRIVATE
+        ${BLUEZ_INCLUDE_DIRS}
+        ${BLUEZ_DBUS_CPP_INCLUDE_DIRS}
+        ${SDBUS_CPP_INCLUDE_DIRS}
+    )
+    target_compile_options(bitchat PRIVATE ${BLUEZ_DBUS_CPP_CFLAGS_OTHER} ${SDBUS_CPP_CFLAGS_OTHER})
 endif()
 
 # Compiler-specific flags

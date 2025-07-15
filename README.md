@@ -126,8 +126,19 @@ make
 ### Linux
 
 ```bash
-# Install dependencies
-sudo apt-get install cmake libssl-dev libbluetooth-dev
+# Install system dependencies
+sudo apt-get install cmake libssl-dev libbluetooth-dev libsigc++-3.0-dev libpopt-dev libdbus-1-dev libsystemd-dev libsdbus-c++-dev pkg-config git ninja-build build-essential
+
+# Install bluez-dbus-cpp library
+git clone https://github.com/weareaudiofile/bluez-dbus-cpp.git
+cd bluez-dbus-cpp
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make -j$(nproc)
+sudo make install
+
+# Update library cache
+sudo ldconfig
 
 # Build
 mkdir build && cd build
@@ -137,6 +148,25 @@ make
 # Run
 ./bin/bitchat
 ```
+
+**Dependencies for Linux:**
+- `cmake` - Build system
+- `libssl-dev` - OpenSSL development libraries
+- `libbluetooth-dev` - BlueZ Bluetooth development libraries
+- `libsigc++-3.0-dev` - libsigc++ library (required by dbus-cxx)
+- `libpopt-dev` - POPT library (required by dbus-cxx)
+- `libdbus-1-dev` - D-Bus development libraries
+- `libsystemd-dev` - systemd development libraries (for sd-bus)
+- `pkg-config` - Package configuration tool
+
+**Note on SDBUSCPP_SDBUS_LIB:**
+The `SDBUSCPP_SDBUS_LIB` option defines which sd-bus implementation to use:
+- `default` (recommended): Auto-detects systemd → elogind → basu
+- `systemd`: Uses libsystemd (most common on modern Linux distributions)
+- `elogind`: Uses libelogind (for systems without systemd)
+- `basu`: Uses basu (minimal implementation for embedded systems)
+
+For Ubuntu and most modern Linux distributions, install `libsystemd-dev` and use the default setting.
 
 ### Windows
 

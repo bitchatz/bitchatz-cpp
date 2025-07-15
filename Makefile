@@ -27,7 +27,7 @@ clean:
 build:
 	rm -rf build
 	cmake -B build . -G Ninja
-	cmake --build build 
+	cmake --build build
 
 run:
 	./build/bin/bitchat
