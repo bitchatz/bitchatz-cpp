@@ -55,11 +55,8 @@ CPMAddPackage(
     NAME lz4
     GITHUB_REPOSITORY lz4/lz4
     VERSION 1.10.0
+    SOURCE_SUBDIR "build/cmake"
 )
-
-if (lz4_ADDED)
-    add_subdirectory(${lz4_SOURCE_DIR}/build/cmake lz4_build)
-endif()
 
 # Find OpenSSL
 find_package(OpenSSL REQUIRED)
@@ -67,11 +64,6 @@ find_package(OpenSSL REQUIRED)
 # Include directories
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/platforms
-    ${CMAKE_CURRENT_SOURCE_DIR}/platforms
-    ${spdlog_SOURCE_DIR}/include
-    ${lz4_SOURCE_DIR}/lib
-    ${uuid_SOURCE_DIR}/include
 )
 
 # Source files
@@ -112,8 +104,6 @@ if(PLATFORM_APPLE)
         ${FRAMEWORK_IOKIT}
         ${FRAMEWORK_COREFOUNDATION}
     )
-    # Only compile .mm files as Objective-C++, not the entire target
-    # target_compile_options(bitchat PRIVATE -x objective-c++)
 elseif(PLATFORM_LINUX)
     target_link_libraries(bitchat ${BLUEZ_LIBRARIES})
     target_include_directories(bitchat PRIVATE ${BLUEZ_INCLUDE_DIRS})
