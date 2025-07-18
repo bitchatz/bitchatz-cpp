@@ -118,14 +118,18 @@ class BitchatManager { };
 // Methods: camelCase
 void sendMessage(const std::string& message);
 
-// Variables: snake_case
-std::string peer_id;
+// Variables: camelCase
+std::string peerId;
 
 // Constants: UPPER_SNAKE_CASE
 const int MAX_PACKET_SIZE = 16384;
 
 // Namespaces: snake_case
 namespace bitchat { }
+
+// Acronyms (UUID, ID, etc.): keep as is
+std::string peerID;
+std::string peripheralUUID;
 ```
 
 ### File Organization

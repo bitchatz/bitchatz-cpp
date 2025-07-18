@@ -41,10 +41,10 @@ LinuxBluetooth::LinuxBluetooth()
         throw std::runtime_error("Failed to open HCI socket");
     }
 
-    bdaddr_t bdaddr;
-    hci_read_bd_addr(hciSocket, &bdaddr, 1000);
+    bdaddr_t bdAddr;
+    hci_read_bd_addr(hciSocket, &bdAddr, 1000);
     char addr[19];
-    ba2str(&bdaddr, addr);
+    ba2str(&bdAddr, addr);
     localPeerId = addr;
     spdlog::info("Local Bluetooth adapter address: {}", localPeerId);
 }
