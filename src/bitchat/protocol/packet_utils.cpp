@@ -86,18 +86,18 @@ std::string normalizePeerId(const std::string &peerId)
 
 std::string randomPeerId()
 {
-    std::vector<uint8_t> peerid(4);
+    std::vector<uint8_t> peerId(4);
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> dis(0, 255);
 
-    for (auto &byte : peerid)
+    for (auto &byte : peerId)
     {
         byte = static_cast<uint8_t>(dis(gen));
     }
 
     std::stringstream ss;
-    for (uint8_t byte : peerid)
+    for (uint8_t byte : peerId)
     {
         ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
     }
@@ -108,10 +108,10 @@ std::string uuidv4()
 {
 #ifdef __APPLE__
     uuid_t uuid;
-    char uuid_str[37];
+    char uuidStr[37];
     uuid_generate(uuid);
-    uuid_unparse_lower(uuid, uuid_str);
-    return std::string(uuid_str);
+    uuid_unparse_lower(uuid, uuidStr);
+    return std::string(uuidStr);
 #else
     // Fallback implementation for other platforms
     std::random_device rd;

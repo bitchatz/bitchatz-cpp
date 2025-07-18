@@ -90,8 +90,8 @@ void clearScreen() {
 
 int main() {
     // Initialize spdlog
-    auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-    auto logger = std::make_shared<spdlog::logger>("bitchat", console_sink);
+    auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+    auto logger = std::make_shared<spdlog::logger>("bitchat", consoleSink);
     spdlog::set_default_logger(logger);
     spdlog::set_pattern("[%H:%M:%S] %v");
 
