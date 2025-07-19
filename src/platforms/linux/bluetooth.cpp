@@ -24,8 +24,8 @@ LinuxBluetooth::LinuxBluetooth()
     , hciSocket(-1)
     , rfcommSocket(-1)
     , stopThreads(false)
-    , peerDisconnectedCallback(nullptr)
     , packetReceivedCallback(nullptr)
+    , peerDisconnectedCallback(nullptr)
 {
     deviceId = hci_get_route(nullptr);
     if (deviceId < 0)
