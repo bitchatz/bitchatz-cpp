@@ -1,2 +1,0 @@
-
-SUBDIRS = protocol protobufs keys
