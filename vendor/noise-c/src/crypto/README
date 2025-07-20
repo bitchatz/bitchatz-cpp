@@ -1,0 +1,54 @@
+
+This directory contains reference implementations of various primitives.
+
+curve25519-donna:
+    https://github.com/agl/curve25519-donna.git
+    MIT license
+
+poly1305-donna:
+    https://github.com/floodyberry/poly1305-donna.git
+    MIT license / public domain
+
+chacha:
+    Implementation specific to this distribution.  Supports plain C and SSE2.
+    MIT license
+
+blake2:
+    Implementation of BLAKE2 from arduinolibs.  SSE2 support added to BLAKE2s.
+    https://github.com/rweather/arduinolibs
+    MIT license
+
+AES:
+    http://web.cs.ucdavis.edu/~rogaway/ocb/ocb-ref/
+    Public domain code from the original Rijndael authors.
+
+sha2:
+    Plain C implementation specific to this distribution.
+    MIT license
+
+ghash:
+    Implementation of GHASH from arduinolibs to support GCM.
+    https://github.com/rweather/arduinolibs
+    MIT license
+
+goldilocks:
+    Ed448-Goldilocks reference implementation of p448 curves.  We only use
+    the p448 field arithmetic from this library because the public API
+    for goldilocks doesn't quite do what we want (RFC 7748 compatibility).
+    git://git.code.sf.net/p/ed448goldilocks/code
+    MIT license
+
+curve448:
+    Simple implementation of curve448 built on top of the p448 arithmetic
+    from goldilocks.  This can be exported and used in other projects.
+    MIT license
+
+ed25519:
+    Reference implementation of the Ed25519 signature signature algorithm.
+    https://github.com/floodyberry/ed25519-donna.git
+    Public domain
+
+newhope
+    Reference New Hope post-quantum key exchange algorithm, "torref" version.
+    https://cryptojedi.org/crypto/#newhope
+    Public domain

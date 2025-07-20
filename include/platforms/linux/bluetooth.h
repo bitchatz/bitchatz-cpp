@@ -47,7 +47,7 @@ private:
     PeerDisconnectedCallback peerDisconnectedCallback;
 
     std::map<std::string, int> connectedSockets;
-    mutable std::mutex socketsMutex;
+    std::mutex socketsMutex;
 };
 
 } // namespace bitchat

@@ -42,7 +42,7 @@ Nickname: User_12345
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `/j #channel` | Join a specific channel | `/j #general` |
+| `/j #channel` | Join a specific channel | `/j #random` |
 | `/leave` | Leave current channel | `/leave` |
 | `/channels` | List available channels | `/channels` |
 
@@ -82,8 +82,8 @@ Available commands:
 /exit          - Exit
 Message        - Send message to current channel
 
-> /j #general
-Joined channel: #general
+> /j #random
+Joined channel: #random
 
 > /nick Alice
 Nickname changed to: Alice
@@ -94,9 +94,9 @@ Nickname changed to: Alice
 
 > /w
 People online:
-- Alice (you) (channel: #general)
-- Bob (channel: #general) (RSSI: -45 dBm)
-- Charlie (channel: #random) (RSSI: -67 dBm)
+- Alice (you) (channel: #random)
+- Bob (channel: #random) (RSSI: -45 dBm)
+- Charlie (channel: #help) (RSSI: -67 dBm)
 
 > /me waves hello
 [14:30:20] * Alice waves hello
@@ -137,7 +137,7 @@ People online:
 ### Getting the Best Experience
 
 1. **Stay in Range** 📶: Keep devices within Bluetooth range (typically 10-30 meters)
-2. **Join Popular Channels** 📢: Use common channel names like `#general`, `#random`, `#help`
+2. **Join Popular Channels** 📢: Use common channel names like `#random`, `#help`, `#chat`
 3. **Use Clear Nicknames** 👤: Choose recognizable nicknames
 4. **Monitor Signal Strength** 📊: Use `/w` to check connection quality
 5. **Be Patient** ⏳: Allow time for peer discovery and message relay

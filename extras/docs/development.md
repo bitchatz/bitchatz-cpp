@@ -127,8 +127,7 @@ const int MAX_PACKET_SIZE = 16384;
 // Namespaces: snake_case
 namespace bitchat { }
 
-// Acronyms (UUID, ID, etc.): keep as is
-std::string peerID;
+// Acronyms (UUID, etc.): keep as is
 std::string peripheralUUID;
 ```
 

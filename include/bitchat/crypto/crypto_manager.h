@@ -45,6 +45,9 @@ public:
     // Get public key bytes
     std::vector<uint8_t> getPublicKeyBytes() const;
 
+    // Get Curve25519 private key for Noise Protocol
+    std::vector<uint8_t> getCurve25519PrivateKey() const;
+
     // Save peer public key to file
     void savePeerPublicKey(const std::string &peerId, const std::vector<uint8_t> &pubkey);
 

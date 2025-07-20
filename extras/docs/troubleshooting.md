@@ -131,7 +131,7 @@ brew install llvm
 2. **Verify Channel Membership**:
    ```bash
    # Ensure you're in the same channel as recipients
-   /j #general
+   /j #random
    ```
 
 3. **Check Message Size**:

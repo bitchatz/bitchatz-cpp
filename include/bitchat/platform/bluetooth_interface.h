@@ -9,8 +9,8 @@ namespace bitchat
 {
 
 // Forward declarations
-struct BitchatPacket;
-struct BitchatMessage;
+class BitchatPacket;
+class BitchatMessage;
 
 // Callback types for Bluetooth transport events - PURE TRANSPORT ONLY
 using PeerDisconnectedCallback = std::function<void(const std::string &peerId)>;

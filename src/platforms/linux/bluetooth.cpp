@@ -333,14 +333,14 @@ void LinuxBluetooth::readerThreadFunc(const std::string &deviceId, int socket)
         accumulatedData.insert(accumulatedData.end(), buf, buf + bytesRead);
 
         // Process complete packets from accumulated data
-        while (accumulatedData.size() >= 21) // Minimum packet size (header + senderID)
+        while (accumulatedData.size() >= 21) // Minimum packet size (header + senderId)
         {
             // Read payload length from the packet header (offset 12-13)
             uint16_t payloadLength = (accumulatedData[12] << 8) | accumulatedData[13];
             uint8_t flags = accumulatedData[11]; // flags byte
 
             // Calculate total expected packet size
-            size_t expectedSize = 21; // header + senderID
+            size_t expectedSize = 21; // header + senderId
             if (flags & FLAG_HAS_RECIPIENT)
             {
                 expectedSize += 8; // recipientID

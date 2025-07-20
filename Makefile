@@ -10,8 +10,10 @@ help:
 	@echo "- clean"
 	@echo ""
 	@echo "- build"
+	@echo "- build-debug"
 	@echo "- run"
 	@echo "- run-windows"
+	@echo "- run-leaks"
 	@echo ""
 
 format:
@@ -27,7 +29,12 @@ clean:
 build:
 	rm -rf build
 	cmake -B build . -G Ninja
-	cmake --build build 
+	cmake --build build
+
+build-debug:
+	rm -rf build
+	cmake -B build . -G Ninja -DCMAKE_BUILD_TYPE=Debug
+	cmake --build build
 
 run:
 	./build/bin/bitchat
@@ -35,3 +42,5 @@ run:
 run-windows:
 	powershell -Command ".\build\bin\bitchat.exe"
 
+run-leaks:
+	leaks -atExit -- ./build/bin/bitchat

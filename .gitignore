@@ -52,3 +52,4 @@ poetry.lock
 /*.log
 /peers_keys.txt
 /temp
+/data

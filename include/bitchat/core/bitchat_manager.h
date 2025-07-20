@@ -1,21 +1,18 @@
 #pragma once
 
 #include "bitchat/compression/compression_manager.h"
+#include "bitchat/core/message_manager.h"
+#include "bitchat/core/network_manager.h"
 #include "bitchat/crypto/crypto_manager.h"
-#include "bitchat/platform/bluetooth_interface.h"
+#include "bitchat/noise/noise_session.h"
+#include "bitchat/platform/bluetooth_factory.h"
 #include "bitchat/protocol/packet.h"
-#include "bitchat/protocol/packet_serializer.h"
-#include <atomic>
-#include <map>
 #include <memory>
-#include <mutex>
-#include <set>
-#include <thread>
 
 namespace bitchat
 {
 
-// BitchatManager is the main class that orchestrates the entire application
+// BitchatManager: main orchestrator that coordinates all components
 class BitchatManager
 {
 public:
@@ -25,37 +22,32 @@ public:
     // Initialize the manager
     bool initialize();
 
-    // Start the manager (start Bluetooth, etc.)
+    // Start the manager
     bool start();
 
     // Stop the manager
     void stop();
 
-    // Send a message to the current channel
+    // Message operations
     bool sendMessage(const std::string &content);
+    bool sendPrivateMessage(const std::string &content, const std::string &recipientNickname);
 
-    // Join a channel
+    // Channel operations
     void joinChannel(const std::string &channel);
+    void leaveChannel();
 
-    // Set nickname
+    // User operations
     void setNickname(const std::string &nickname);
 
-    // Get current channel
+    // Getters
     std::string getCurrentChannel() const;
-
-    // Get nickname
     std::string getNickname() const;
-
-    // Get peer ID
     std::string getPeerId() const;
-
-    // Get online peers
     std::map<std::string, OnlinePeer> getOnlinePeers() const;
-
-    // Get message history
     std::vector<BitchatMessage> getMessageHistory() const;
+    size_t getConnectedPeersCount() const;
 
-    // Check if manager is ready
+    // Status
     bool isReady() const;
 
     // Set callbacks for UI updates
@@ -69,31 +61,19 @@ public:
     void setStatusCallback(StatusCallback callback);
 
 private:
-    // Bluetooth interface
-    std::unique_ptr<BluetoothInterface> bluetooth;
+    // Core managers
+    std::shared_ptr<NetworkManager> networkManager;
+    std::shared_ptr<MessageManager> messageManager;
+    std::shared_ptr<CryptoManager> cryptoManager;
+    std::shared_ptr<CompressionManager> compressionManager;
+    std::shared_ptr<noise::NoiseSessionManager> noiseSessionManager;
 
-    // Managers
-    std::unique_ptr<CryptoManager> cryptoManager;
-    std::unique_ptr<CompressionManager> compressionManager;
-    std::unique_ptr<PacketSerializer> packetSerializer;
+    // Bluetooth interface
+    std::unique_ptr<BluetoothInterface> bluetoothInterface;
 
     // State
-    std::string peerId;
-    std::string nickname;
-    std::string currentChannel;
-    std::map<std::string, OnlinePeer> onlinePeers;
-    std::vector<BitchatMessage> messageHistory;
-    std::set<std::string> processedMessages;
-
-    // Threading
-    std::atomic<bool> shouldExit;
-    std::thread announceThread;
-    std::thread cleanupThread;
-
-    // Mutexes
-    mutable std::mutex peersMutex;
-    mutable std::mutex messagesMutex;
-    mutable std::mutex processedMutex;
+    bool initialized = false;
+    bool started = false;
 
     // Callbacks
     MessageCallback messageCallback;
@@ -101,25 +81,14 @@ private:
     PeerCallback peerLeftCallback;
     StatusCallback statusCallback;
 
-    // Bluetooth event handlers
-    void onPeerConnected(const std::string &peerId, const std::string &nickname);
-    void onPeerDisconnected(const std::string &peerId);
-    void onMessageReceived(const BitchatMessage &message);
-    void onPacketReceived(const BitchatPacket &packet);
-
     // Internal methods
-    void announceLoop();
-    void cleanupLoop();
-    void cleanupStalePeers();
-    void processPacket(const BitchatPacket &packet);
-    void relayPacket(const BitchatPacket &packet);
-    bool wasMessageProcessed(const std::string &messageId);
-    void markMessageProcessed(const std::string &messageId);
-
-    // Constants
-    static constexpr int ANNOUNCE_INTERVAL = 15; // seconds
-    static constexpr int CLEANUP_INTERVAL = 30;  // seconds
-    static constexpr int PEER_TIMEOUT = 180;     // seconds
+    void setupCallbacks();
+    void onMessageReceived(const BitchatMessage &message);
+    void onPeerJoined(const std::string &peerId, const std::string &nickname);
+    void onPeerLeft(const std::string &peerId, const std::string &nickname);
+    void onStatusUpdate(const std::string &status);
+    void processNoisePacket(const BitchatPacket &packet);
+    void sendNoiseIdentityAnnounce();
 };
 
 } // namespace bitchat

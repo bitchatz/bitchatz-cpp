@@ -13,6 +13,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 # Include CPM for dependency management
 include(cmake/CPM.cmake)
 
+# Include noise-c configuration
+include(cmake/noise-c.cmake)
+
 # Library options
 set(BUILD_SHARED_LIBS OFF)
 set(BUILD_STATIC_LIBS ON)
@@ -58,6 +61,8 @@ CPMAddPackage(
     SOURCE_SUBDIR "build/cmake"
 )
 
+CPMAddPackage("gh:nlohmann/json@3.12.0")
+
 # Find OpenSSL
 find_package(OpenSSL REQUIRED)
 
@@ -68,12 +73,20 @@ include_directories(
 
 # Source files
 set(SOURCES
-    main.cpp
-    src/bitchat/protocol/packet_utils.cpp
+    src/main.cpp
+    src/bitchat/protocol/utils.cpp
+    src/bitchat/protocol/packet.cpp
+    src/bitchat/protocol/message_padding.cpp
     src/bitchat/compression/compression_manager.cpp
     src/bitchat/crypto/crypto_manager.cpp
     src/bitchat/protocol/packet_serializer.cpp
     src/bitchat/core/bitchat_manager.cpp
+    src/bitchat/core/network_manager.cpp
+    src/bitchat/core/message_manager.cpp
+    src/bitchat/core/identity_manager.cpp
+    src/bitchat/noise/noise_protocol.cpp
+    src/bitchat/noise/noise_session.cpp
+    src/bitchat/identity/identity_models.cpp
 )
 
 # Platform-specific source files
@@ -91,6 +104,8 @@ add_executable(bitchat ${SOURCES})
 # Link libraries
 target_link_libraries(bitchat
     spdlog::spdlog
+    nlohmann_json::nlohmann_json
+    noise-c
     OpenSSL::SSL
     OpenSSL::Crypto
     lz4_static
@@ -116,6 +131,16 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     target_compile_options(bitchat PRIVATE -Wall -Wextra -Wpedantic)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     target_compile_options(bitchat PRIVATE /W4)
+endif()
+
+# AddressSanitizer option
+option(ENABLE_ASAN "Enable AddressSanitizer" ON)
+
+if(ENABLE_ASAN)
+    message(STATUS "Building with AddressSanitizer enabled")
+    set(ASAN_FLAGS -fsanitize=address -fno-omit-frame-pointer)
+    target_compile_options(bitchat PRIVATE ${ASAN_FLAGS})
+    target_link_options(bitchat PRIVATE -fsanitize=address)
 endif()
 
 # Install target

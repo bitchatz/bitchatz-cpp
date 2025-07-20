@@ -31,6 +31,12 @@ public:
     // Parse announce payload
     void parseAnnouncePayload(const std::vector<uint8_t> &payload, std::string &nickname);
 
+    // Create channel announce payload
+    std::vector<uint8_t> makeChannelAnnouncePayload(const std::string &channel, bool joining);
+
+    // Parse channel announce payload
+    void parseChannelAnnouncePayload(const std::vector<uint8_t> &payload, std::string &channel, bool &joining);
+
     // Create packet with proper fields
     BitchatPacket makePacket(uint8_t type, const std::vector<uint8_t> &payload,
                              bool hasRecipient = false, bool hasSignature = false,

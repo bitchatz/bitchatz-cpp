@@ -235,11 +235,11 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
 - (BOOL)sendPacket:(NSData *)packetData toPeer:(NSString *)peerId
 {
     // Find peripheral for this peer ID
-    for (NSString *peerIDKey in self.connectedPeripherals.allKeys)
+    for (NSString *peerIdKey in self.connectedPeripherals.allKeys)
     {
-        if ([peerIDKey isEqualToString:peerId])
+        if ([peerIdKey isEqualToString:peerId])
         {
-            CBPeripheral *peripheral = [self.connectedPeripherals objectForKey:peerIDKey];
+            CBPeripheral *peripheral = [self.connectedPeripherals objectForKey:peerIdKey];
             return [self sendPacket:packetData toPeripheral:peripheral];
         }
     }
@@ -273,10 +273,10 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
     // Generate a random peer ID if not set
     if (!self.localPeerId)
     {
-        // Simple random ID generation (8 hex characters)
+        // Generate 8 random bytes (64 bits) for strong collision resistance like Swift
         NSMutableString *peerId = [NSMutableString string];
 
-        for (size_t i = 0; i < bitchat::constants::BLE_PEER_ID_LENGTH_CHARS; i++)
+        for (size_t i = 0; i < 8; i++)
         {
             [peerId appendFormat:@"%02x", arc4random_uniform(256)]; // Generate random hex byte
         }
@@ -376,7 +376,8 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
 - (void)centralManager:(CBCentralManager *)central
     didConnectPeripheral:(CBPeripheral *)peripheral
 {
-    NSString *tempID = peripheral.identifier.UUIDString;                     // Use UUID as peer ID
+    // Use UUID as temporary peer ID until we get the real one from announce packet
+    NSString *tempID = peripheral.identifier.UUIDString;
     [self.connectedPeripherals setObject:peripheral forKey:tempID];          // Store connected peripheral
     [peripheral discoverServices:@[ [CBUUID UUIDWithString:SERVICE_UUID] ]]; // Discover our service
 }

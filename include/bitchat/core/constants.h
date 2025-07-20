@@ -21,7 +21,7 @@ const size_t BLE_MIN_PACKET_SIZE_BYTES = 21;
 const size_t BLE_MAX_PACKET_SIZE_BYTES = 512;
 
 // Peer ID generation constants
-const size_t BLE_PEER_ID_LENGTH_CHARS = 8;
+const size_t BLE_PEER_ID_LENGTH_CHARS = 16; // 8 bytes = 16 hex characters
 
 // BLE Service Properties
 const uint32_t BLE_CHARACTERISTIC_PROPERTIES =

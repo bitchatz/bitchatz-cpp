@@ -314,4 +314,43 @@ std::vector<uint8_t> CryptoManager::getPublicKeyBytes(EVP_PKEY *pkey) const
     return pubkey;
 }
 
+std::vector<uint8_t> CryptoManager::getCurve25519PrivateKey() const
+{
+    std::lock_guard<std::mutex> lock(cryptoMutex);
+
+    if (!signingPrivateKey)
+    {
+        spdlog::error("No signing private key available");
+        return std::vector<uint8_t>();
+    }
+
+    // Extract raw private key bytes from Ed25519 key
+    std::vector<uint8_t> ed25519PrivateKey(32);
+    size_t len = ed25519PrivateKey.size();
+
+    if (EVP_PKEY_get_raw_private_key(signingPrivateKey, ed25519PrivateKey.data(), &len) != 1)
+    {
+        spdlog::error("Failed to extract private key bytes");
+        return std::vector<uint8_t>();
+    }
+
+    ed25519PrivateKey.resize(len);
+
+    // Convert Ed25519 private key to Curve25519 private key
+    // Ed25519 uses a different curve, so we need to apply the proper conversion
+    std::vector<uint8_t> curve25519PrivateKey(32);
+
+    // The conversion involves:
+    // 1. Clamping the key (setting/clearing specific bits)
+    // 2. This is the standard conversion from Ed25519 to Curve25519
+    std::copy(ed25519PrivateKey.begin(), ed25519PrivateKey.end(), curve25519PrivateKey.begin());
+
+    // Clamp the key for Curve25519 (set bit 0, clear bit 255, set bit 254)
+    curve25519PrivateKey[0] &= 248;  // Clear bits 0-2
+    curve25519PrivateKey[31] &= 127; // Clear bit 255
+    curve25519PrivateKey[31] |= 64;  // Set bit 254
+
+    return curve25519PrivateKey;
+}
+
 } // namespace bitchat
