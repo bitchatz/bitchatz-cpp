@@ -2,11 +2,13 @@
 
 #include "noise_protocol.h"
 #include <chrono>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <noise/protocol.h>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace bitchat
