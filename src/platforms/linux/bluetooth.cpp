@@ -182,7 +182,7 @@ void LinuxBluetooth::setPacketReceivedCallback(PacketReceivedCallback callback)
 
 size_t LinuxBluetooth::getConnectedPeersCount() const
 {
-    std::lock_guard<std::mutex> lock(socketsMutex);
+    std::lock_guard<std::mutex> lock(const_cast<std::mutex &>(socketsMutex));
     return connectedSockets.size();
 }
 
@@ -372,9 +372,9 @@ void LinuxBluetooth::readerThreadFunc(const std::string &deviceId, int socket)
                 BitchatPacket packet = serializer.deserializePacket(accumulatedData);
 
                 // Validate the packet
-                if (packet.version == 0 || packet.version > 1)
+                if (packet.getVersion() == 0 || packet.getVersion() > 1)
                 {
-                    spdlog::warn("Invalid packet version {} from device: {}", packet.version, deviceId);
+                    spdlog::warn("Invalid packet version {} from device: {}", packet.getVersion(), deviceId);
                     accumulatedData.erase(accumulatedData.begin());
                     continue;
                 }

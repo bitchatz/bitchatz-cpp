@@ -52,10 +52,9 @@ jobs:
 
       - name: Build
         run: |
-          mkdir -p build
-          cd build
-          cmake ..
-          cmake --build .
+          rm -rf build
+          cmake -S . -B build -G Ninja
+          cmake --build build
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
