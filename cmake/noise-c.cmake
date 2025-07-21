@@ -1,17 +1,27 @@
-# noise-c CMake configuration
-# This file integrates the noise-c library into the project
+# NoiseC CMake Configuration
 
-# Set noise-c source directory
+# Set source directory
 set(NOISE_C_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vendor/noise-c)
 
-# Define noise-c include directories
+# Configure backend (OpenSSL, Sodium, or Reference)
+if(NOT DEFINED NOISE_C_BACKEND)
+    set(NOISE_C_BACKEND "OpenSSL" CACHE STRING "NoiseC backend: OpenSSL, Sodium, or Reference")
+endif()
+
+# Validate backend choice
+set(VALID_BACKENDS "OpenSSL" "Sodium" "Reference")
+if(NOT NOISE_C_BACKEND IN_LIST VALID_BACKENDS)
+    message(FATAL_ERROR "Invalid NOISE_C_BACKEND: ${NOISE_C_BACKEND}. Valid options: ${VALID_BACKENDS}")
+endif()
+
+# Define include directories
 set(NOISE_C_INCLUDE_DIRS
     ${NOISE_C_SOURCE_DIR}/include
     ${NOISE_C_SOURCE_DIR}/src
     ${NOISE_C_SOURCE_DIR}/src/protocol
 )
 
-# Define noise-c header files
+# Define header files
 set(NOISE_C_HEADERS
     # Main headers
     ${NOISE_C_SOURCE_DIR}/include/noise/keys.h
@@ -48,7 +58,7 @@ else()
     set(GOLDILOCKS_ARCH "arch_ref64")
 endif()
 
-# Define noise-c source files
+# Define source files
 set(NOISE_C_SOURCES
     # Protocol sources
     ${NOISE_C_SOURCE_DIR}/src/protocol/cipherstate.c
@@ -71,22 +81,56 @@ set(NOISE_C_SOURCES
 
     # Protobufs sources
     ${NOISE_C_SOURCE_DIR}/src/protobufs/protobufs.c
+)
 
-    # Backend sources (OpenSSL)
-    ${NOISE_C_SOURCE_DIR}/src/backend/openssl/cipher-aesgcm.c
+# Add backend-specific sources based on configuration
+if(NOISE_C_BACKEND STREQUAL "OpenSSL")
+    list(APPEND NOISE_C_SOURCES
+        ${NOISE_C_SOURCE_DIR}/src/backend/openssl/cipher-aesgcm.c
 
-    # Reference backend sources (fallback)
-    #${NOISE_C_SOURCE_DIR}/src/backend/ref/cipher-aesgcm.c
-    ${NOISE_C_SOURCE_DIR}/src/backend/ref/cipher-chachapoly.c
-    ${NOISE_C_SOURCE_DIR}/src/backend/ref/dh-curve25519.c
-    ${NOISE_C_SOURCE_DIR}/src/backend/ref/dh-curve448.c
-    ${NOISE_C_SOURCE_DIR}/src/backend/ref/dh-newhope.c
-    ${NOISE_C_SOURCE_DIR}/src/backend/ref/hash-blake2b.c
-    ${NOISE_C_SOURCE_DIR}/src/backend/ref/hash-blake2s.c
-    ${NOISE_C_SOURCE_DIR}/src/backend/ref/hash-sha256.c
-    ${NOISE_C_SOURCE_DIR}/src/backend/ref/hash-sha512.c
-    ${NOISE_C_SOURCE_DIR}/src/backend/ref/sign-ed25519.c
+        # Fallback to reference implementations for algorithms not in OpenSSL
+        ${NOISE_C_SOURCE_DIR}/src/backend/ref/cipher-chachapoly.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/ref/dh-curve25519.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/ref/dh-curve448.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/ref/dh-newhope.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/ref/hash-blake2b.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/ref/hash-blake2s.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/ref/hash-sha256.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/ref/hash-sha512.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/ref/sign-ed25519.c
+    )
+elseif(NOISE_C_BACKEND STREQUAL "Sodium")
+    list(APPEND NOISE_C_SOURCES
+        ${NOISE_C_SOURCE_DIR}/src/backend/sodium/cipher-aesgcm.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/sodium/cipher-chachapoly.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/sodium/dh-curve25519.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/sodium/hash-blake2b.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/sodium/hash-sha256.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/sodium/hash-sha512.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/sodium/sign-ed25519.c
 
+        # Fallback to reference implementations for algorithms not in Sodium
+        ${NOISE_C_SOURCE_DIR}/src/backend/ref/dh-curve448.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/ref/dh-newhope.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/ref/hash-blake2s.c
+    )
+elseif(NOISE_C_BACKEND STREQUAL "Reference")
+    list(APPEND NOISE_C_SOURCES
+        ${NOISE_C_SOURCE_DIR}/src/backend/ref/cipher-aesgcm.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/ref/cipher-chachapoly.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/ref/dh-curve25519.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/ref/dh-curve448.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/ref/dh-newhope.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/ref/hash-blake2b.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/ref/hash-blake2s.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/ref/hash-sha256.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/ref/hash-sha512.c
+        ${NOISE_C_SOURCE_DIR}/src/backend/ref/sign-ed25519.c
+    )
+endif()
+
+# Add crypto sources
+list(APPEND NOISE_C_SOURCES
     # Crypto sources
     ${NOISE_C_SOURCE_DIR}/src/crypto/aes/rijndael-alg-fst.c
     ${NOISE_C_SOURCE_DIR}/src/crypto/blake2/blake2b.c
@@ -121,12 +165,20 @@ set(NOISE_C_SOURCES
     ${NOISE_C_SOURCE_DIR}/src/crypto/goldilocks/src/sha512.c
 )
 
-# Define noise-c compile definitions
+# Define compile definitions based on backend
 set(NOISE_C_COMPILE_DEFINITIONS
-    USE_OPENSSL=1
     ED25519_CUSTOMHASH
     ED25519_CUSTOMRANDOM
 )
+
+# Add backend-specific definitions
+if(NOISE_C_BACKEND STREQUAL "OpenSSL")
+    list(APPEND NOISE_C_COMPILE_DEFINITIONS USE_OPENSSL=1)
+elseif(NOISE_C_BACKEND STREQUAL "Sodium")
+    list(APPEND NOISE_C_COMPILE_DEFINITIONS USE_SODIUM=1)
+elseif(NOISE_C_BACKEND STREQUAL "Reference")
+    list(APPEND NOISE_C_COMPILE_DEFINITIONS USE_REF=1)
+endif()
 
 # Add architecture-specific definitions
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
@@ -143,10 +195,10 @@ elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
     )
 endif()
 
-# Create noise-c static library
+# Create  static library
 add_library(noise-c STATIC ${NOISE_C_SOURCES} ${NOISE_C_HEADERS})
 
-# Set include directories for noise-c
+# Set include directories
 target_include_directories(noise-c PUBLIC
     ${NOISE_C_INCLUDE_DIRS}
     ${NOISE_C_SOURCE_DIR}/src/crypto/goldilocks/src/include
@@ -154,40 +206,37 @@ target_include_directories(noise-c PUBLIC
     ${NOISE_C_SOURCE_DIR}/src/crypto/goldilocks/src/p448/${GOLDILOCKS_ARCH}
     ${NOISE_C_SOURCE_DIR}/src/crypto/goldilocks/src
     ${NOISE_C_SOURCE_DIR}/src/crypto/goldilocks/include
-)
-
-# Add protocol directory specifically for internal.h
-target_include_directories(noise-c PRIVATE
     ${NOISE_C_SOURCE_DIR}/src/protocol
     ${NOISE_C_SOURCE_DIR}/include/noise/keys
 )
 
-# Set compile definitions for noise-c
+# Set compile definitions
 target_compile_definitions(noise-c PRIVATE ${NOISE_C_COMPILE_DEFINITIONS})
 
+# Set compile options
+target_compile_options(noise-c PRIVATE -w)
 
+# Link libraries based on backend
+if(NOISE_C_BACKEND STREQUAL "OpenSSL")
+    target_link_libraries(noise-c PUBLIC OpenSSL::SSL OpenSSL::Crypto)
+elseif(NOISE_C_BACKEND STREQUAL "Sodium")
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(SODIUM REQUIRED libsodium)
+    target_link_libraries(noise-c PUBLIC ${SODIUM_LIBRARIES})
+    target_include_directories(noise-c PRIVATE ${SODIUM_INCLUDE_DIRS})
+elseif(NOISE_C_BACKEND STREQUAL "Reference")
+    # Reference backend doesn't need external dependencies
+    message(STATUS "NoiseC using reference backend - no external dependencies required")
+endif()
 
-# Set compile options for noise-c
-target_compile_options(noise-c PRIVATE
-    -Wall
-    -Wextra
-    -Wno-unused-parameter
-    -Wno-unused-variable
-    -Wno-unused-function
-    -Wno-expansion-to-defined
-)
-
-# Link OpenSSL to noise-c
-target_link_libraries(noise-c PUBLIC OpenSSL::SSL OpenSSL::Crypto)
-
-# Set C standard for noise-c (it's written in C)
+# Set C standard
 set_target_properties(noise-c PROPERTIES
     C_STANDARD 99
     C_STANDARD_REQUIRED ON
 )
 
-# Print noise-c configuration info
-message(STATUS "noise-c source directory: ${NOISE_C_SOURCE_DIR}")
-message(STATUS "noise-c include directories: ${NOISE_C_INCLUDE_DIRS}")
-message(STATUS "noise-c backend: OpenSSL")
-message(STATUS "noise-c Goldilocks architecture: ${GOLDILOCKS_ARCH}")
+# Print configuration info
+message(STATUS "NoiseC Source Directory: ${NOISE_C_SOURCE_DIR}")
+message(STATUS "NoiseC Include Directories: ${NOISE_C_INCLUDE_DIRS}")
+message(STATUS "NoiseC Backend: ${NOISE_C_BACKEND}")
+message(STATUS "NoiseC Goldilocks Architecture: ${GOLDILOCKS_ARCH}")
