@@ -3,15 +3,18 @@
 # Set source directory
 set(NOISE_C_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vendor/noise-c)
 
-# Configure backend (OpenSSL, Sodium, or Reference)
-if(NOT DEFINED NOISE_C_BACKEND)
-    set(NOISE_C_BACKEND "OpenSSL" CACHE STRING "NoiseC backend: OpenSSL, Sodium, or Reference")
-endif()
+# Configure backend options
+option(NOISE_C_BACKEND_OPENSSL "Use OpenSSL backend for NoiseC" ON)
+option(NOISE_C_BACKEND_SODIUM "Use libsodium backend for NoiseC" OFF)
+option(NOISE_C_BACKEND_REFERENCE "Use reference backend for NoiseC" OFF)
 
-# Validate backend choice
-set(VALID_BACKENDS "OpenSSL" "Sodium" "Reference")
-if(NOT NOISE_C_BACKEND IN_LIST VALID_BACKENDS)
-    message(FATAL_ERROR "Invalid NOISE_C_BACKEND: ${NOISE_C_BACKEND}. Valid options: ${VALID_BACKENDS}")
+# Determine which backend to use (OpenSSL is default)
+if(NOISE_C_BACKEND_SODIUM)
+    set(NOISE_C_BACKEND "Sodium")
+elseif(NOISE_C_BACKEND_REFERENCE)
+    set(NOISE_C_BACKEND "Reference")
+else()
+    set(NOISE_C_BACKEND "OpenSSL")
 endif()
 
 # Define include directories
