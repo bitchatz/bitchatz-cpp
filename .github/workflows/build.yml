@@ -39,6 +39,12 @@ jobs:
         with:
           version: "1.13.1"
 
+      - name: Install Linux Dependencies
+        if: matrix.config.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev libbluetooth-dev
+
       - name: Verify
         run: |
           cmake --version
