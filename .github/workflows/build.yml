@@ -18,7 +18,12 @@ jobs:
         - {
             name: "macOS",
             os: macos-latest,
-            artifact: "macos"            
+            artifact: "macos"
+          }
+        - {
+            name: "Linux",
+            os: ubuntu-latest,
+            artifact: "linux"
           }
 
     steps:
@@ -32,7 +37,7 @@ jobs:
       - name: Install Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
         with:
-          version: "1.10.0"
+          version: "1.13.1"
 
       - name: Verify
         run: |
