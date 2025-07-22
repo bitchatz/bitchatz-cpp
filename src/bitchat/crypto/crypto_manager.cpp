@@ -39,16 +39,6 @@ void CryptoManager::cleanup()
         signingPrivateKey = nullptr;
     }
 
-    // Clean up peer keys
-    for (auto &pair : peerSigningKeys)
-    {
-        if (pair.second)
-        {
-            EVP_PKEY_free(pair.second);
-        }
-    }
-    peerSigningKeys.clear();
-
     // Clean up OpenSSL
     EVP_cleanup();
     ERR_free_strings();
@@ -142,121 +132,6 @@ std::vector<uint8_t> CryptoManager::signData(const std::vector<uint8_t> &data)
     // Resize to exact size (Ed25519 = 64 bytes)
     signature.resize(64);
     return signature;
-}
-
-bool CryptoManager::verifySignature(const std::vector<uint8_t> &data,
-                                    const std::vector<uint8_t> &signature,
-                                    const std::string &peerId)
-{
-    std::lock_guard<std::mutex> lock(cryptoMutex);
-
-    auto it = peerSigningKeys.find(peerId);
-    if (it == peerSigningKeys.end())
-    {
-        return false; // Key not available yet
-    }
-
-    EVP_PKEY *peerKey = it->second;
-    if (!peerKey)
-    {
-        return false;
-    }
-
-    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
-    if (!ctx)
-    {
-        spdlog::error("Error creating verification context");
-        return false;
-    }
-
-    if (EVP_DigestVerifyInit(ctx, nullptr, nullptr, nullptr, peerKey) <= 0)
-    {
-        spdlog::error("Error initializing verification");
-        EVP_MD_CTX_free(ctx);
-        return false;
-    }
-
-    int result = EVP_DigestVerify(ctx, signature.data(), signature.size(),
-                                  data.data(), data.size());
-    EVP_MD_CTX_free(ctx);
-
-    return result == 1;
-}
-
-bool CryptoManager::addPeerPublicKey(const std::string &peerId, const std::vector<uint8_t> &combinedKeyData)
-{
-    if (combinedKeyData.size() != 96)
-    {
-        spdlog::error("Invalid combined key data size: {} (expected 96)", combinedKeyData.size());
-        return false;
-    }
-
-    // Extract signing key (middle 32 bytes)
-    std::vector<uint8_t> signingKeyData(combinedKeyData.begin() + 32, combinedKeyData.begin() + 64);
-
-    std::lock_guard<std::mutex> lock(cryptoMutex);
-
-    // Replace existing key if present
-    if (peerSigningKeys.find(peerId) != peerSigningKeys.end())
-    {
-        EVP_PKEY_free(peerSigningKeys[peerId]);
-    }
-
-    // Load received public key
-    EVP_PKEY *peerKey = EVP_PKEY_new_raw_public_key(EVP_PKEY_ED25519, nullptr,
-                                                    signingKeyData.data(), signingKeyData.size());
-    if (peerKey)
-    {
-        peerSigningKeys[peerId] = peerKey;
-        return true;
-    }
-
-    return false;
-}
-
-std::vector<uint8_t> CryptoManager::getCombinedPublicKeyData() const
-{
-    std::vector<uint8_t> data;
-
-    // For Swift compatibility, use the same key for all three purposes
-    // Swift uses: 32 bytes (key agreement) + 32 bytes (signing) + 32 bytes (identity)
-    std::vector<uint8_t> pubkey = getPublicKeyBytes();
-
-    // Repeat the same key for the three fields (96 bytes total)
-    data.insert(data.end(), pubkey.begin(), pubkey.end()); // Key agreement (32 bytes)
-    data.insert(data.end(), pubkey.begin(), pubkey.end()); // Signing (32 bytes)
-    data.insert(data.end(), pubkey.begin(), pubkey.end()); // Identity (32 bytes)
-
-    return data;
-}
-
-std::vector<uint8_t> CryptoManager::getPublicKeyBytes() const
-{
-    if (!signingPrivateKey)
-    {
-        return std::vector<uint8_t>();
-    }
-    return getPublicKeyBytes(signingPrivateKey);
-}
-
-void CryptoManager::savePeerPublicKey(const std::string &peerId, const std::vector<uint8_t> &pubkey)
-{
-    std::ofstream file("peers_keys.txt", std::ios::app);
-    if (file.is_open())
-    {
-        file << peerId << " ";
-        for (auto byte : pubkey)
-        {
-            file << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
-        }
-        file << std::endl;
-    }
-}
-
-bool CryptoManager::hasPeerKey(const std::string &peerId) const
-{
-    std::lock_guard<std::mutex> lock(cryptoMutex);
-    return peerSigningKeys.find(peerId) != peerSigningKeys.end();
 }
 
 // Private helper functions

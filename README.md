@@ -54,9 +54,10 @@ We welcome contributions! Please see the [Development Guide](extras/docs/develop
 
 This C++ implementation is based on the original Bitchat projects:
 
-- [Bitchat Android](https://github.com/permissionlesstech/bitchat-android) - Android implementation
 - [Bitchat iOS](https://github.com/permissionlesstech/bitchat) - Original project
+- [Bitchat Android](https://github.com/permissionlesstech/bitchat-android) - Android implementation
 
 ## 📄 License
 
-MIT
+This project is released into the public domain. See the [LICENSE](LICENSE) file for details.
+

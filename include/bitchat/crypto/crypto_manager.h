@@ -26,37 +26,16 @@ public:
     void cleanup();
 
     // Generate or load signing key pair
-    bool generateOrLoadKeyPair(const std::string &keyFile = "bitchat_keypair.pem");
+    bool generateOrLoadKeyPair(const std::string &keyFile);
 
     // Sign data with private key
     std::vector<uint8_t> signData(const std::vector<uint8_t> &data);
 
-    // Verify signature with peer's public key
-    bool verifySignature(const std::vector<uint8_t> &data,
-                         const std::vector<uint8_t> &signature,
-                         const std::string &peerId);
-
-    // Add peer's public key (combined format from Swift - 96 bytes)
-    bool addPeerPublicKey(const std::string &peerId, const std::vector<uint8_t> &combinedKeyData);
-
-    // Get combined public key data (Swift format - 96 bytes)
-    std::vector<uint8_t> getCombinedPublicKeyData() const;
-
-    // Get public key bytes
-    std::vector<uint8_t> getPublicKeyBytes() const;
-
     // Get Curve25519 private key for Noise Protocol
     std::vector<uint8_t> getCurve25519PrivateKey() const;
 
-    // Save peer public key to file
-    void savePeerPublicKey(const std::string &peerId, const std::vector<uint8_t> &pubkey);
-
-    // Check if we have a key for a peer
-    bool hasPeerKey(const std::string &peerId) const;
-
 private:
     EVP_PKEY *signingPrivateKey;
-    std::map<std::string, EVP_PKEY *> peerSigningKeys;
     mutable std::mutex cryptoMutex;
 
     // Helper functions

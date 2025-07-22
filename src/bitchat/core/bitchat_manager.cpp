@@ -55,7 +55,7 @@ bool BitchatManager::initialize()
         }
 
         // Generate or load key pair
-        if (!cryptoManager->generateOrLoadKeyPair("bitchat_private_key.pem"))
+        if (!cryptoManager->generateOrLoadKeyPair("bitchat-pk.pem"))
         {
             spdlog::error("Failed to generate or load key pair");
             return false;
