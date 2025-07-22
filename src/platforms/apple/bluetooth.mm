@@ -2,7 +2,7 @@
 #include "bitchat/core/constants.h"
 
 // ============================================================================
-// Objective-C Implementation - Pure BLE Implementation
+// Objective-C Implementation
 // ============================================================================
 
 // Platform-specific constants (using C++ constants)
@@ -12,8 +12,8 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
 @implementation AppleBluetooth
 {
     // Instance variables for callback properties
-    void (^_peerDisconnectedCallback)(NSString *); // Callback when a peer disconnects
-    void (^_packetReceivedCallback)(NSData *);     // Callback when a packet is received
+    void (^peerDisconnectedCallback)(NSString *); // Callback when a peer disconnects
+    void (^packetReceivedCallback)(NSData *);     // Callback when a packet is received
 }
 
 // ============================================================================
@@ -26,7 +26,7 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
  */
 - (void (^)(NSString *))peerDisconnectedCallback
 {
-    return _peerDisconnectedCallback;
+    return peerDisconnectedCallback;
 }
 
 /**
@@ -35,7 +35,8 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
  */
 - (void)setPeerDisconnectedCallback:(void (^)(NSString *))callback
 {
-    _peerDisconnectedCallback = [callback copy]; // Copy to ensure block survives
+    // Copy to ensure block survives
+    peerDisconnectedCallback = [callback copy];
 }
 
 /**
@@ -44,7 +45,7 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
  */
 - (void (^)(NSData *))packetReceivedCallback
 {
-    return _packetReceivedCallback;
+    return packetReceivedCallback;
 }
 
 /**
@@ -53,7 +54,8 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
  */
 - (void)setPacketReceivedCallback:(void (^)(NSData *))callback
 {
-    _packetReceivedCallback = [callback copy]; // Copy to ensure block survives
+    // Copy to ensure block survives
+    packetReceivedCallback = [callback copy];
 }
 
 // ============================================================================
@@ -69,6 +71,7 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
 - (instancetype)init
 {
     self = [super init];
+
     if (self)
     {
         self.ready = NO;                                                                 // Not ready until managers are powered on
@@ -111,7 +114,9 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
                                  beforeDate:[NSDate dateWithTimeIntervalSinceNow:bitchat::constants::BLE_SCAN_INTERVAL_SECONDS]];
     }
 
-    self.ready = YES; // Mark system as ready for operations
+    // Mark system as ready for operations
+    self.ready = YES;
+
     return YES;
 }
 
@@ -144,12 +149,14 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
 {
     if (self.centralManager)
     {
-        [self.centralManager stopScan]; // Stop scanning for other devices
+        // Stop scanning for other devices
+        [self.centralManager stopScan];
     }
 
     if (self.peripheralManager)
     {
-        [self.peripheralManager stopAdvertising]; // Stop advertising this device
+        // Stop advertising this device
+        [self.peripheralManager stopAdvertising];
     }
 }
 
@@ -244,7 +251,8 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
         }
     }
 
-    return NO; // Peer not found
+    // Peer not found
+    return NO;
 }
 
 // ============================================================================
@@ -335,7 +343,8 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
     if (central.state == CBManagerStatePoweredOn)
     {
         dispatch_async(dispatch_get_main_queue(), ^{
-            [self startScanning]; // Start scanning for other devices
+            // Start scanning for other devices
+            [self startScanning];
         });
     }
 }
@@ -400,7 +409,6 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
     [self.connectedPeripherals removeObjectForKey:tempID];          // Remove from connected devices
     [self.peripheralCharacteristics removeObjectForKey:peripheral]; // Remove characteristic reference
 
-    // Notify C++ bridge about disconnection
     if (self.peerDisconnectedCallback)
     {
         self.peerDisconnectedCallback(tempID);
@@ -420,7 +428,8 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
     didFailToConnectPeripheral:(CBPeripheral *)peripheral
                          error:(NSError *)error
 {
-    [self.discoveredPeripherals removeObject:peripheral]; // Remove from discovered devices
+    // Remove from discovered devices
+    [self.discoveredPeripherals removeObject:peripheral];
 }
 
 // ============================================================================
@@ -468,7 +477,9 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
                 self.packetReceivedCallback(request.value);
             }
         }
-        [peripheral respondToRequest:request withResult:CBATTErrorSuccess]; // Acknowledge the write
+
+        // Acknowledge the write
+        [peripheral respondToRequest:request withResult:CBATTErrorSuccess];
     }
 }
 
@@ -487,7 +498,8 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
 {
     if (![self.subscribedCentrals containsObject:central])
     {
-        [self.subscribedCentrals addObject:central]; // Track subscribed central
+        // Track subscribed central
+        [self.subscribedCentrals addObject:central];
     }
 }
 
@@ -504,7 +516,8 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
                              central:(CBCentral *)central
     didUnsubscribeFromCharacteristic:(CBCharacteristic *)characteristic
 {
-    [self.subscribedCentrals removeObject:central]; // Remove from subscribed list
+    // Remove from subscribed list
+    [self.subscribedCentrals removeObject:central];
 }
 
 /**
@@ -601,7 +614,8 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
 
     if (!data || data.length < bitchat::constants::BLE_MIN_PACKET_SIZE_BYTES)
     {
-        return; // Ignore invalid or too small packets
+        // Ignore invalid or too small packets
+        return;
     }
 
     // Forward the raw packet data to C++ bridge for processing
@@ -638,7 +652,9 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
 {
     if (self.centralManager.state == CBManagerStatePoweredOn)
     {
-        NSDictionary *options = @{CBCentralManagerScanOptionAllowDuplicatesKey : @YES}; // Allow duplicate advertisements
+        // Allow duplicate advertisements
+        NSDictionary *options = @{CBCentralManagerScanOptionAllowDuplicatesKey : @YES};
+
         [self.centralManager scanForPeripheralsWithServices:@[ [CBUUID UUIDWithString:SERVICE_UUID] ]
                                                     options:options];
     }
@@ -666,7 +682,8 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
              primary:YES];
     service.characteristics = @[ self.mutableCharacteristic ];
 
-    [self.peripheralManager addService:service]; // Add service to peripheral manager
+    // Add service to peripheral manager
+    [self.peripheralManager addService:service];
 }
 
 /**
@@ -679,7 +696,8 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
 {
     if (self.peripheralManager.state == CBManagerStatePoweredOn)
     {
-        NSString *localName = [self getLocalPeerId]; // Use peer ID as local name
+        // Use peer ID as local name
+        NSString *localName = [self getLocalPeerId];
 
         // Set up advertisement data
         NSDictionary *advertisementData = @{
@@ -687,7 +705,8 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
             CBAdvertisementDataLocalNameKey : localName                                     // Advertise our peer ID
         };
 
-        [self.peripheralManager startAdvertising:advertisementData]; // Start advertising
+        // Start advertising
+        [self.peripheralManager startAdvertising:advertisementData];
     }
 }
 

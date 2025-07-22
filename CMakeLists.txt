@@ -43,12 +43,6 @@ endif()
 
 # Add dependencies via CPM
 CPMAddPackage(
-    NAME uuid
-    GITHUB_REPOSITORY rkg82/uuid-v4
-    GIT_TAG dd2f75c027d033586e9eb62b484748cb4bfc515d
-)
-
-CPMAddPackage(
     NAME spdlog
     GITHUB_REPOSITORY gabime/spdlog
     VERSION 1.15.3
@@ -66,20 +60,16 @@ CPMAddPackage("gh:nlohmann/json@3.12.0")
 # Find OpenSSL
 find_package(OpenSSL REQUIRED)
 
-# Include directories
-include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-
 # Source files
 set(SOURCES
     src/main.cpp
-    src/bitchat/protocol/utils.cpp
+    src/bitchat/helpers/protocol_helper.cpp
+    src/bitchat/helpers/chat_helper.cpp
     src/bitchat/protocol/packet.cpp
     src/bitchat/protocol/message_padding.cpp
+    src/bitchat/protocol/packet_serializer.cpp
     src/bitchat/compression/compression_manager.cpp
     src/bitchat/crypto/crypto_manager.cpp
-    src/bitchat/protocol/packet_serializer.cpp
     src/bitchat/core/bitchat_manager.cpp
     src/bitchat/core/network_manager.cpp
     src/bitchat/core/message_manager.cpp
@@ -91,15 +81,23 @@ set(SOURCES
 
 # Platform-specific source files
 if(PLATFORM_APPLE)
-    set(SOURCES ${SOURCES} src/platforms/apple/bluetooth.mm src/platforms/apple/bluetooth_bridge.mm)
+    set(SOURCES ${SOURCES} src/platforms/apple/bluetooth_factory.mm src/platforms/apple/bluetooth.mm src/platforms/apple/bluetooth_bridge.mm)
+
     set_source_files_properties(src/platforms/apple/bluetooth.mm PROPERTIES COMPILE_FLAGS "-x objective-c++")
     set_source_files_properties(src/platforms/apple/bluetooth_bridge.mm PROPERTIES COMPILE_FLAGS "-x objective-c++")
+    set_source_files_properties(src/platforms/apple/bluetooth_factory.mm PROPERTIES COMPILE_FLAGS "-x objective-c++")
 elseif(PLATFORM_LINUX)
     set(SOURCES ${SOURCES} src/platforms/linux/bluetooth.cpp src/platforms/linux/bluetooth_factory.cpp)
 endif()
 
 # Create executable
 add_executable(bitchat ${SOURCES})
+
+# Include directories
+target_include_directories(bitchat PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/vendor
+)
 
 # Link libraries
 target_link_libraries(bitchat

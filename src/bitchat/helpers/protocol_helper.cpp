@@ -1,4 +1,5 @@
-#include "bitchat/protocol/utils.h"
+#include "bitchat/helpers/protocol_helper.h"
+#include "uuid-v4/uuid-v4.h"
 #include <algorithm>
 #include <chrono>
 #include <cstring>
@@ -6,14 +7,10 @@
 #include <random>
 #include <sstream>
 
-#ifdef __APPLE__
-#include <uuid/uuid.h>
-#endif
-
 namespace bitchat
 {
 
-std::string ProtocolUtils::toHex(const std::vector<uint8_t> &data)
+std::string ProtocolHelper::toHex(const std::vector<uint8_t> &data)
 {
     std::stringstream ss;
     for (size_t i = 0; i < data.size(); ++i)
@@ -25,7 +22,7 @@ std::string ProtocolUtils::toHex(const std::vector<uint8_t> &data)
     return ss.str();
 }
 
-std::string ProtocolUtils::toHexCompact(const std::vector<uint8_t> &data)
+std::string ProtocolHelper::toHexCompact(const std::vector<uint8_t> &data)
 {
     std::stringstream ss;
     for (uint8_t byte : data)
@@ -35,7 +32,7 @@ std::string ProtocolUtils::toHexCompact(const std::vector<uint8_t> &data)
     return ss.str();
 }
 
-std::vector<uint8_t> ProtocolUtils::stringToVector(const std::string &str)
+std::vector<uint8_t> ProtocolHelper::stringToVector(const std::string &str)
 {
     // Convert hex string to bytes
     if (str.length() % 2 != 0)
@@ -53,19 +50,19 @@ std::vector<uint8_t> ProtocolUtils::stringToVector(const std::string &str)
     return result;
 }
 
-std::string ProtocolUtils::vectorToString(const std::vector<uint8_t> &vec)
+std::string ProtocolHelper::vectorToString(const std::vector<uint8_t> &vec)
 {
     return std::string(vec.begin(), vec.end());
 }
 
-std::string ProtocolUtils::normalizePeerId(const std::string &peerId)
+std::string ProtocolHelper::normalizePeerId(const std::string &peerId)
 {
     std::string normalized = peerId;
     normalized.erase(std::remove(normalized.begin(), normalized.end(), '\0'), normalized.end());
     return normalized;
 }
 
-std::string ProtocolUtils::randomPeerId()
+std::string ProtocolHelper::randomPeerId()
 {
     std::vector<uint8_t> peerId(8); // 8 bytes like Swift
     std::random_device rd;
@@ -85,37 +82,12 @@ std::string ProtocolUtils::randomPeerId()
     return ss.str();
 }
 
-std::string ProtocolUtils::uuidv4()
+std::string ProtocolHelper::uuidv4()
 {
-#ifdef __APPLE__
-    uuid_t uuid;
-    char uuidStr[37];
-    uuid_generate(uuid);
-    uuid_unparse_lower(uuid, uuidStr);
-    return std::string(uuidStr);
-#else
-    // Fallback implementation for other platforms
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, 15);
-
-    std::stringstream ss;
-    ss << std::hex;
-
-    for (int i = 0; i < 32; ++i)
-    {
-        if (i == 8 || i == 12 || i == 16 || i == 20)
-        {
-            ss << "-";
-        }
-        ss << dis(gen);
-    }
-
-    return ss.str();
-#endif
+    return uuid::v4::UUID::New().String();
 }
 
-std::string ProtocolUtils::randomNickname()
+std::string ProtocolHelper::randomNickname()
 {
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -124,52 +96,77 @@ std::string ProtocolUtils::randomNickname()
     return "anon" + std::to_string(dis(gen));
 }
 
-bool ProtocolUtils::isValidPeerId(const std::string &peerId)
+bool ProtocolHelper::isValidPeerId(const std::string &peerId)
 {
+    // Check if the peerId is empty
     if (peerId.empty())
+    {
         return false;
-    if (peerId.length() != 16) // Must be exactly 16 hex characters (8 bytes)
+    }
+
+    // Must be exactly 16 hex characters (8 bytes)
+    if (peerId.length() != 16)
+    {
         return false;
+    }
 
     // Check if it contains only hex characters
     return std::all_of(peerId.begin(), peerId.end(), [](char c)
                        { return std::isxdigit(c); });
 }
 
-bool ProtocolUtils::isValidChannelName(const std::string &channel)
+bool ProtocolHelper::isValidChannelName(const std::string &channel)
 {
+    // Check if the channel is empty
     if (channel.empty())
+    {
         return false;
+    }
+
+    // Check if the channel is too long
     if (channel.length() > 50)
+    {
         return false;
+    }
+
+    // Check if the channel starts with a #
     if (channel[0] != '#')
+    {
         return false;
+    }
 
     // Check if it contains only alphanumeric characters and underscores
     return std::all_of(channel.begin() + 1, channel.end(), [](char c)
                        { return std::isalnum(c) || c == '_' || c == '-'; });
 }
 
-bool ProtocolUtils::isValidNickname(const std::string &nickname)
+bool ProtocolHelper::isValidNickname(const std::string &nickname)
 {
+    // Check if the nickname is empty
     if (nickname.empty())
+    {
         return false;
+    }
+
+    // Check if the nickname is too long
     if (nickname.length() > 32)
+    {
         return false;
+    }
 
     // Check if it contains only alphanumeric characters, underscores, and hyphens
     return std::all_of(nickname.begin(), nickname.end(), [](char c)
                        { return std::isalnum(c) || c == '_' || c == '-'; });
 }
 
-uint64_t ProtocolUtils::getCurrentTimestamp()
+uint64_t ProtocolHelper::getCurrentTimestamp()
 {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
                std::chrono::system_clock::now().time_since_epoch())
         .count();
 }
 
-std::string ProtocolUtils::formatTimestamp(uint64_t timestamp)
+std::string ProtocolHelper::formatTimestamp(uint64_t timestamp)
 {
     time_t time = timestamp / 1000;
     char timebuf[20];

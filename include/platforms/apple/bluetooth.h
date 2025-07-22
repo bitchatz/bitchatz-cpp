@@ -3,8 +3,9 @@
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
-// Objective-C interface for Apple Bluetooth implementation - PURE BLE ONLY
+// Objective-C interface for Apple Bluetooth implementation
 // This header should ONLY be included by .mm or .m files
+
 @interface AppleBluetooth : NSObject <CBCentralManagerDelegate, CBPeripheralManagerDelegate, CBPeripheralDelegate>
 
 // Properties
@@ -20,7 +21,7 @@
 @property(nonatomic, strong) dispatch_queue_t bleQueue;
 @property(nonatomic, strong) NSString *localPeerId;
 
-// Callback properties - PURE BLE ONLY
+// Callback properties
 @property(nonatomic, copy) void (^peerDisconnectedCallback)(NSString *);
 @property(nonatomic, copy) void (^packetReceivedCallback)(NSData *);
 
@@ -30,7 +31,7 @@
 - (BOOL)start;
 - (void)stop;
 
-// Packet sending - PURE BLE ONLY
+// Packet sending
 - (BOOL)sendPacket:(NSData *)packetData;
 - (BOOL)sendPacket:(NSData *)packetData toPeripheral:(CBPeripheral *)peripheral;
 - (BOOL)sendPacket:(NSData *)packetData toPeer:(NSString *)peerId;
@@ -40,7 +41,7 @@
 - (NSString *)getLocalPeerId;
 - (NSUInteger)getConnectedPeersCount;
 
-// Callback setters - PURE BLE ONLY
+// Callback setters
 - (void)setPeerDisconnectedCallback:(void (^)(NSString *peerId))callback;
 - (void)setPacketReceivedCallback:(void (^)(NSData *packetData))callback;
 

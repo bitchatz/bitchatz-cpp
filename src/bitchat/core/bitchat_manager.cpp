@@ -1,7 +1,7 @@
 #include "bitchat/core/bitchat_manager.h"
+#include "bitchat/helpers/protocol_helper.h"
 #include "bitchat/platform/bluetooth_factory.h"
 #include "bitchat/protocol/packet.h"
-#include "bitchat/protocol/utils.h"
 #include <openssl/evp.h>
 #include <spdlog/spdlog.h>
 
@@ -368,7 +368,7 @@ void BitchatManager::setupCallbacks()
                                                   {
                                                           case PKT_TYPE_MESSAGE:
             // Forward to MessageManager for normal messages
-            spdlog::debug("Received message packet from {}", ProtocolUtils::toHexCompact(packet.getSenderId()));
+            spdlog::debug("Received message packet from {}", ProtocolHelper::toHexCompact(packet.getSenderId()));
             messageManager->processPacket(packet);
             break;
                                                   case PKT_TYPE_NOISE_HANDSHAKE_INIT:
@@ -424,7 +424,7 @@ void BitchatManager::processNoisePacket(const BitchatPacket &packet)
         return;
     }
 
-    std::string peerId = ProtocolUtils::toHexCompact(packet.getSenderId());
+    std::string peerId = ProtocolHelper::toHexCompact(packet.getSenderId());
 
     // Ignore packets from ourselves to prevent echo loops
     if (peerId == networkManager->getLocalPeerId())
@@ -461,8 +461,8 @@ void BitchatManager::processNoisePacket(const BitchatPacket &packet)
 
                     // Send handshake response
                     BitchatPacket responsePacket(PKT_TYPE_NOISE_HANDSHAKE_RESP, *response);
-                    responsePacket.setSenderId(ProtocolUtils::stringToVector(networkManager->getLocalPeerId()));
-                    responsePacket.setTimestamp(ProtocolUtils::getCurrentTimestamp());
+                    responsePacket.setSenderId(ProtocolHelper::stringToVector(networkManager->getLocalPeerId()));
+                    responsePacket.setTimestamp(ProtocolHelper::getCurrentTimestamp());
                     networkManager->sendPacket(responsePacket);
                     spdlog::info("Sent Noise handshake response to {}", peerId);
                 }
@@ -542,8 +542,8 @@ void BitchatManager::processNoisePacket(const BitchatPacket &packet)
                         spdlog::info("To peerId: '{}'", peerId);
                         spdlog::info("This should only happen on responder side");
                         BitchatPacket responsePacket(PKT_TYPE_NOISE_HANDSHAKE_RESP, *response);
-                        responsePacket.setSenderId(ProtocolUtils::stringToVector(networkManager->getLocalPeerId()));
-                        responsePacket.setTimestamp(ProtocolUtils::getCurrentTimestamp());
+                        responsePacket.setSenderId(ProtocolHelper::stringToVector(networkManager->getLocalPeerId()));
+                        responsePacket.setTimestamp(ProtocolHelper::getCurrentTimestamp());
                         networkManager->sendPacket(responsePacket);
                         spdlog::info("Sent 96-byte handshake response to {}", peerId);
                     }
@@ -557,8 +557,8 @@ void BitchatManager::processNoisePacket(const BitchatPacket &packet)
                         spdlog::info("After this, handshake should be complete on both sides");
 
                         BitchatPacket responsePacket(PKT_TYPE_NOISE_HANDSHAKE_RESP, *response);
-                        responsePacket.setSenderId(ProtocolUtils::stringToVector(networkManager->getLocalPeerId()));
-                        responsePacket.setTimestamp(ProtocolUtils::getCurrentTimestamp());
+                        responsePacket.setSenderId(ProtocolHelper::stringToVector(networkManager->getLocalPeerId()));
+                        responsePacket.setTimestamp(ProtocolHelper::getCurrentTimestamp());
                         networkManager->sendPacket(responsePacket);
                         spdlog::info("Sent 48-byte final handshake message to {}", peerId);
                         spdlog::info("Handshake should now be complete on initiator side");
@@ -622,8 +622,8 @@ void BitchatManager::processNoisePacket(const BitchatPacket &packet)
                             spdlog::info("Handshake data size: {} bytes", handshakeData.size());
 
                             BitchatPacket handshakePacket(PKT_TYPE_NOISE_HANDSHAKE_INIT, handshakeData);
-                            handshakePacket.setSenderId(ProtocolUtils::stringToVector(localPeerId));
-                            handshakePacket.setTimestamp(ProtocolUtils::getCurrentTimestamp());
+                            handshakePacket.setSenderId(ProtocolHelper::stringToVector(localPeerId));
+                            handshakePacket.setTimestamp(ProtocolHelper::getCurrentTimestamp());
                             networkManager->sendPacket(handshakePacket);
                             spdlog::info("Sent Noise handshake init to {}", peerId);
                         }
@@ -675,8 +675,8 @@ void BitchatManager::sendNoiseIdentityAnnounce()
         std::string peerId = networkManager->getLocalPeerId();
         payload.insert(payload.end(), peerId.begin(), peerId.end());
         BitchatPacket packet(PKT_TYPE_NOISE_IDENTITY_ANNOUNCE, payload);
-        packet.setSenderId(ProtocolUtils::stringToVector(networkManager->getLocalPeerId()));
-        packet.setTimestamp(ProtocolUtils::getCurrentTimestamp());
+        packet.setSenderId(ProtocolHelper::stringToVector(networkManager->getLocalPeerId()));
+        packet.setTimestamp(ProtocolHelper::getCurrentTimestamp());
 
         networkManager->sendPacket(packet);
         spdlog::info("Sent Noise identity announce");

@@ -1,5 +1,5 @@
 #include "bitchat/protocol/packet.h"
-#include "bitchat/protocol/utils.h"
+#include "bitchat/helpers/protocol_helper.h"
 #include <algorithm>
 #include <chrono>
 #include <ctime>
@@ -20,7 +20,7 @@ BitchatPacket::BitchatPacket(uint8_t type, const std::vector<uint8_t> &payload)
     , payloadLength(static_cast<uint16_t>(payload.size()))
     , payload(payload)
 {
-    timestamp = ProtocolUtils::getCurrentTimestamp();
+    timestamp = ProtocolHelper::getCurrentTimestamp();
 }
 
 std::string BitchatPacket::getTypeString() const
@@ -119,8 +119,8 @@ BitchatMessage::BitchatMessage(const std::string &sender, const std::string &con
     , content(content)
     , channel(channel)
 {
-    timestamp = ProtocolUtils::getCurrentTimestamp();
-    id = ProtocolUtils::uuidv4();
+    timestamp = ProtocolHelper::getCurrentTimestamp();
+    id = ProtocolHelper::uuidv4();
 }
 
 void BitchatMessage::addMention(const std::string &mention)
@@ -167,7 +167,7 @@ std::string OnlinePeer::getDisplayName() const
 {
     if (nick.empty())
     {
-        return ProtocolUtils::toHexCompact(peerId);
+        return ProtocolHelper::toHexCompact(peerId);
     }
     return nick;
 }

@@ -7,8 +7,8 @@
 namespace bitchat
 {
 
-// Utility class for protocol-related helper functions
-class ProtocolUtils
+// Helper class for protocol-related helper functions
+class ProtocolHelper
 {
 public:
     // Hex conversion utilities
@@ -39,7 +39,7 @@ public:
     static std::string formatTimestamp(uint64_t timestamp);
 
 private:
-    ProtocolUtils() = delete; // Static class, no instantiation
+    ProtocolHelper() = delete; // Static class, no instantiation
 };
 
 } // namespace bitchat

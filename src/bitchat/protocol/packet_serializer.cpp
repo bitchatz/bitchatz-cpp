@@ -1,8 +1,8 @@
 #include "bitchat/protocol/packet_serializer.h"
 #include "bitchat/compression/compression_manager.h"
 #include "bitchat/crypto/crypto_manager.h"
+#include "bitchat/helpers/protocol_helper.h"
 #include "bitchat/protocol/message_padding.h"
-#include "bitchat/protocol/utils.h"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
@@ -218,7 +218,7 @@ std::vector<uint8_t> PacketSerializer::makeMessagePayload(const BitchatMessage &
     writeUint64(data, message.getTimestamp());
 
     // Message ID (variable length, max 255 bytes)
-    std::string id = message.getId().empty() ? ProtocolUtils::uuidv4() : message.getId();
+    std::string id = message.getId().empty() ? ProtocolHelper::uuidv4() : message.getId();
     writeUint8(data, static_cast<uint8_t>(std::min(static_cast<size_t>(255), id.size())));
     data.insert(data.end(), id.begin(),
                 id.begin() + std::min(static_cast<size_t>(255), id.size()));
@@ -252,7 +252,7 @@ std::vector<uint8_t> PacketSerializer::makeMessagePayload(const BitchatMessage &
     if (!message.getSenderPeerID().empty())
     {
         // Convert peer ID bytes to hex string for Swift compatibility
-        std::string peerIdHex = ProtocolUtils::toHexCompact(message.getSenderPeerID());
+        std::string peerIdHex = ProtocolHelper::toHexCompact(message.getSenderPeerID());
         writeUint8(data, static_cast<uint8_t>(std::min(static_cast<size_t>(255), peerIdHex.size())));
         data.insert(data.end(), peerIdHex.begin(),
                     peerIdHex.begin() + std::min(static_cast<size_t>(255), peerIdHex.size()));

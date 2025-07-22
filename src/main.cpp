@@ -1,16 +1,19 @@
 #include "bitchat/core/bitchat_manager.h"
+#include "bitchat/helpers/chat_helper.h"
 #include <chrono>
 #include <iostream>
-#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <thread>
+
+using namespace bitchat;
 
 // Global manager instance
 std::unique_ptr<bitchat::BitchatManager> manager;
 
 // Callback functions for UI updates
-void onMessageReceived(const bitchat::BitchatMessage &message)
+void onMessageReceived(const BitchatMessage &message)
 {
     spdlog::debug("onMessageReceived callback called - Sender: {}, Content: {}, Channel: {}", message.getSender(), message.getContent(), message.getChannel());
 
@@ -20,18 +23,18 @@ void onMessageReceived(const bitchat::BitchatMessage &message)
     std::tm *tinfo = std::localtime(&timestamp);
     std::strftime(timebuf, sizeof(timebuf), "%H:%M", tinfo);
 
-    // Display message
-    spdlog::info("[{}] {}: {}", timebuf, message.getSender(), message.getContent());
+    // Display message using ChatHelper
+    ChatHelper::show("[{}] {}: {}", timebuf, message.getSender(), message.getContent());
 }
 
 void onPeerJoined(const std::string & /*peerId*/, const std::string &nickname)
 {
-    spdlog::info("*** {} joined ***", nickname);
+    ChatHelper::info("*** {} joined ***", nickname);
 }
 
 void onPeerLeft(const std::string & /*peerId*/, const std::string &nickname)
 {
-    spdlog::info("*** {} left ***", nickname);
+    ChatHelper::info("*** {} left ***", nickname);
 }
 
 void onStatusUpdate(const std::string &status)
@@ -45,7 +48,7 @@ void showOnlinePeers()
         return;
 
     auto peers = manager->getOnlinePeers();
-    spdlog::info("\nPeople online:");
+    ChatHelper::info("\nPeople online:");
 
     time_t now = time(nullptr);
     bool found = false;
@@ -71,14 +74,14 @@ void showOnlinePeers()
             {
                 peerInfo += " (RSSI: " + std::to_string(peer.getRSSI()) + " dBm)";
             }
-            spdlog::info(peerInfo);
+            ChatHelper::info(peerInfo);
             found = true;
         }
     }
 
     if (!found)
     {
-        spdlog::info("No one online at the moment.");
+        ChatHelper::info("No one online at the moment.");
     }
 }
 
@@ -92,28 +95,28 @@ void showStatus()
     std::string currentChannel = manager->getCurrentChannel();
     if (currentChannel.empty())
     {
-        spdlog::info("Current channel: main (default chat)");
+        ChatHelper::info("Current channel: main (default chat)");
     }
     else
     {
-        spdlog::info("Current channel: {}", currentChannel);
+        ChatHelper::info("Current channel: {}", currentChannel);
     }
 }
 
 void showHelp()
 {
-    spdlog::info("\nAvailable commands:");
-    spdlog::info("/j #channel    - Join channel");
-    spdlog::info("/nick NICK     - Change nickname");
-    spdlog::info("/w             - Show people online in current channel");
-    spdlog::info("/status        - Show current channel status");
-    spdlog::info("/clear         - Clear screen");
-    spdlog::info("/help          - Show this help");
-    spdlog::info("/exit          - Exit");
-    spdlog::info("Message        - Send message to current channel");
-    spdlog::info("");
-    spdlog::info("Note: You can send messages without joining a channel (default chat)");
-    spdlog::info("");
+    ChatHelper::info("\nAvailable commands:");
+    ChatHelper::info("/j #channel    - Join channel");
+    ChatHelper::info("/nick NICK     - Change nickname");
+    ChatHelper::info("/w             - Show people online in current channel");
+    ChatHelper::info("/status        - Show current channel status");
+    ChatHelper::info("/clear         - Clear screen");
+    ChatHelper::info("/help          - Show this help");
+    ChatHelper::info("/exit          - Exit");
+    ChatHelper::info("Message        - Send message to current channel");
+    ChatHelper::info("");
+    ChatHelper::info("Note: You can send messages without joining a channel (default chat)");
+    ChatHelper::info("");
 }
 
 void clearScreen()
@@ -121,15 +124,26 @@ void clearScreen()
 #ifdef _WIN32
     [[maybe_unused]] auto ignored = system("clear");
 #else
-    std::cout << "\033[2J\033[H"; // student.cs.uwaterloo.ca/~cs452/terminal.html
+    // https://student.cs.uwaterloo.ca/~cs452/terminal.html
+    std::cout << "\033[2J\033[H";
 #endif
 }
 
 int main()
 {
-    // Initialize spdlog
-    auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-    auto logger = std::make_shared<spdlog::logger>("bitchat", consoleSink);
+    // Initialize spdlog with file sink only (no console output)
+    auto fileSink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>("bitchat.log", 1024 * 1024 * 5, 3);
+
+    // Configure for faster writing
+    fileSink->set_level(spdlog::level::debug);
+    fileSink->set_pattern("[%H:%M:%S] %v");
+
+    auto logger = std::make_shared<spdlog::logger>("bitchat", fileSink);
+    logger->set_level(spdlog::level::debug);
+
+    // Flush on every log message
+    logger->flush_on(spdlog::level::debug);
+
     spdlog::set_default_logger(logger);
     spdlog::set_pattern("[%H:%M:%S] %v");
 
@@ -158,10 +172,13 @@ int main()
         return 1;
     }
 
-    spdlog::info("Connected! Type /help for commands.");
-    spdlog::info("Peer ID: {}", manager->getPeerId());
-    spdlog::info("Nickname: {}", manager->getNickname());
-    spdlog::info("You can send messages without joining a channel or use /j #channel to join one");
+    // Initialize ChatHelper for console output
+    ChatHelper::initialize();
+
+    ChatHelper::info("=== Bitchat Terminal Client ===");
+    ChatHelper::info("Peer ID: {}", manager->getPeerId());
+    ChatHelper::info("Nickname: {}", manager->getNickname());
+    ChatHelper::info("Connected! Type /help for commands.");
 
     // Main command loop
     std::string line;
@@ -181,18 +198,18 @@ int main()
             {
                 std::string channel = line.substr(3);
                 manager->joinChannel(channel);
-                spdlog::info("Joined channel: {}", channel);
+                ChatHelper::success("Joined channel: {}", channel);
             }
             else if (line == "/j")
             {
                 manager->joinChannel("");
-                spdlog::info("Joined main chat");
+                ChatHelper::success("Joined main chat");
             }
             else if (line.rfind("/nick ", 0) == 0)
             {
                 std::string nickname = line.substr(6);
                 manager->setNickname(nickname);
-                spdlog::info("Nickname changed to: {}", nickname);
+                ChatHelper::success("Nickname changed to: {}", nickname);
             }
             else if (line == "/w")
             {
@@ -206,13 +223,13 @@ int main()
             {
                 clearScreen();
             }
+            else if (line[0] == '/')
+            {
+                ChatHelper::warn("Unknown command. Type /help for available commands.");
+            }
             else if (line.empty())
             {
                 // Do nothing
-            }
-            else if (line[0] == '/')
-            {
-                spdlog::warn("Unknown command. Type /help for available commands.");
             }
             else
             {
@@ -223,11 +240,11 @@ int main()
                     char timebuf[10];
                     std::tm *tinfo = std::localtime(&now);
                     std::strftime(timebuf, sizeof(timebuf), "%H:%M", tinfo);
-                    spdlog::info("[{}] You: {}", timebuf, line);
+                    ChatHelper::show("[{}] You: {}", timebuf, line);
                 }
                 else
                 {
-                    spdlog::error("Failed to send message");
+                    ChatHelper::error("Failed to send message");
                 }
             }
         }
@@ -240,6 +257,7 @@ int main()
     manager->stop();
     manager.reset();
 
-    spdlog::info("Disconnected.");
+    ChatHelper::shutdown();
+
     return 0;
 }

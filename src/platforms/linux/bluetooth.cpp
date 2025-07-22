@@ -28,6 +28,7 @@ LinuxBluetooth::LinuxBluetooth()
     , peerDisconnectedCallback(nullptr)
 {
     deviceId = hci_get_route(nullptr);
+
     if (deviceId < 0)
     {
         spdlog::error("No Bluetooth adapter found");
