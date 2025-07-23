@@ -40,7 +40,7 @@ public:
     // Create packet with proper fields
     BitchatPacket makePacket(uint8_t type, const std::vector<uint8_t> &payload,
                              bool hasRecipient = false, bool hasSignature = false,
-                             const std::string &senderId = "");
+                             const std::string &senderID = "");
 
 private:
     // Helper functions for serialization

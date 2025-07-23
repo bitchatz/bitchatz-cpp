@@ -28,7 +28,7 @@ public:
     virtual std::vector<uint8_t> decrypt(const std::vector<uint8_t> &ciphertext) = 0;
 
     // Session state
-    virtual bool isEstablished() const = 0;
+    virtual bool isSessionEstablished() const = 0;
     virtual std::string getPeerID() const = 0;
     virtual std::optional<PublicKey> getRemoteStaticPublicKey() const = 0;
     virtual std::optional<std::vector<uint8_t>> getHandshakeHash() const = 0;
@@ -38,6 +38,9 @@ public:
     virtual uint64_t getMessageCount() const = 0;
     virtual std::chrono::system_clock::time_point getLastActivityTime() const = 0;
     virtual bool handshakeInProgress() const = 0;
+
+    // Handshake processing
+    virtual std::optional<std::vector<uint8_t>> processHandshakeMessage(const std::vector<uint8_t> &message) = 0;
 };
 
 // MARK: - NoiseSessionManager Interface
@@ -83,9 +86,9 @@ public:
     NoiseRole resolveRole(const std::string &localPeerID, const std::string &remotePeerID) const;
 
 private:
-    PrivateKey localStaticKey_;
-    std::unordered_map<std::string, std::shared_ptr<NoiseSession>> sessions_;
-    mutable std::mutex sessionsMutex_;
+    PrivateKey localStaticKey;
+    std::unordered_map<std::string, std::shared_ptr<NoiseSession>> sessions;
+    mutable std::mutex sessionsMutex;
 
     // Callbacks
     std::function<void(const std::string &, const PublicKey &)> onSessionEstablished_;

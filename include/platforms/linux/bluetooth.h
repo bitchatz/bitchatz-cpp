@@ -22,23 +22,23 @@ public:
     bool start() override;
     void stop() override;
     bool sendPacket(const BitchatPacket &packet) override;
-    bool sendPacketToPeer(const BitchatPacket &packet, const std::string &peerId) override;
+    bool sendPacketToPeer(const BitchatPacket &packet, const std::string &peerID) override;
     bool isReady() const override;
-    std::string getLocalPeerId() const override;
-    void setLocalPeerId(const std::string &peerId) override;
+    std::string getLocalPeerID() const override;
+    void setLocalPeerID(const std::string &peerID) override;
     void setPeerDisconnectedCallback(PeerDisconnectedCallback callback) override;
     void setPacketReceivedCallback(PacketReceivedCallback callback) override;
     size_t getConnectedPeersCount() const override;
 
 private:
     void scanThreadFunc();
-    void readerThreadFunc(const std::string &deviceId, int socket);
+    void readerThreadFunc(const std::string &deviceID, int socket);
     void acceptThreadFunc();
 
-    int deviceId;
+    int deviceID;
     int hciSocket;
     int rfcommSocket;
-    std::string localPeerId;
+    std::string localPeerID;
 
     std::thread scanThread;
     std::thread acceptThread;

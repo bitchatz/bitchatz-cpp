@@ -42,11 +42,11 @@ public:
     // Getters
     std::string getCurrentChannel() const;
     std::string getNickname() const;
-    std::string getPeerId() const;
+    std::string getPeerID() const;
     std::map<std::string, BitchatPeer> getOnlinePeers() const;
 
     // Setters
-    void setPeerId(const std::string &peerId);
+    void setPeerID(const std::string &peerID);
     std::vector<BitchatMessage> getMessageHistory() const;
     size_t getConnectedPeersCount() const;
 
@@ -87,8 +87,8 @@ private:
     // Internal methods
     void setupCallbacks();
     void onMessageReceived(const BitchatMessage &message);
-    void onPeerJoined(const std::string &peerId, const std::string &nickname);
-    void onPeerLeft(const std::string &peerId, const std::string &nickname);
+    void onPeerJoined(const std::string &peerID, const std::string &nickname);
+    void onPeerLeft(const std::string &peerID, const std::string &nickname);
     void onStatusUpdate(const std::string &status);
     void processNoisePacket(const BitchatPacket &packet);
     void sendNoiseIdentityAnnounce();

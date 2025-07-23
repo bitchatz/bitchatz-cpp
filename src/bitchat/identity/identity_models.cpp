@@ -148,7 +148,7 @@ std::vector<std::string> IdentityRecoveryData::generateRecoveryWords() const
 nlohmann::json IdentityVerification::toJson() const
 {
     return {
-        {"identityId", identityId},
+        {"identityID", identityID},
         {"verificationCode", verificationCode},
         {"expiresAt", json_utils::timePointToString(expiresAt)},
         {"isVerified", isVerified}};
@@ -157,7 +157,7 @@ nlohmann::json IdentityVerification::toJson() const
 IdentityVerification IdentityVerification::fromJson(const nlohmann::json &json)
 {
     IdentityVerification verification;
-    verification.identityId = json["identityId"];
+    verification.identityID = json["identityID"];
     verification.verificationCode = json["verificationCode"];
     verification.expiresAt = json_utils::timePointFromString(json["expiresAt"]);
     verification.isVerified = json["isVerified"];
@@ -174,8 +174,8 @@ bool IdentityVerification::isExpired() const
 nlohmann::json IdentityMetadata::toJson() const
 {
     return {
-        {"identityId", identityId},
-        {"deviceId", deviceId},
+        {"identityID", identityID},
+        {"deviceID", deviceID},
         {"appVersion", appVersion},
         {"platform", platform},
         {"lastSync", json_utils::timePointToString(lastSync)},
@@ -185,8 +185,8 @@ nlohmann::json IdentityMetadata::toJson() const
 IdentityMetadata IdentityMetadata::fromJson(const nlohmann::json &json)
 {
     IdentityMetadata metadata;
-    metadata.identityId = json["identityId"];
-    metadata.deviceId = json["deviceId"];
+    metadata.identityID = json["identityID"];
+    metadata.deviceID = json["deviceID"];
     metadata.appVersion = json["appVersion"];
     metadata.platform = json["platform"];
     metadata.lastSync = json_utils::timePointFromString(json["lastSync"]);
@@ -205,7 +205,7 @@ nlohmann::json IdentityAccessControl::toJson() const
     }
 
     nlohmann::json json = {
-        {"identityId", identityId},
+        {"identityID", identityID},
         {"permissions", permissionsInt},
         {"grantedAt", json_utils::timePointToString(grantedAt)}};
 
@@ -220,7 +220,7 @@ nlohmann::json IdentityAccessControl::toJson() const
 IdentityAccessControl IdentityAccessControl::fromJson(const nlohmann::json &json)
 {
     IdentityAccessControl accessControl;
-    accessControl.identityId = json["identityId"];
+    accessControl.identityID = json["identityID"];
 
     for (int permissionInt : json["permissions"])
     {
@@ -255,7 +255,7 @@ nlohmann::json IdentityEvent::toJson() const
 {
     return {
         {"type", static_cast<int>(type)},
-        {"identityId", identityId},
+        {"identityID", identityID},
         {"description", description},
         {"timestamp", json_utils::timePointToString(timestamp)},
         {"metadata", metadata}};
@@ -265,7 +265,7 @@ IdentityEvent IdentityEvent::fromJson(const nlohmann::json &json)
 {
     IdentityEvent event;
     event.type = static_cast<IdentityEventType>(json["type"]);
-    event.identityId = json["identityId"];
+    event.identityID = json["identityID"];
     event.description = json["description"];
     event.timestamp = json_utils::timePointFromString(json["timestamp"]);
     event.metadata = json["metadata"];
@@ -274,7 +274,7 @@ IdentityEvent IdentityEvent::fromJson(const nlohmann::json &json)
 
 // MARK: - Utility Functions
 
-std::string generateIdentityId()
+std::string generateIdentityID()
 {
     std::vector<uint8_t> randomBytes(16);
     if (RAND_bytes(randomBytes.data(), 16) != 1)

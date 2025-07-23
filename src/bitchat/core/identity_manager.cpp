@@ -18,7 +18,7 @@ IdentityManager &IdentityManager::getInstance()
 
 // MARK: - Identity Resolution
 
-IdentityHint IdentityManager::resolveIdentity(const std::string &peerId [[maybe_unused]], const std::string &claimedNickname)
+IdentityHint IdentityManager::resolveIdentity(const std::string &peerID [[maybe_unused]], const std::string &claimedNickname)
 {
     std::lock_guard<std::mutex> lock(mutex);
 
@@ -202,23 +202,23 @@ void IdentityManager::setBlocked(const std::string &fingerprint, bool isBlocked)
 
 // MARK: - Ephemeral Session Management
 
-void IdentityManager::registerEphemeralSession(const std::string &peerId, HandshakeState handshakeState)
+void IdentityManager::registerEphemeralSession(const std::string &peerID, HandshakeState handshakeState)
 {
     std::lock_guard<std::mutex> lock(mutex);
 
     EphemeralIdentity identity;
-    identity.peerId = peerId;
+    identity.peerID = peerID;
     identity.sessionStart = std::chrono::system_clock::now();
     identity.handshakeState = handshakeState;
 
-    ephemeralSessions[peerId] = identity;
+    ephemeralSessions[peerID] = identity;
 }
 
-void IdentityManager::updateHandshakeState(const std::string &peerId, HandshakeState state, const std::string &fingerprint, const std::string &failureReason)
+void IdentityManager::updateHandshakeState(const std::string &peerID, HandshakeState state, const std::string &fingerprint, const std::string &failureReason)
 {
     std::lock_guard<std::mutex> lock(mutex);
 
-    auto it = ephemeralSessions.find(peerId);
+    auto it = ephemeralSessions.find(peerID);
     if (it != ephemeralSessions.end())
     {
         it->second.handshakeState = state;
@@ -236,27 +236,27 @@ void IdentityManager::updateHandshakeState(const std::string &peerId, HandshakeS
     }
 }
 
-HandshakeState IdentityManager::getHandshakeState(const std::string &peerId)
+HandshakeState IdentityManager::getHandshakeState(const std::string &peerID)
 {
     std::lock_guard<std::mutex> lock(mutex);
 
-    auto it = ephemeralSessions.find(peerId);
+    auto it = ephemeralSessions.find(peerID);
     return (it != ephemeralSessions.end()) ? it->second.handshakeState : HandshakeState::NONE;
 }
 
 // MARK: - Pending Actions
 
-void IdentityManager::setPendingAction(const std::string &peerId, const PendingActions &action)
+void IdentityManager::setPendingAction(const std::string &peerID, const PendingActions &action)
 {
     std::lock_guard<std::mutex> lock(mutex);
-    pendingActions[peerId] = action;
+    pendingActions[peerID] = action;
 }
 
-void IdentityManager::applyPendingActions(const std::string &peerId, const std::string &fingerprint)
+void IdentityManager::applyPendingActions(const std::string &peerID, const std::string &fingerprint)
 {
     std::lock_guard<std::mutex> lock(mutex);
 
-    auto it = pendingActions.find(peerId);
+    auto it = pendingActions.find(peerID);
     if (it == pendingActions.end())
     {
         return;
@@ -354,11 +354,11 @@ void IdentityManager::clearAllIdentityData()
     // TODO: Delete from persistent storage
 }
 
-void IdentityManager::removeEphemeralSession(const std::string &peerId)
+void IdentityManager::removeEphemeralSession(const std::string &peerID)
 {
     std::lock_guard<std::mutex> lock(mutex);
-    ephemeralSessions.erase(peerId);
-    pendingActions.erase(peerId);
+    ephemeralSessions.erase(peerID);
+    pendingActions.erase(peerID);
 }
 
 // MARK: - Persistence

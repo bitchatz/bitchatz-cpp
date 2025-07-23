@@ -32,7 +32,7 @@ enum class HandshakeState
 
 struct EphemeralIdentity
 {
-    std::string peerId;
+    std::string peerID;
     std::chrono::system_clock::time_point sessionStart;
     HandshakeState handshakeState;
     std::string fingerprint;   // Only set when handshake completed
@@ -99,7 +99,7 @@ public:
     static IdentityManager &getInstance();
 
     // Identity Resolution
-    IdentityHint resolveIdentity(const std::string &peerId, const std::string &claimedNickname);
+    IdentityHint resolveIdentity(const std::string &peerID, const std::string &claimedNickname);
 
     // Social Identity Management
     std::shared_ptr<SocialIdentity> getSocialIdentity(const std::string &fingerprint);
@@ -116,13 +116,13 @@ public:
     void setBlocked(const std::string &fingerprint, bool isBlocked);
 
     // Ephemeral Session Management
-    void registerEphemeralSession(const std::string &peerId, HandshakeState handshakeState = HandshakeState::NONE);
-    void updateHandshakeState(const std::string &peerId, HandshakeState state, const std::string &fingerprint = "", const std::string &failureReason = "");
-    HandshakeState getHandshakeState(const std::string &peerId);
+    void registerEphemeralSession(const std::string &peerID, HandshakeState handshakeState = HandshakeState::NONE);
+    void updateHandshakeState(const std::string &peerID, HandshakeState state, const std::string &fingerprint = "", const std::string &failureReason = "");
+    HandshakeState getHandshakeState(const std::string &peerID);
 
     // Pending Actions
-    void setPendingAction(const std::string &peerId, const PendingActions &action);
-    void applyPendingActions(const std::string &peerId, const std::string &fingerprint);
+    void setPendingAction(const std::string &peerID, const PendingActions &action);
+    void applyPendingActions(const std::string &peerID, const std::string &fingerprint);
 
     // Verification
     void setVerified(const std::string &fingerprint, bool verified);
@@ -130,7 +130,7 @@ public:
 
     // Cleanup
     void clearAllIdentityData();
-    void removeEphemeralSession(const std::string &peerId);
+    void removeEphemeralSession(const std::string &peerID);
 
     // Persistence
     bool loadIdentityCache();

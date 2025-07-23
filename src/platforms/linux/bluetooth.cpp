@@ -20,22 +20,22 @@ namespace bitchat
 {
 
 LinuxBluetooth::LinuxBluetooth()
-    : deviceId(-1)
+    : deviceID(-1)
     , hciSocket(-1)
     , rfcommSocket(-1)
     , stopThreads(false)
     , packetReceivedCallback(nullptr)
     , peerDisconnectedCallback(nullptr)
 {
-    deviceId = hci_get_route(nullptr);
+    deviceID = hci_get_route(nullptr);
 
-    if (deviceId < 0)
+    if (deviceID < 0)
     {
         spdlog::error("No Bluetooth adapter found");
         throw std::runtime_error("No Bluetooth adapter found");
     }
 
-    hciSocket = hci_open_dev(deviceId);
+    hciSocket = hci_open_dev(deviceID);
     if (hciSocket < 0)
     {
         spdlog::error("Failed to open HCI socket");
@@ -138,42 +138,42 @@ bool LinuxBluetooth::sendPacket(const BitchatPacket &packet)
     return sentToAny;
 }
 
-bool LinuxBluetooth::sendPacketToPeer(const BitchatPacket &packet, const std::string &peerId)
+bool LinuxBluetooth::sendPacketToPeer(const BitchatPacket &packet, const std::string &peerID)
 {
     PacketSerializer serializer;
     std::vector<uint8_t> data = serializer.serializePacket(packet);
     std::lock_guard<std::mutex> lock(socketsMutex);
-    auto it = connectedSockets.find(peerId);
+    auto it = connectedSockets.find(peerID);
 
     if (it != connectedSockets.end())
     {
         if (write(it->second, data.data(), data.size()) < 0)
         {
-            spdlog::error("Failed to write to socket for peer {}: {}", peerId, strerror(errno));
+            spdlog::error("Failed to write to socket for peer {}: {}", peerID, strerror(errno));
             return false;
         }
-        spdlog::debug("Sent packet to specific peer: {}", peerId);
+        spdlog::debug("Sent packet to specific peer: {}", peerID);
         return true;
     }
 
-    spdlog::warn("Peer {} not found in connected sockets.", peerId);
+    spdlog::warn("Peer {} not found in connected sockets.", peerID);
 
     return false;
 }
 
 bool LinuxBluetooth::isReady() const
 {
-    return deviceId >= 0 && hciSocket >= 0;
+    return deviceID >= 0 && hciSocket >= 0;
 }
 
-std::string LinuxBluetooth::getLocalPeerId() const
+std::string LinuxBluetooth::getLocalPeerID() const
 {
-    return localPeerId;
+    return localPeerID;
 }
 
-void LinuxBluetooth::setLocalPeerId(const std::string &peerId)
+void LinuxBluetooth::setLocalPeerID(const std::string &peerID)
 {
-    localPeerId = peerId;
+    localPeerID = peerID;
 }
 
 void LinuxBluetooth::setPeerDisconnectedCallback(PeerDisconnectedCallback callback)
@@ -204,7 +204,7 @@ void LinuxBluetooth::scanThreadFunc()
 
     while (!stopThreads)
     {
-        numRsp = hci_inquiry(deviceId, 8, maxRsp, nullptr, &ii, flags);
+        numRsp = hci_inquiry(deviceID, 8, maxRsp, nullptr, &ii, flags);
 
         if (numRsp < 0)
         {
@@ -215,13 +215,13 @@ void LinuxBluetooth::scanThreadFunc()
         for (int i = 0; i < numRsp; i++)
         {
             ba2str(&(ii[i].bdaddr), addr);
-            std::string deviceId = addr;
+            std::string deviceID = addr;
 
             {
                 std::lock_guard<std::mutex> lock(socketsMutex);
-                if (connectedSockets.find(deviceId) != connectedSockets.end())
+                if (connectedSockets.find(deviceID) != connectedSockets.end())
                 {
-                    spdlog::debug("Device {} is already connected, skipping.", deviceId);
+                    spdlog::debug("Device {} is already connected, skipping.", deviceID);
                     continue;
                 }
             }
@@ -243,13 +243,13 @@ void LinuxBluetooth::scanThreadFunc()
             if (connect(s, (struct sockaddr *)&sockAddr, sizeof(sockAddr)) == 0)
             {
                 std::lock_guard<std::mutex> lock(socketsMutex);
-                connectedSockets[deviceId] = s;
-                spdlog::info("Connected to device: {}", deviceId);
-                std::thread(&LinuxBluetooth::readerThreadFunc, this, deviceId, s).detach();
+                connectedSockets[deviceID] = s;
+                spdlog::info("Connected to device: {}", deviceID);
+                std::thread(&LinuxBluetooth::readerThreadFunc, this, deviceID, s).detach();
             }
             else
             {
-                spdlog::warn("Failed to connect to device {}: {}", deviceId, strerror(errno));
+                spdlog::warn("Failed to connect to device {}: {}", deviceID, strerror(errno));
                 close(s);
             }
         }
@@ -312,18 +312,18 @@ void LinuxBluetooth::acceptThreadFunc()
         }
 
         ba2str(&remAddr.rc_bdaddr, buf);
-        std::string deviceId = buf;
+        std::string deviceID = buf;
 
         std::lock_guard<std::mutex> lock(socketsMutex);
-        connectedSockets[deviceId] = client;
-        spdlog::info("Accepted connection from device: {}", deviceId);
-        std::thread(&LinuxBluetooth::readerThreadFunc, this, deviceId, client).detach();
+        connectedSockets[deviceID] = client;
+        spdlog::info("Accepted connection from device: {}", deviceID);
+        std::thread(&LinuxBluetooth::readerThreadFunc, this, deviceID, client).detach();
     }
 
     spdlog::info("Bluetooth accept thread stopped.");
 }
 
-void LinuxBluetooth::readerThreadFunc(const std::string &deviceId, int socket)
+void LinuxBluetooth::readerThreadFunc(const std::string &deviceID, int socket)
 {
     char buf[4096];
     ssize_t bytesRead;
@@ -331,7 +331,7 @@ void LinuxBluetooth::readerThreadFunc(const std::string &deviceId, int socket)
     PacketSerializer serializer;
     const size_t maxPacketSize = 65536; // 64KB max packet size
 
-    spdlog::info("Reader thread started for device: {}", deviceId);
+    spdlog::info("Reader thread started for device: {}", deviceID);
 
     while ((bytesRead = read(socket, buf, sizeof(buf))) > 0)
     {
@@ -339,14 +339,14 @@ void LinuxBluetooth::readerThreadFunc(const std::string &deviceId, int socket)
         accumulatedData.insert(accumulatedData.end(), buf, buf + bytesRead);
 
         // Process complete packets from accumulated data
-        while (accumulatedData.size() >= 21) // Minimum packet size (header + senderId)
+        while (accumulatedData.size() >= 21) // Minimum packet size (header + senderID)
         {
             // Read payload length from the packet header (offset 12-13)
             uint16_t payloadLength = (accumulatedData[12] << 8) | accumulatedData[13];
             uint8_t flags = accumulatedData[11]; // flags byte
 
             // Calculate total expected packet size
-            size_t expectedSize = 21; // header + senderId
+            size_t expectedSize = 21; // header + senderID
             if (flags & FLAG_HAS_RECIPIENT)
             {
                 expectedSize += 8; // recipientID
@@ -360,7 +360,7 @@ void LinuxBluetooth::readerThreadFunc(const std::string &deviceId, int socket)
             // Check for invalid or too large packets
             if (expectedSize > maxPacketSize || payloadLength > maxPacketSize - 21)
             {
-                spdlog::error("Invalid or too large packet from device: {} (size: {})", deviceId, expectedSize);
+                spdlog::error("Invalid or too large packet from device: {} (size: {})", deviceID, expectedSize);
                 accumulatedData.clear();
                 break;
             }
@@ -380,7 +380,7 @@ void LinuxBluetooth::readerThreadFunc(const std::string &deviceId, int socket)
                 // Validate the packet
                 if (packet.getVersion() == 0 || packet.getVersion() > 1)
                 {
-                    spdlog::warn("Invalid packet version {} from device: {}", packet.getVersion(), deviceId);
+                    spdlog::warn("Invalid packet version {} from device: {}", packet.getVersion(), deviceID);
                     accumulatedData.erase(accumulatedData.begin());
                     continue;
                 }
@@ -388,7 +388,7 @@ void LinuxBluetooth::readerThreadFunc(const std::string &deviceId, int socket)
                 if (packetReceivedCallback)
                 {
                     packetReceivedCallback(packet);
-                    spdlog::debug("Received packet from device: {}", deviceId);
+                    spdlog::debug("Received packet from device: {}", deviceID);
                 }
 
                 // Remove the consumed packet from accumulated data
@@ -396,7 +396,7 @@ void LinuxBluetooth::readerThreadFunc(const std::string &deviceId, int socket)
             }
             catch (const std::exception &e)
             {
-                spdlog::error("Failed to deserialize packet from device {}: {}", deviceId, e.what());
+                spdlog::error("Failed to deserialize packet from device {}: {}", deviceID, e.what());
                 // Remove one byte and try again
                 accumulatedData.erase(accumulatedData.begin());
             }
@@ -405,25 +405,25 @@ void LinuxBluetooth::readerThreadFunc(const std::string &deviceId, int socket)
 
     if (bytesRead == 0)
     {
-        spdlog::info("Device {} disconnected gracefully.", deviceId);
+        spdlog::info("Device {} disconnected gracefully.", deviceID);
     }
     else if (bytesRead < 0)
     {
-        spdlog::error("Failed to read from device {}: {}", deviceId, strerror(errno));
+        spdlog::error("Failed to read from device {}: {}", deviceID, strerror(errno));
     }
 
     // Notify about disconnection
     if (peerDisconnectedCallback)
     {
-        peerDisconnectedCallback(deviceId);
-        spdlog::info("Peer disconnected callback invoked for device: {}", deviceId);
+        peerDisconnectedCallback(deviceID);
+        spdlog::info("Peer disconnected callback invoked for device: {}", deviceID);
     }
 
     // Clean up socket
     std::lock_guard<std::mutex> lock(socketsMutex);
-    connectedSockets.erase(deviceId);
+    connectedSockets.erase(deviceID);
     close(socket);
-    spdlog::info("Reader thread for device {} finished. Socket closed and removed from map.", deviceId);
+    spdlog::info("Reader thread for device {} finished. Socket closed and removed from map.", deviceID);
 }
 
 } // namespace bitchat

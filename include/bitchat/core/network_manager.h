@@ -29,7 +29,7 @@ public:
     bool initialize(std::unique_ptr<BluetoothInterface> bluetooth);
 
     // Set local peer ID
-    void setLocalPeerId(const std::string &peerId);
+    void setLocalPeerID(const std::string &peerID);
 
     // Start network operations
     bool start();
@@ -41,7 +41,7 @@ public:
     bool sendPacket(const BitchatPacket &packet);
 
     // Send a packet to a specific peer
-    bool sendPacketToPeer(const BitchatPacket &packet, const std::string &peerId);
+    bool sendPacketToPeer(const BitchatPacket &packet, const std::string &peerID);
 
     // Get online peers
     std::map<std::string, BitchatPeer> getOnlinePeers() const;
@@ -50,13 +50,13 @@ public:
     size_t getConnectedPeersCount() const;
 
     // Check if a peer is online
-    bool isPeerOnline(const std::string &peerId) const;
+    bool isPeerOnline(const std::string &peerID) const;
 
     // Get peer information
-    std::optional<BitchatPeer> getPeerInfo(const std::string &peerId) const;
+    std::optional<BitchatPeer> getPeerInfo(const std::string &peerID) const;
 
     // Update peer information
-    void updatePeerInfo(const std::string &peerId, const BitchatPeer &peer);
+    void updatePeerInfo(const std::string &peerID, const BitchatPeer &peer);
 
     // Remove stale peers
     void cleanupStalePeers(time_t timeout = 180);
@@ -71,7 +71,7 @@ public:
     void setPeerDisconnectedCallback(PeerDisconnectedCallback callback);
 
     // Get local peer ID
-    std::string getLocalPeerId() const;
+    std::string getLocalPeerID() const;
 
     // Check if network is ready
     bool isReady() const;
@@ -86,7 +86,7 @@ private:
     // Network state
     std::map<std::string, BitchatPeer> onlinePeers;
     std::set<std::string> processedMessages;
-    std::string localPeerId;
+    std::string localPeerID;
     std::string nickname;
 
     // Threading
@@ -106,14 +106,14 @@ private:
     // Internal methods
     void announceLoop();
     void cleanupLoop();
-    void onPeerConnected(const std::string &peerId, const std::string &nickname);
-    void onPeerDisconnected(const std::string &peerId);
+    void onPeerConnected(const std::string &peerID, const std::string &nickname);
+    void onPeerDisconnected(const std::string &peerID);
     void onPacketReceived(const BitchatPacket &packet);
     void processPacket(const BitchatPacket &packet);
     void processAnnouncePacket(const BitchatPacket &packet);
     void relayPacket(const BitchatPacket &packet);
-    bool wasMessageProcessed(const std::string &messageId);
-    void markMessageProcessed(const std::string &messageId);
+    bool wasMessageProcessed(const std::string &messageID);
+    void markMessageProcessed(const std::string &messageID);
 
     // Constants
     static constexpr int ANNOUNCE_INTERVAL = 15; // seconds

@@ -55,7 +55,7 @@ enum class BitchatErrorCode : uint16_t
     SessionExpired = 0x0008,
     InternalError = 0x0009,
     UnsupportedVersion = 0x000A,
-    InvalidPeerId = 0x000B,
+    InvalidPeerID = 0x000B,
     InvalidChannelName = 0x000C
 };
 
@@ -65,7 +65,7 @@ struct BitchatMessage
 {
     uint8_t version;
     BitchatMessageType type;
-    std::string peerId;
+    std::string peerID;
     std::chrono::system_clock::time_point timestamp;
     std::vector<uint8_t> payload;
 
@@ -211,7 +211,7 @@ public:
     static bool validateChatMessage(const BitchatChatMessage &message);
     static bool validateChannelName(const std::string &channel);
     static bool validateNickname(const std::string &nickname);
-    static bool validatePeerId(const std::string &peerId);
+    static bool validatePeerID(const std::string &peerID);
     static bool validateMessageSize(const std::vector<uint8_t> &payload);
 
 private:

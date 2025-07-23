@@ -90,7 +90,7 @@ struct IdentityRecoveryData
 
 struct IdentityVerification
 {
-    std::string identityId;
+    std::string identityID;
     std::string verificationCode;
     std::chrono::system_clock::time_point expiresAt;
     bool isVerified;
@@ -104,8 +104,8 @@ struct IdentityVerification
 
 struct IdentityMetadata
 {
-    std::string identityId;
-    std::string deviceId;
+    std::string identityID;
+    std::string deviceID;
     std::string appVersion;
     std::string platform;
     std::chrono::system_clock::time_point lastSync;
@@ -129,7 +129,7 @@ enum class IdentityPermission
 
 struct IdentityAccessControl
 {
-    std::string identityId;
+    std::string identityID;
     std::vector<IdentityPermission> permissions;
     std::chrono::system_clock::time_point grantedAt;
     std::optional<std::chrono::system_clock::time_point> expiresAt;
@@ -160,7 +160,7 @@ enum class IdentityEventType
 struct IdentityEvent
 {
     IdentityEventType type;
-    std::string identityId;
+    std::string identityID;
     std::string description;
     std::chrono::system_clock::time_point timestamp;
     std::unordered_map<std::string, std::string> metadata;
@@ -171,7 +171,7 @@ struct IdentityEvent
 
 // MARK: - Utility Functions
 
-std::string generateIdentityId();
+std::string generateIdentityID();
 IdentityFingerprint generateFingerprint(const IdentityPublicKey &publicKey);
 std::string fingerprintToString(const IdentityFingerprint &fingerprint);
 IdentityFingerprint fingerprintFromString(const std::string &fingerprintStr);

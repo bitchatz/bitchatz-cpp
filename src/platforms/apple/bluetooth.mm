@@ -77,7 +77,7 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
         self.ready = NO;                                                                 // Not ready until managers are powered on
         self.lock = [[NSLock alloc] init];                                               // Thread safety lock
         self.bleQueue = dispatch_queue_create("com.bitchat.ble", DISPATCH_QUEUE_SERIAL); // Serial queue for BLE operations
-        self.localPeerId = nil;                                                          // Initialize peer ID to nil
+        self.localPeerID = nil;                                                          // Initialize peer ID to nil
 
         // Initialize managers on main queue (required for Core Bluetooth)
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -237,17 +237,17 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
  * @brief Send a packet to a specific peer by ID
  *
  * @param packetData The packet data to send
- * @param peerId The target peer's identifier
+ * @param peerID The target peer's identifier
  * @return YES if sent successfully, NO if peer not found
  */
-- (BOOL)sendPacket:(NSData *)packetData toPeer:(NSString *)peerId
+- (BOOL)sendPacket:(NSData *)packetData toPeer:(NSString *)peerID
 {
     // Find peripheral for this peer ID
-    for (NSString *peerIdKey in self.connectedPeripherals.allKeys)
+    for (NSString *peerIDKey in self.connectedPeripherals.allKeys)
     {
-        if ([peerIdKey isEqualToString:peerId])
+        if ([peerIDKey isEqualToString:peerID])
         {
-            CBPeripheral *peripheral = [self.connectedPeripherals objectForKey:peerIdKey];
+            CBPeripheral *peripheral = [self.connectedPeripherals objectForKey:peerIDKey];
             return [self sendPacket:packetData toPeripheral:peripheral];
         }
     }
@@ -277,9 +277,9 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
  *
  * @return The local peer ID as a string
  */
-- (NSString *)getLocalPeerId
+- (NSString *)getLocalPeerID
 {
-    return self.localPeerId ? self.localPeerId : @"";
+    return self.localPeerID ? self.localPeerID : @"";
 }
 
 /**
@@ -287,13 +287,13 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
  *
  * Sets the peer ID that will be used to identify this device to other peers.
  *
- * @param peerId The peer ID to set
+ * @param peerID The peer ID to set
  */
-- (void)setLocalPeerId:(NSString *)peerId
+- (void)setLocalPeerID:(NSString *)peerID
 {
-    if (peerId && peerId.length > 0)
+    if (peerID && peerID.length > 0)
     {
-        _localPeerId = [peerId copy];
+        _localPeerID = [peerID copy];
     }
 }
 
@@ -699,7 +699,7 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
     if (self.peripheralManager.state == CBManagerStatePoweredOn)
     {
         // Use peer ID as local name, but only if it's been set
-        NSString *localName = [self getLocalPeerId];
+        NSString *localName = [self getLocalPeerID];
 
         // If no peer ID has been set yet, use a default name
         if (!localName || localName.length == 0)

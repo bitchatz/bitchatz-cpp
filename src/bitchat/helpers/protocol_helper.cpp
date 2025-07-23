@@ -55,27 +55,27 @@ std::string ProtocolHelper::vectorToString(const std::vector<uint8_t> &vec)
     return std::string(vec.begin(), vec.end());
 }
 
-std::string ProtocolHelper::normalizePeerId(const std::string &peerId)
+std::string ProtocolHelper::normalizePeerID(const std::string &peerID)
 {
-    std::string normalized = peerId;
+    std::string normalized = peerID;
     normalized.erase(std::remove(normalized.begin(), normalized.end(), '\0'), normalized.end());
     return normalized;
 }
 
-std::string ProtocolHelper::randomPeerId()
+std::string ProtocolHelper::randomPeerID()
 {
-    std::vector<uint8_t> peerId(8); // 8 bytes like Swift
+    std::vector<uint8_t> peerID(8); // 8 bytes like Swift
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> dis(0, 255);
 
-    for (auto &byte : peerId)
+    for (auto &byte : peerID)
     {
         byte = static_cast<uint8_t>(dis(gen));
     }
 
     std::stringstream ss;
-    for (uint8_t byte : peerId)
+    for (uint8_t byte : peerID)
     {
         ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
     }
@@ -96,22 +96,22 @@ std::string ProtocolHelper::randomNickname()
     return "anon" + std::to_string(dis(gen));
 }
 
-bool ProtocolHelper::isValidPeerId(const std::string &peerId)
+bool ProtocolHelper::isValidPeerID(const std::string &peerID)
 {
-    // Check if the peerId is empty
-    if (peerId.empty())
+    // Check if the peerID is empty
+    if (peerID.empty())
     {
         return false;
     }
 
     // Must be exactly 16 hex characters (8 bytes)
-    if (peerId.length() != 16)
+    if (peerID.length() != 16)
     {
         return false;
     }
 
     // Check if it contains only hex characters
-    return std::all_of(peerId.begin(), peerId.end(), [](char c)
+    return std::all_of(peerID.begin(), peerID.end(), [](char c)
                        { return std::isxdigit(c); });
 }
 

@@ -31,7 +31,7 @@ class AppleBluetoothBridge : public bitchat::BluetoothInterface
 {
 private:
     AppleBluetooth *impl;                                  // Objective-C implementation instance
-    std::string localPeerId;                               // Local device peer identifier
+    std::string localPeerID;                               // Local device peer identifier
     std::unique_ptr<bitchat::PacketSerializer> serializer; // Handles packet serialization/deserialization
 
     // Callback function pointers for C++ interface
@@ -76,10 +76,10 @@ public:
     /**
      * @brief Send a packet to a specific peer
      * @param packet The packet to send
-     * @param peerId The target peer's identifier
+     * @param peerID The target peer's identifier
      * @return true if sent successfully, false otherwise
      */
-    bool sendPacketToPeer(const BitchatPacket &packet, const std::string &peerId) override;
+    bool sendPacketToPeer(const BitchatPacket &packet, const std::string &peerID) override;
 
     /**
      * @brief Check if Bluetooth system is ready for operations
@@ -91,13 +91,13 @@ public:
      * @brief Get the local device's peer identifier
      * @return Local peer ID as string
      */
-    std::string getLocalPeerId() const override;
+    std::string getLocalPeerID() const override;
 
     /**
      * @brief Set the local device's peer identifier
-     * @param peerId The peer ID to set
+     * @param peerID The peer ID to set
      */
-    void setLocalPeerId(const std::string &peerId) override;
+    void setLocalPeerID(const std::string &peerID) override;
 
     /**
      * @brief Set callback for peer disconnection events

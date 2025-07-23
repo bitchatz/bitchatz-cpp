@@ -57,7 +57,7 @@ public:
     uint64_t getTimestamp() const { return timestamp; }
     uint8_t getFlags() const { return flags; }
     uint16_t getPayloadLength() const { return payloadLength; }
-    const std::vector<uint8_t> &getSenderId() const { return senderId; }
+    const std::vector<uint8_t> &getSenderID() const { return senderID; }
     const std::vector<uint8_t> &getRecipientID() const { return recipientID; }
     const std::vector<uint8_t> &getPayload() const { return payload; }
     const std::vector<uint8_t> &getSignature() const { return signature; }
@@ -69,7 +69,7 @@ public:
     void setTimestamp(uint64_t ts) { timestamp = ts; }
     void setFlags(uint8_t f) { flags = f; }
     void setPayloadLength(uint16_t len) { payloadLength = len; }
-    void setSenderId(const std::vector<uint8_t> &id) { senderId = id; }
+    void setSenderID(const std::vector<uint8_t> &id) { senderID = id; }
     void setRecipientID(const std::vector<uint8_t> &id) { recipientID = id; }
     void setPayload(const std::vector<uint8_t> &p)
     {
@@ -116,7 +116,7 @@ private:
     uint64_t timestamp = 0;
     uint8_t flags = 0;
     uint16_t payloadLength = 0;
-    std::vector<uint8_t> senderId;
+    std::vector<uint8_t> senderID;
     std::vector<uint8_t> recipientID;
     std::vector<uint8_t> payload;
     std::vector<uint8_t> signature;
@@ -185,12 +185,12 @@ class BitchatPeer
 {
 public:
     BitchatPeer() = default;
-    BitchatPeer(const std::vector<uint8_t> &peerId, const std::string &nickname);
+    BitchatPeer(const std::vector<uint8_t> &peerID, const std::string &nickname);
 
     // Getters
     const std::string &getNickname() const { return nickname; }
     const std::string &getChannel() const { return channel; }
-    const std::vector<uint8_t> &getPeerId() const { return peerId; }
+    const std::vector<uint8_t> &getPeerID() const { return peerID; }
     time_t getLastSeen() const { return lastSeen; }
     int getRSSI() const { return RSSI; }
     bool hasAnnounced() const { return hasAnnouncedFlag; }
@@ -199,7 +199,7 @@ public:
     // Setters
     void setNickname(const std::string &n) { nickname = n; }
     void setChannel(const std::string &c) { channel = c; }
-    void setPeerId(const std::vector<uint8_t> &pid) { peerId = pid; }
+    void setPeerID(const std::vector<uint8_t> &pid) { peerID = pid; }
     void setLastSeen(time_t ls) { lastSeen = ls; }
     void setRSSI(int r) { RSSI = r; }
     void setHasAnnounced(bool announced) { hasAnnouncedFlag = announced; }
@@ -213,7 +213,7 @@ public:
 private:
     std::string nickname;
     std::string channel;
-    std::vector<uint8_t> peerId;
+    std::vector<uint8_t> peerID;
     time_t lastSeen = 0;
     int RSSI = -100;
     bool hasAnnouncedFlag = false;

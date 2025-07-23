@@ -50,10 +50,10 @@ std::vector<uint8_t> PacketSerializer::serializePacket(const BitchatPacket &pack
     uint16_t payloadDataSize = static_cast<uint16_t>(payload.size() + (isCompressed ? 2 : 0));
     writeUint16(data, payloadDataSize);
 
-    // SenderId (8 bytes, pad with zeros if needed)
-    std::vector<uint8_t> senderId = packet.getSenderId();
-    senderId.resize(8, 0);
-    data.insert(data.end(), senderId.begin(), senderId.end());
+    // SenderID (8 bytes, pad with zeros if needed)
+    std::vector<uint8_t> senderID = packet.getSenderID();
+    senderID.resize(8, 0);
+    data.insert(data.end(), senderID.begin(), senderID.end());
 
     // RecipientID (8 bytes, if present)
     if (packet.getFlags() & FLAG_HAS_RECIPIENT)
@@ -94,7 +94,7 @@ BitchatPacket PacketSerializer::deserializePacket(const std::vector<uint8_t> &da
     // Remove padding first
     std::vector<uint8_t> unpaddedData = MessagePadding::unpad(data);
 
-    // Verify minimum size: headerSize (13) + senderIdSize (8) = 21 bytes
+    // Verify minimum size: headerSize (13) + senderIDSize (8) = 21 bytes
     if (unpaddedData.size() < 21)
     {
         spdlog::error("Packet too short: {} bytes (minimum 21)", unpaddedData.size());
@@ -115,7 +115,7 @@ BitchatPacket PacketSerializer::deserializePacket(const std::vector<uint8_t> &da
     packet.setPayloadLength(readUint16(unpaddedData, offset));
 
     // Calculate expected total size
-    size_t expectedSize = 21; // headerSize + senderIdSize
+    size_t expectedSize = 21; // headerSize + senderIDSize
     if (packet.getFlags() & FLAG_HAS_RECIPIENT)
     {
         expectedSize += 8; // recipientIDSize
@@ -132,9 +132,9 @@ BitchatPacket PacketSerializer::deserializePacket(const std::vector<uint8_t> &da
         return packet;
     }
 
-    // SenderId (8 bytes)
-    std::vector<uint8_t> senderId(unpaddedData.begin() + offset, unpaddedData.begin() + offset + 8);
-    packet.setSenderId(senderId);
+    // SenderID (8 bytes)
+    std::vector<uint8_t> senderID(unpaddedData.begin() + offset, unpaddedData.begin() + offset + 8);
+    packet.setSenderID(senderID);
     offset += 8;
 
     // RecipientID (8 bytes, if present)
@@ -252,10 +252,10 @@ std::vector<uint8_t> PacketSerializer::makeMessagePayload(const BitchatMessage &
     if (!message.getSenderPeerID().empty())
     {
         // Convert peer ID bytes to hex string for Swift compatibility
-        std::string peerIdHex = ProtocolHelper::toHexCompact(message.getSenderPeerID());
-        writeUint8(data, static_cast<uint8_t>(std::min(static_cast<size_t>(255), peerIdHex.size())));
-        data.insert(data.end(), peerIdHex.begin(),
-                    peerIdHex.begin() + std::min(static_cast<size_t>(255), peerIdHex.size()));
+        std::string peerIDHex = ProtocolHelper::toHexCompact(message.getSenderPeerID());
+        writeUint8(data, static_cast<uint8_t>(std::min(static_cast<size_t>(255), peerIDHex.size())));
+        data.insert(data.end(), peerIDHex.begin(),
+                    peerIDHex.begin() + std::min(static_cast<size_t>(255), peerIDHex.size()));
     }
 
     // Mentions array
@@ -381,14 +381,14 @@ BitchatMessage PacketSerializer::parseMessagePayload(const std::vector<uint8_t> 
         auto len = readUint8(payload, offset);
         if (offset + len <= payload.size())
         {
-            std::string peerIdHex = std::string(payload.begin() + offset, payload.begin() + offset + len);
+            std::string peerIDHex = std::string(payload.begin() + offset, payload.begin() + offset + len);
             // Convert hex string back to bytes
             std::vector<uint8_t> senderPeerID;
             for (size_t i = 0; i < len; i += 2)
             {
                 if (i + 1 < len)
                 {
-                    std::string byteStr = peerIdHex.substr(i, 2);
+                    std::string byteStr = peerIDHex.substr(i, 2);
                     try
                     {
                         senderPeerID.push_back(static_cast<uint8_t>(std::stoi(byteStr, nullptr, 16)));
@@ -446,7 +446,7 @@ void PacketSerializer::parseAnnouncePayload(const std::vector<uint8_t> &payload,
 }
 
 BitchatPacket PacketSerializer::makePacket(uint8_t type, const std::vector<uint8_t> &payload,
-                                           bool hasRecipient, bool hasSignature, const std::string &senderId)
+                                           bool hasRecipient, bool hasSignature, const std::string &senderID)
 {
     BitchatPacket packet;
     packet.setType(type);
@@ -455,9 +455,9 @@ BitchatPacket PacketSerializer::makePacket(uint8_t type, const std::vector<uint8
                             .count());
 
     // Convert string to UTF-8 bytes for Swift compatibility
-    std::vector<uint8_t> currentSenderId(senderId.begin(), senderId.end());
-    currentSenderId.resize(8, 0); // Pad to 8 bytes
-    packet.setSenderId(currentSenderId);
+    std::vector<uint8_t> currentSenderID(senderID.begin(), senderID.end());
+    currentSenderID.resize(8, 0); // Pad to 8 bytes
+    packet.setSenderID(currentSenderID);
     packet.setPayload(payload);
     packet.setTtl(6); // Use TTL 6 as in Swift
 

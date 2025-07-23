@@ -119,7 +119,7 @@ class BitchatManager { };
 void sendMessage(const std::string& message);
 
 // Variables: camelCase
-std::string peerId;
+PacketReceivedCallback packetReceivedCallback;
 
 // Constants: UPPER_SNAKE_CASE
 const int MAX_PACKET_SIZE = 16384;
@@ -127,7 +127,7 @@ const int MAX_PACKET_SIZE = 16384;
 // Namespaces: snake_case
 namespace bitchat { }
 
-// Acronyms (UUID, etc.): keep as is
+// Acronyms (UUID, ID, etc.): keep as is
 std::string peripheralUUID;
 ```
 
@@ -157,7 +157,7 @@ enum class Result {
     Timeout
 };
 
-Result connectToPeer(const std::string& peer_id);
+Result connectToPeer(const std::string& peerID);
 ```
 
 ## Adding a New Platform
@@ -207,17 +207,17 @@ public:
         return true;
     }
 
-    bool connect(const std::string& device_id) override {
+    bool connect(const std::string& deviceID) override {
         // Connect to specific device
         return true;
     }
 
-    bool disconnect(const std::string& device_id) override {
+    bool disconnect(const std::string& deviceID) override {
         // Disconnect from device
         return true;
     }
 
-    bool sendData(const std::string& device_id, const std::vector<uint8_t>& data) override {
+    bool sendData(const std::string& deviceID, const std::vector<uint8_t>& data) override {
         // Send data to device
         return true;
     }
@@ -300,23 +300,23 @@ endif()
 class BitchatManagerTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        manager_ = std::make_unique<bitchat::BitchatManager>();
+        manager = std::make_unique<bitchat::BitchatManager>();
     }
 
     void TearDown() override {
-        manager_.reset();
+        manager.reset();
     }
 
-    std::unique_ptr<bitchat::BitchatManager> manager_;
+    std::unique_ptr<bitchat::BitchatManager> manager;
 };
 
 TEST_F(BitchatManagerTest, InitializeSuccessfully) {
-    EXPECT_TRUE(manager_->initialize());
+    EXPECT_TRUE(manager->initialize());
 }
 
 TEST_F(BitchatManagerTest, SendMessage) {
-    manager_->initialize();
-    EXPECT_TRUE(manager_->sendMessage("Hello, world!"));
+    manager->initialize();
+    EXPECT_TRUE(manager->sendMessage("Hello, world!"));
 }
 ```
 
@@ -403,18 +403,20 @@ buffer.reserve(expected_size);
 ```cpp
 class ThreadSafeManager {
 private:
-    mutable std::mutex mutex_;
-    std::vector<PeerInfo> peers_;
+    mutable std::mutex mutex;
+    std::vector<PeerInfo> peers;
 
 public:
     void addPeer(const PeerInfo& peer) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        peers_.push_back(peer);
+        std::lock_guard<std::mutex> lock(mutex);
+        peers.push_back(peer);
     }
 
     std::vector<PeerInfo> getPeers() const {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return peers_; // Return copy for thread safety
+        std::lock_guard<std::mutex> lock(mutex);
+
+        // Return copy for thread safety
+        return peers;
     }
 };
 ```

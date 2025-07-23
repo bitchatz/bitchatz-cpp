@@ -22,12 +22,12 @@ AppleBluetoothBridge::AppleBluetoothBridge()
         // Set up callback bridges to translate Objective-C callbacks to C++
 
         // Bridge for peer disconnection events
-        [impl setPeerDisconnectedCallback:^(NSString *peerId) {
+        [impl setPeerDisconnectedCallback:^(NSString *peerID) {
             if (peerDisconnectedCallback)
             {
                 // Convert NSString to std::string for C++ callback
-                std::string cppPeerId = [peerId UTF8String];
-                peerDisconnectedCallback(cppPeerId);
+                std::string cppPeerID = [peerID UTF8String];
+                peerDisconnectedCallback(cppPeerID);
             }
         }];
 
@@ -104,7 +104,7 @@ bool AppleBluetoothBridge::sendPacket(const BitchatPacket &packet)
     return [impl sendPacket:nsData];
 }
 
-bool AppleBluetoothBridge::sendPacketToPeer(const BitchatPacket &packet, const std::string &peerId)
+bool AppleBluetoothBridge::sendPacketToPeer(const BitchatPacket &packet, const std::string &peerID)
 {
     if (!impl)
     {
@@ -118,10 +118,10 @@ bool AppleBluetoothBridge::sendPacketToPeer(const BitchatPacket &packet, const s
     NSData *nsData = [NSData dataWithBytes:data.data() length:data.size()];
 
     // Convert std::string to NSString for Objective-C
-    NSString *nsPeerId = [NSString stringWithUTF8String:peerId.c_str()];
+    NSString *nsPeerID = [NSString stringWithUTF8String:peerID.c_str()];
 
     // Forward to Objective-C implementation
-    return [impl sendPacket:nsData toPeer:nsPeerId];
+    return [impl sendPacket:nsData toPeer:nsPeerID];
 }
 
 bool AppleBluetoothBridge::isReady() const
@@ -135,7 +135,7 @@ bool AppleBluetoothBridge::isReady() const
     return [impl isReady];
 }
 
-std::string AppleBluetoothBridge::getLocalPeerId() const
+std::string AppleBluetoothBridge::getLocalPeerID() const
 {
     if (!impl)
     {
@@ -143,11 +143,11 @@ std::string AppleBluetoothBridge::getLocalPeerId() const
     }
 
     // Get NSString from Objective-C and convert to std::string
-    NSString *peerId = [impl getLocalPeerId];
-    return peerId ? [peerId UTF8String] : "";
+    NSString *peerID = [impl getLocalPeerID];
+    return peerID ? [peerID UTF8String] : "";
 }
 
-void AppleBluetoothBridge::setLocalPeerId(const std::string &peerId)
+void AppleBluetoothBridge::setLocalPeerID(const std::string &peerID)
 {
     if (!impl)
     {
@@ -155,10 +155,10 @@ void AppleBluetoothBridge::setLocalPeerId(const std::string &peerId)
     }
 
     // Convert std::string to NSString for Objective-C
-    NSString *nsPeerId = [NSString stringWithUTF8String:peerId.c_str()];
+    NSString *nsPeerID = [NSString stringWithUTF8String:peerID.c_str()];
 
     // Forward to Objective-C implementation
-    [impl setLocalPeerId:nsPeerId];
+    [impl setLocalPeerID:nsPeerID];
 }
 
 void AppleBluetoothBridge::setPeerDisconnectedCallback(PeerDisconnectedCallback callback)

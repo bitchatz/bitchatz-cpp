@@ -32,14 +32,14 @@ bool NetworkManager::initialize(std::unique_ptr<BluetoothInterface> bluetooth)
     bluetoothInterface->setPacketReceivedCallback([this](const BitchatPacket &packet)
                                                   { onPacketReceived(packet); });
 
-    bluetoothInterface->setPeerDisconnectedCallback([this](const std::string &peerId)
-                                                    { onPeerDisconnected(peerId); });
+    bluetoothInterface->setPeerDisconnectedCallback([this](const std::string &peerID)
+                                                    { onPeerDisconnected(peerID); });
 
     spdlog::info("NetworkManager initialized");
     return true;
 }
 
-void NetworkManager::setLocalPeerId(const std::string &peerId)
+void NetworkManager::setLocalPeerID(const std::string &peerID)
 {
     if (!bluetoothInterface)
     {
@@ -48,8 +48,8 @@ void NetworkManager::setLocalPeerId(const std::string &peerId)
     }
 
     // Set the local peer ID in the Bluetooth interface
-    bluetoothInterface->setLocalPeerId(peerId);
-    localPeerId = peerId;
+    bluetoothInterface->setLocalPeerID(peerID);
+    localPeerID = peerID;
 }
 
 bool NetworkManager::start()
@@ -114,14 +114,14 @@ bool NetworkManager::sendPacket(const BitchatPacket &packet)
     return bluetoothInterface->sendPacket(packet);
 }
 
-bool NetworkManager::sendPacketToPeer(const BitchatPacket &packet, const std::string &peerId)
+bool NetworkManager::sendPacketToPeer(const BitchatPacket &packet, const std::string &peerID)
 {
     if (!bluetoothInterface || !isReady())
     {
         return false;
     }
 
-    return bluetoothInterface->sendPacketToPeer(packet, peerId);
+    return bluetoothInterface->sendPacketToPeer(packet, peerID);
 }
 
 std::map<std::string, BitchatPeer> NetworkManager::getOnlinePeers() const
@@ -139,16 +139,16 @@ size_t NetworkManager::getConnectedPeersCount() const
     return bluetoothInterface->getConnectedPeersCount();
 }
 
-bool NetworkManager::isPeerOnline(const std::string &peerId) const
+bool NetworkManager::isPeerOnline(const std::string &peerID) const
 {
     std::lock_guard<std::mutex> lock(peersMutex);
-    return onlinePeers.find(peerId) != onlinePeers.end();
+    return onlinePeers.find(peerID) != onlinePeers.end();
 }
 
-std::optional<BitchatPeer> NetworkManager::getPeerInfo(const std::string &peerId) const
+std::optional<BitchatPeer> NetworkManager::getPeerInfo(const std::string &peerID) const
 {
     std::lock_guard<std::mutex> lock(peersMutex);
-    auto it = onlinePeers.find(peerId);
+    auto it = onlinePeers.find(peerID);
     if (it != onlinePeers.end())
     {
         return it->second;
@@ -156,10 +156,10 @@ std::optional<BitchatPeer> NetworkManager::getPeerInfo(const std::string &peerId
     return std::nullopt;
 }
 
-void NetworkManager::updatePeerInfo(const std::string &peerId, const BitchatPeer &peer)
+void NetworkManager::updatePeerInfo(const std::string &peerID, const BitchatPeer &peer)
 {
     std::lock_guard<std::mutex> lock(peersMutex);
-    onlinePeers[peerId] = peer;
+    onlinePeers[peerID] = peer;
 }
 
 void NetworkManager::cleanupStalePeers(time_t timeout)
@@ -196,9 +196,9 @@ void NetworkManager::setPeerDisconnectedCallback(PeerDisconnectedCallback callba
     peerDisconnectedCallback = callback;
 }
 
-std::string NetworkManager::getLocalPeerId() const
+std::string NetworkManager::getLocalPeerID() const
 {
-    return localPeerId;
+    return localPeerID;
 }
 
 bool NetworkManager::isReady() const
@@ -224,14 +224,14 @@ void NetworkManager::announceLoop()
 
             BitchatPacket announcePacket(PKT_TYPE_ANNOUNCE, payload);
             // Convert hex string to bytes correctly
-            std::vector<uint8_t> senderId;
-            for (size_t i = 0; i < localPeerId.length(); i += 2)
+            std::vector<uint8_t> senderID;
+            for (size_t i = 0; i < localPeerID.length(); i += 2)
             {
-                std::string byteString = localPeerId.substr(i, 2);
+                std::string byteString = localPeerID.substr(i, 2);
                 uint8_t byte = static_cast<uint8_t>(std::stoi(byteString, nullptr, 16));
-                senderId.push_back(byte);
+                senderID.push_back(byte);
             }
-            announcePacket.setSenderId(senderId);
+            announcePacket.setSenderID(senderID);
             announcePacket.setTimestamp(ProtocolHelper::getCurrentTimestamp());
 
             // Send announce packet
@@ -268,23 +268,23 @@ void NetworkManager::cleanupLoop()
     }
 }
 
-void NetworkManager::onPeerConnected(const std::string &peerId, const std::string &nickname)
+void NetworkManager::onPeerConnected(const std::string &peerID, const std::string &nickname)
 {
-    spdlog::info("Peer connected: {} ({})", peerId, nickname);
+    spdlog::info("Peer connected: {} ({})", peerID, nickname);
 
     if (peerConnectedCallback)
     {
-        peerConnectedCallback(peerId, nickname);
+        peerConnectedCallback(peerID, nickname);
     }
 }
 
-void NetworkManager::onPeerDisconnected(const std::string &peerId)
+void NetworkManager::onPeerDisconnected(const std::string &peerID)
 {
     std::string nickname;
 
     {
         std::lock_guard<std::mutex> lock(peersMutex);
-        auto it = onlinePeers.find(peerId);
+        auto it = onlinePeers.find(peerID);
         if (it != onlinePeers.end())
         {
             nickname = it->second.getNickname();
@@ -292,11 +292,11 @@ void NetworkManager::onPeerDisconnected(const std::string &peerId)
         }
     }
 
-    spdlog::info("Peer disconnected: {} ({})", peerId, nickname);
+    spdlog::info("Peer disconnected: {} ({})", peerID, nickname);
 
     if (peerDisconnectedCallback)
     {
-        peerDisconnectedCallback(peerId, nickname);
+        peerDisconnectedCallback(peerID, nickname);
     }
 }
 
@@ -310,20 +310,20 @@ void NetworkManager::processPacket(const BitchatPacket &packet)
     // Validate packet
     if (!packet.isValid())
     {
-        spdlog::warn("Received invalid packet from {}", ProtocolHelper::toHexCompact(packet.getSenderId()));
+        spdlog::warn("Received invalid packet from {}", ProtocolHelper::toHexCompact(packet.getSenderID()));
         return;
     }
 
     // Check if we've already processed this message
-    std::string messageId = ProtocolHelper::toHexCompact(packet.getSenderId()) + "_" +
+    std::string messageID = ProtocolHelper::toHexCompact(packet.getSenderID()) + "_" +
                             std::to_string(packet.getTimestamp());
 
-    if (wasMessageProcessed(messageId))
+    if (wasMessageProcessed(messageID))
     {
         return;
     }
 
-    markMessageProcessed(messageId);
+    markMessageProcessed(messageID);
 
     // Process based on packet type
     switch (packet.getType())
@@ -332,42 +332,42 @@ void NetworkManager::processPacket(const BitchatPacket &packet)
         processAnnouncePacket(packet);
         break;
     case PKT_TYPE_MESSAGE:
-        spdlog::debug("Received MESSAGE packet from {}", ProtocolHelper::toHexCompact(packet.getSenderId()));
+        spdlog::debug("Received MESSAGE packet from {}", ProtocolHelper::toHexCompact(packet.getSenderID()));
         if (packetReceivedCallback)
         {
             packetReceivedCallback(packet);
         }
         break;
     case PKT_TYPE_LEAVE:
-        spdlog::debug("Received LEAVE packet from {}", ProtocolHelper::toHexCompact(packet.getSenderId()));
+        spdlog::debug("Received LEAVE packet from {}", ProtocolHelper::toHexCompact(packet.getSenderID()));
         if (packetReceivedCallback)
         {
             packetReceivedCallback(packet);
         }
         break;
     case PKT_TYPE_NOISE_HANDSHAKE_INIT:
-        spdlog::info("Received NOISE_HANDSHAKE_INIT from {} (payload size: {})", ProtocolHelper::toHexCompact(packet.getSenderId()), packet.getPayload().size());
+        spdlog::info("Received NOISE_HANDSHAKE_INIT from {} (payload size: {})", ProtocolHelper::toHexCompact(packet.getSenderID()), packet.getPayload().size());
         if (packetReceivedCallback)
         {
             packetReceivedCallback(packet);
         }
         break;
     case PKT_TYPE_NOISE_HANDSHAKE_RESP:
-        spdlog::info("Received NOISE_HANDSHAKE_RESP from {}", ProtocolHelper::toHexCompact(packet.getSenderId()));
+        spdlog::info("Received NOISE_HANDSHAKE_RESP from {}", ProtocolHelper::toHexCompact(packet.getSenderID()));
         if (packetReceivedCallback)
         {
             packetReceivedCallback(packet);
         }
         break;
     case PKT_TYPE_NOISE_ENCRYPTED:
-        spdlog::info("Received NOISE_ENCRYPTED from {}", ProtocolHelper::toHexCompact(packet.getSenderId()));
+        spdlog::info("Received NOISE_ENCRYPTED from {}", ProtocolHelper::toHexCompact(packet.getSenderID()));
         if (packetReceivedCallback)
         {
             packetReceivedCallback(packet);
         }
         break;
     case PKT_TYPE_NOISE_IDENTITY_ANNOUNCE:
-        spdlog::info("Received NOISE_IDENTITY_ANNOUNCE from {}", ProtocolHelper::toHexCompact(packet.getSenderId()));
+        spdlog::info("Received NOISE_IDENTITY_ANNOUNCE from {}", ProtocolHelper::toHexCompact(packet.getSenderID()));
         if (packetReceivedCallback)
         {
             packetReceivedCallback(packet);
@@ -392,28 +392,28 @@ void NetworkManager::relayPacket(const BitchatPacket &packet)
     relayPacket.setTtl(packet.getTtl() - 1);
 
     // Send to all connected peers except sender
-    std::string senderId = ProtocolHelper::toHexCompact(packet.getSenderId());
+    std::string senderID = ProtocolHelper::toHexCompact(packet.getSenderID());
 
     std::lock_guard<std::mutex> lock(peersMutex);
-    for (const auto &[peerId, peer] : onlinePeers)
+    for (const auto &[peerID, peer] : onlinePeers)
     {
-        if (peerId != senderId)
+        if (peerID != senderID)
         {
-            bluetoothInterface->sendPacketToPeer(relayPacket, peerId);
+            bluetoothInterface->sendPacketToPeer(relayPacket, peerID);
         }
     }
 }
 
-bool NetworkManager::wasMessageProcessed(const std::string &messageId)
+bool NetworkManager::wasMessageProcessed(const std::string &messageID)
 {
     std::lock_guard<std::mutex> lock(processedMutex);
-    return processedMessages.find(messageId) != processedMessages.end();
+    return processedMessages.find(messageID) != processedMessages.end();
 }
 
-void NetworkManager::markMessageProcessed(const std::string &messageId)
+void NetworkManager::markMessageProcessed(const std::string &messageID)
 {
     std::lock_guard<std::mutex> lock(processedMutex);
-    processedMessages.insert(messageId);
+    processedMessages.insert(messageID);
 
     // Keep only last 1000 processed messages
     if (processedMessages.size() > 1000)
@@ -432,33 +432,33 @@ void NetworkManager::processAnnouncePacket(const BitchatPacket &packet)
         std::string nickname;
         serializer.parseAnnouncePayload(packet.getPayload(), nickname);
 
-        std::string peerId = ProtocolHelper::toHexCompact(packet.getSenderId());
+        std::string peerID = ProtocolHelper::toHexCompact(packet.getSenderID());
 
         {
             std::lock_guard<std::mutex> lock(peersMutex);
 
             // Check if peer is already in the list
-            auto it = onlinePeers.find(peerId);
+            auto it = onlinePeers.find(peerID);
             if (it != onlinePeers.end())
             {
                 // Update existing peer's last seen time
                 it->second.updateLastSeen();
-                spdlog::debug("Updated existing peer: {} ({})", peerId, nickname);
+                spdlog::debug("Updated existing peer: {} ({})", peerID, nickname);
 
                 // Don't notify about connection again
                 return;
             }
 
             // Add new peer
-            BitchatPeer peer(packet.getSenderId(), nickname);
+            BitchatPeer peer(packet.getSenderID(), nickname);
             peer.updateLastSeen();
-            onlinePeers[peerId] = peer;
+            onlinePeers[peerID] = peer;
         }
 
         // Notify about new peer connection
-        onPeerConnected(peerId, nickname);
+        onPeerConnected(peerID, nickname);
 
-        spdlog::debug("Processed announce from: {} ({})", peerId, nickname);
+        spdlog::debug("Processed announce from: {} ({})", peerID, nickname);
     }
     catch (const std::exception &e)
     {

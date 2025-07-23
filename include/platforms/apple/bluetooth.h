@@ -19,7 +19,7 @@
 @property(nonatomic, assign) BOOL ready;
 @property(nonatomic, strong) NSLock *lock;
 @property(nonatomic, strong) dispatch_queue_t bleQueue;
-@property(nonatomic, strong) NSString *localPeerId;
+@property(nonatomic, strong) NSString *localPeerID;
 
 // Callback properties
 @property(nonatomic, copy) void (^peerDisconnectedCallback)(NSString *);
@@ -34,16 +34,16 @@
 // Packet sending
 - (BOOL)sendPacket:(NSData *)packetData;
 - (BOOL)sendPacket:(NSData *)packetData toPeripheral:(CBPeripheral *)peripheral;
-- (BOOL)sendPacket:(NSData *)packetData toPeer:(NSString *)peerId;
+- (BOOL)sendPacket:(NSData *)packetData toPeer:(NSString *)peerID;
 
 // State
 - (BOOL)isReady;
-- (NSString *)getLocalPeerId;
-- (void)setLocalPeerId:(NSString *)peerId;
+- (NSString *)getLocalPeerID;
+- (void)setLocalPeerID:(NSString *)peerID;
 - (NSUInteger)getConnectedPeersCount;
 
 // Callback setters
-- (void)setPeerDisconnectedCallback:(void (^)(NSString *peerId))callback;
+- (void)setPeerDisconnectedCallback:(void (^)(NSString *peerID))callback;
 - (void)setPacketReceivedCallback:(void (^)(NSData *packetData))callback;
 
 // Constants

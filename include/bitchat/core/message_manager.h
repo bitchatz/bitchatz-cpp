@@ -106,12 +106,12 @@ private:
     void processMessagePacket(const BitchatPacket &packet);
     void processChannelAnnouncePacket(const BitchatPacket &packet);
     void addMessageToHistory(const BitchatMessage &message);
-    bool wasMessageProcessed(const std::string &messageId);
-    void markMessageProcessed(const std::string &messageId);
+    bool wasMessageProcessed(const std::string &messageID);
+    void markMessageProcessed(const std::string &messageID);
     BitchatPacket createMessagePacket(const BitchatMessage &message);
     BitchatPacket createAnnouncePacket();
     BitchatPacket createChannelAnnouncePacket(const std::string &channel, bool joining);
-    std::string generateMessageId() const;
+    std::string generateMessageID() const;
 
     // Constants
     static constexpr size_t MAX_HISTORY_SIZE = 1000;

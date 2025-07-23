@@ -20,8 +20,8 @@ public:
     static std::string vectorToString(const std::vector<uint8_t> &vec);
 
     // Peer ID utilities
-    static std::string normalizePeerId(const std::string &peerId);
-    static std::string randomPeerId();
+    static std::string normalizePeerID(const std::string &peerID);
+    static std::string randomPeerID();
 
     // UUID utilities
     static std::string uuidv4();
@@ -30,7 +30,7 @@ public:
     static std::string randomNickname();
 
     // Validation utilities
-    static bool isValidPeerId(const std::string &peerId);
+    static bool isValidPeerID(const std::string &peerID);
     static bool isValidChannelName(const std::string &channel);
     static bool isValidNickname(const std::string &nickname);
 

@@ -28,8 +28,8 @@ bool BitchatManager::initialize()
     try
     {
         // Generate local peer ID
-        std::string localPeerId = ProtocolHelper::randomPeerId();
-        spdlog::info("Generated local peer ID: {}", localPeerId);
+        std::string localPeerID = ProtocolHelper::randomPeerID();
+        spdlog::info("Generated local peer ID: {}", localPeerID);
 
         // Create Bluetooth interface
         bluetoothInterface = createBluetoothInterface();
@@ -53,7 +53,7 @@ bool BitchatManager::initialize()
         }
 
         // Set the local peer ID
-        networkManager->setLocalPeerId(localPeerId);
+        networkManager->setLocalPeerID(localPeerID);
 
         if (!cryptoManager->initialize())
         {
@@ -120,7 +120,7 @@ bool BitchatManager::initialize()
                 spdlog::error("Failed to create EVP_PKEY from private key");
             }
 
-            spdlog::info("Local PeerID: '{}' (size: {})", networkManager->getLocalPeerId(), networkManager->getLocalPeerId().size());
+            spdlog::info("Local PeerID: '{}' (size: {})", networkManager->getLocalPeerID(), networkManager->getLocalPeerID().size());
             spdlog::info("=== END NOISE KEY DEBUG ===");
 
             noise::PrivateKey privateKey;
@@ -292,16 +292,16 @@ std::string BitchatManager::getNickname() const
     return messageManager->getNickname();
 }
 
-std::string BitchatManager::getPeerId() const
+std::string BitchatManager::getPeerID() const
 {
     if (!networkManager)
     {
         return "";
     }
-    return networkManager->getLocalPeerId();
+    return networkManager->getLocalPeerID();
 }
 
-void BitchatManager::setPeerId(const std::string &peerId)
+void BitchatManager::setPeerID(const std::string &peerID)
 {
     if (!networkManager)
     {
@@ -309,13 +309,13 @@ void BitchatManager::setPeerId(const std::string &peerId)
         return;
     }
 
-    if (!ProtocolHelper::isValidPeerId(peerId))
+    if (!ProtocolHelper::isValidPeerID(peerID))
     {
-        spdlog::error("Invalid peer ID format: {}", peerId);
+        spdlog::error("Invalid peer ID format: {}", peerID);
         return;
     }
 
-    networkManager->setLocalPeerId(peerId);
+    networkManager->setLocalPeerID(peerID);
 }
 
 std::map<std::string, BitchatPeer> BitchatManager::getOnlinePeers() const
@@ -378,11 +378,11 @@ void BitchatManager::setupCallbacks()
                                                { onMessageReceived(message); });
 
     // Set up network manager callbacks
-    networkManager->setPeerConnectedCallback([this](const std::string &peerId, const std::string &nickname)
-                                             { onPeerJoined(peerId, nickname); });
+    networkManager->setPeerConnectedCallback([this](const std::string &peerID, const std::string &nickname)
+                                             { onPeerJoined(peerID, nickname); });
 
-    networkManager->setPeerDisconnectedCallback([this](const std::string &peerId, const std::string &nickname)
-                                                { onPeerLeft(peerId, nickname); });
+    networkManager->setPeerDisconnectedCallback([this](const std::string &peerID, const std::string &nickname)
+                                                { onPeerLeft(peerID, nickname); });
 
     // Process all packets from NetworkManager
     networkManager->setPacketReceivedCallback([this](const BitchatPacket &packet)
@@ -392,7 +392,7 @@ void BitchatManager::setupCallbacks()
                                                   {
                                                           case PKT_TYPE_MESSAGE:
             // Forward to MessageManager for normal messages
-            spdlog::debug("Received message packet from {}", ProtocolHelper::toHexCompact(packet.getSenderId()));
+            spdlog::debug("Received message packet from {}", ProtocolHelper::toHexCompact(packet.getSenderID()));
             messageManager->processPacket(packet);
             break;
                                                   case PKT_TYPE_NOISE_HANDSHAKE_INIT:
@@ -416,19 +416,19 @@ void BitchatManager::onMessageReceived(const BitchatMessage &message)
     }
 }
 
-void BitchatManager::onPeerJoined(const std::string &peerId, const std::string &nickname)
+void BitchatManager::onPeerJoined(const std::string &peerID, const std::string &nickname)
 {
     if (peerJoinedCallback)
     {
-        peerJoinedCallback(peerId, nickname);
+        peerJoinedCallback(peerID, nickname);
     }
 }
 
-void BitchatManager::onPeerLeft(const std::string &peerId, const std::string &nickname)
+void BitchatManager::onPeerLeft(const std::string &peerID, const std::string &nickname)
 {
     if (peerLeftCallback)
     {
-        peerLeftCallback(peerId, nickname);
+        peerLeftCallback(peerID, nickname);
     }
 }
 
@@ -448,12 +448,12 @@ void BitchatManager::processNoisePacket(const BitchatPacket &packet)
         return;
     }
 
-    std::string peerId = ProtocolHelper::toHexCompact(packet.getSenderId());
+    std::string peerID = ProtocolHelper::toHexCompact(packet.getSenderID());
 
     // Ignore packets from ourselves to prevent echo loops
-    if (peerId == networkManager->getLocalPeerId())
+    if (peerID == networkManager->getLocalPeerID())
     {
-        spdlog::debug("Ignoring Noise packet from ourselves: {}", peerId);
+        spdlog::debug("Ignoring Noise packet from ourselves: {}", peerID);
         return;
     }
 
@@ -464,66 +464,66 @@ void BitchatManager::processNoisePacket(const BitchatPacket &packet)
         case PKT_TYPE_NOISE_HANDSHAKE_INIT:
         {
             spdlog::info("=== RECEIVED NOISE_HANDSHAKE_INIT ===");
-            spdlog::info("From peerId: '{}' (size: {})", peerId, peerId.size());
+            spdlog::info("From peerID: '{}' (size: {})", peerID, peerID.size());
             spdlog::info("Payload size: {} bytes", packet.getPayload().size());
-            spdlog::info("Local peerId: '{}' (size: {})", networkManager->getLocalPeerId(), networkManager->getLocalPeerId().size());
+            spdlog::info("Local peerID: '{}' (size: {})", networkManager->getLocalPeerID(), networkManager->getLocalPeerID().size());
             try
             {
                 // Check if session is already established
-                if (noiseSessionManager->hasEstablishedSession(peerId))
+                if (noiseSessionManager->hasEstablishedSession(peerID))
                 {
-                    spdlog::debug("Ignoring handshake init from {} - session already established", peerId);
+                    spdlog::debug("Ignoring handshake init from {} - session already established", peerID);
                     break;
                 }
 
-                auto response = noiseSessionManager->handleIncomingHandshake(peerId, packet.getPayload(), networkManager->getLocalPeerId());
+                auto response = noiseSessionManager->handleIncomingHandshake(peerID, packet.getPayload(), networkManager->getLocalPeerID());
                 if (response.has_value() && !response->empty())
                 {
                     spdlog::info("=== SENDING NOISE_HANDSHAKE_RESP ===");
-                    spdlog::info("To peerId: '{}'", peerId);
+                    spdlog::info("To peerID: '{}'", peerID);
                     spdlog::info("Response size: {} bytes", response->size());
 
                     // Send handshake response
                     BitchatPacket responsePacket(PKT_TYPE_NOISE_HANDSHAKE_RESP, *response);
-                    responsePacket.setSenderId(ProtocolHelper::stringToVector(networkManager->getLocalPeerId()));
+                    responsePacket.setSenderID(ProtocolHelper::stringToVector(networkManager->getLocalPeerID()));
                     responsePacket.setTimestamp(ProtocolHelper::getCurrentTimestamp());
                     networkManager->sendPacket(responsePacket);
-                    spdlog::info("Sent Noise handshake response to {}", peerId);
+                    spdlog::info("Sent Noise handshake response to {}", peerID);
                 }
                 else
                 {
-                    spdlog::info("No handshake response needed for {}", peerId);
+                    spdlog::info("No handshake response needed for {}", peerID);
                 }
             }
             catch (const std::exception &e)
             {
-                spdlog::error("Failed to handle handshake init from {}: {}", peerId, e.what());
+                spdlog::error("Failed to handle handshake init from {}: {}", peerID, e.what());
             }
             break;
         }
         case PKT_TYPE_NOISE_HANDSHAKE_RESP:
         {
             spdlog::info("=== RECEIVED NOISE_HANDSHAKE_RESP ===");
-            spdlog::info("From peerId: '{}' (size: {})", peerId, peerId.size());
+            spdlog::info("From peerID: '{}' (size: {})", peerID, peerID.size());
             spdlog::info("Payload size: {} bytes", packet.getPayload().size());
-            spdlog::info("Local peerId: '{}' (size: {})", networkManager->getLocalPeerId(), networkManager->getLocalPeerId().size());
+            spdlog::info("Local peerID: '{}' (size: {})", networkManager->getLocalPeerID(), networkManager->getLocalPeerID().size());
 
-            // Determine if we are initiator or responder based on peerId comparison
-            std::string localPeerId = networkManager->getLocalPeerId();
-            bool isInitiator = localPeerId < peerId;
-            spdlog::info("Our role: {} (localPeerId: '{}' vs remotePeerId: '{}')",
-                         isInitiator ? "INITIATOR" : "RESPONDER", localPeerId, peerId);
+            // Determine if we are initiator or responder based on peerID comparison
+            std::string localPeerID = networkManager->getLocalPeerID();
+            bool isInitiator = localPeerID < peerID;
+            spdlog::info("Our role: {} (localPeerID: '{}' vs remotePeerID: '{}')",
+                         isInitiator ? "INITIATOR" : "RESPONDER", localPeerID, peerID);
             try
             {
                 // Check if session is already established
-                if (noiseSessionManager->hasEstablishedSession(peerId))
+                if (noiseSessionManager->hasEstablishedSession(peerID))
                 {
-                    spdlog::debug("Ignoring handshake response from {} - session already established", peerId);
+                    spdlog::debug("Ignoring handshake response from {} - session already established", peerID);
                     break;
                 }
 
                 spdlog::info("=== CALLING handleIncomingHandshake ===");
-                spdlog::info("PeerId: '{}'", peerId);
+                spdlog::info("PeerID: '{}'", peerID);
                 spdlog::info("Payload size: {} bytes", packet.getPayload().size());
 
                 // Log payload hex for debugging
@@ -536,7 +536,7 @@ void BitchatManager::processNoisePacket(const BitchatPacket &packet)
                 }
                 spdlog::info("Payload (first 32 bytes): {}", payloadHex);
 
-                auto response = noiseSessionManager->handleIncomingHandshake(peerId, packet.getPayload(), networkManager->getLocalPeerId());
+                auto response = noiseSessionManager->handleIncomingHandshake(peerID, packet.getPayload(), networkManager->getLocalPeerID());
                 spdlog::info("handleIncomingHandshake returned response: has_value={}, empty={}, size={}",
                              response.has_value(), response.has_value() ? response->empty() : true,
                              response.has_value() ? response->size() : 0);
@@ -563,28 +563,28 @@ void BitchatManager::processNoisePacket(const BitchatPacket &packet)
                         // responder to initiator (first response in XX handshake)
                         // (should occur on responder side, rarely here)
                         spdlog::info("=== SENDING 96-BYTE RESPONSE ===");
-                        spdlog::info("To peerId: '{}'", peerId);
+                        spdlog::info("To peerID: '{}'", peerID);
                         spdlog::info("This should only happen on responder side");
                         BitchatPacket responsePacket(PKT_TYPE_NOISE_HANDSHAKE_RESP, *response);
-                        responsePacket.setSenderId(ProtocolHelper::stringToVector(networkManager->getLocalPeerId()));
+                        responsePacket.setSenderID(ProtocolHelper::stringToVector(networkManager->getLocalPeerID()));
                         responsePacket.setTimestamp(ProtocolHelper::getCurrentTimestamp());
                         networkManager->sendPacket(responsePacket);
-                        spdlog::info("Sent 96-byte handshake response to {}", peerId);
+                        spdlog::info("Sent 96-byte handshake response to {}", peerID);
                     }
                     else if (response->size() == 48)
                     {
                         // initiator final message to responder (this was missing!)
                         spdlog::info("=== SENDING 48-BYTE FINAL MESSAGE ===");
-                        spdlog::info("To peerId: '{}'", peerId);
+                        spdlog::info("To peerID: '{}'", peerID);
                         spdlog::info("This should complete the handshake on the responder side");
                         spdlog::info("This is the FINAL message from initiator to responder");
                         spdlog::info("After this, handshake should be complete on both sides");
 
                         BitchatPacket responsePacket(PKT_TYPE_NOISE_HANDSHAKE_RESP, *response);
-                        responsePacket.setSenderId(ProtocolHelper::stringToVector(networkManager->getLocalPeerId()));
+                        responsePacket.setSenderID(ProtocolHelper::stringToVector(networkManager->getLocalPeerID()));
                         responsePacket.setTimestamp(ProtocolHelper::getCurrentTimestamp());
                         networkManager->sendPacket(responsePacket);
-                        spdlog::info("Sent 48-byte final handshake message to {}", peerId);
+                        spdlog::info("Sent 48-byte final handshake message to {}", peerID);
                         spdlog::info("Handshake should now be complete on initiator side");
                     }
                     else
@@ -595,82 +595,82 @@ void BitchatManager::processNoisePacket(const BitchatPacket &packet)
                 else if (!response.has_value() || response->empty())
                 {
                     spdlog::info("=== NOISE SESSION ESTABLISHED ===");
-                    spdlog::info("With peerId: '{}'", peerId);
+                    spdlog::info("With peerID: '{}'", peerID);
                     spdlog::info("No more handshake messages needed");
                     spdlog::info("Session is now ready for encrypted communication");
                 }
             }
             catch (const std::exception &e)
             {
-                spdlog::error("Failed to handle handshake response from {}: {}", peerId, e.what());
+                spdlog::error("Failed to handle handshake response from {}: {}", peerID, e.what());
             }
             break;
         }
         case PKT_TYPE_NOISE_ENCRYPTED:
         {
-            spdlog::info("Received Noise encrypted message from {}", peerId);
+            spdlog::info("Received Noise encrypted message from {}", peerID);
             try
             {
-                auto decrypted = noiseSessionManager->decrypt(packet.getPayload(), peerId);
+                auto decrypted = noiseSessionManager->decrypt(packet.getPayload(), peerID);
                 // Process decrypted message
-                spdlog::info("Decrypted message from {}: {}", peerId, std::string(decrypted.begin(), decrypted.end()));
+                spdlog::info("Decrypted message from {}: {}", peerID, std::string(decrypted.begin(), decrypted.end()));
             }
             catch (const std::exception &e)
             {
-                spdlog::error("Failed to decrypt Noise message from {}: {}", peerId, e.what());
+                spdlog::error("Failed to decrypt Noise message from {}: {}", peerID, e.what());
             }
             break;
         }
         case PKT_TYPE_NOISE_IDENTITY_ANNOUNCE:
         {
             spdlog::info("=== RECEIVED NOISE IDENTITY ANNOUNCE ===");
-            spdlog::info("From peerId: '{}'", peerId);
+            spdlog::info("From peerID: '{}'", peerID);
 
             try
             {
-                std::string localPeerId = networkManager->getLocalPeerId();
+                std::string localPeerID = networkManager->getLocalPeerID();
 
                 // Use robust handshake strategy: prefer to initiate if we have smaller peerID
-                if (localPeerId < peerId)
+                if (localPeerID < peerID)
                 {
                     spdlog::info("Preferring to initiate handshake with {} (our peerID {} < their peerID {})",
-                                 peerId, localPeerId, peerId);
+                                 peerID, localPeerID, peerID);
                     try
                     {
                         // Get handshake data and send
-                        auto handshakeData = noiseSessionManager->initiateHandshake(peerId);
+                        auto handshakeData = noiseSessionManager->initiateHandshake(peerID);
                         if (!handshakeData.empty())
                         {
                             spdlog::info("=== SENDING NOISE HANDSHAKE INIT ===");
-                            spdlog::info("To peerId: '{}'", peerId);
+                            spdlog::info("To peerID: '{}'", peerID);
                             spdlog::info("Handshake data size: {} bytes", handshakeData.size());
 
                             BitchatPacket handshakePacket(PKT_TYPE_NOISE_HANDSHAKE_INIT, handshakeData);
-                            handshakePacket.setSenderId(ProtocolHelper::stringToVector(localPeerId));
+                            handshakePacket.setSenderID(ProtocolHelper::stringToVector(localPeerID));
                             handshakePacket.setTimestamp(ProtocolHelper::getCurrentTimestamp());
                             networkManager->sendPacket(handshakePacket);
-                            spdlog::info("Sent Noise handshake init to {}", peerId);
+                            spdlog::info("Sent Noise handshake init to {}", peerID);
                         }
                         else
                         {
-                            spdlog::warn("No handshake data generated for {}", peerId);
+                            spdlog::warn("No handshake data generated for {}", peerID);
                         }
                     }
                     catch (const std::exception &e)
                     {
-                        spdlog::error("Failed to initiate handshake with {}: {}", peerId, e.what());
+                        spdlog::error("Failed to initiate handshake with {}: {}", peerID, e.what());
                     }
                 }
                 else
                 {
                     spdlog::info("Preferring to wait for handshake from {} (their peerID {} < our peerID {})",
-                                 peerId, peerId, localPeerId);
+                                 peerID, peerID, localPeerID);
                     // Don't wait forever - if no handshake comes, we can still initiate later
                 }
             }
             catch (const std::exception &e)
             {
-                spdlog::error("Failed to process identity announce from {}: {}", peerId, e.what());
+                spdlog::error("Failed to process identity announce from {}: {}", peerID, e.what());
             }
             break;
         }
@@ -680,7 +680,7 @@ void BitchatManager::processNoisePacket(const BitchatPacket &packet)
     }
     catch (const std::exception &e)
     {
-        spdlog::error("Error processing Noise packet from {}: {}", peerId, e.what());
+        spdlog::error("Error processing Noise packet from {}: {}", peerID, e.what());
     }
 }
 
@@ -696,10 +696,10 @@ void BitchatManager::sendNoiseIdentityAnnounce()
     {
         // Create simple identity announcement payload
         std::vector<uint8_t> payload;
-        std::string peerId = networkManager->getLocalPeerId();
-        payload.insert(payload.end(), peerId.begin(), peerId.end());
+        std::string peerID = networkManager->getLocalPeerID();
+        payload.insert(payload.end(), peerID.begin(), peerID.end());
         BitchatPacket packet(PKT_TYPE_NOISE_IDENTITY_ANNOUNCE, payload);
-        packet.setSenderId(ProtocolHelper::stringToVector(networkManager->getLocalPeerId()));
+        packet.setSenderID(ProtocolHelper::stringToVector(networkManager->getLocalPeerID()));
         packet.setTimestamp(ProtocolHelper::getCurrentTimestamp());
 
         networkManager->sendPacket(packet);

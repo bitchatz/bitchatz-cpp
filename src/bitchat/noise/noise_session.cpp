@@ -13,98 +13,98 @@ namespace noise
 class NoiseSessionImpl : public NoiseSession
 {
 private:
-    std::string peerID_;
-    NoiseRole role_;
-    bool isEstablished_;
-    PrivateKey localStaticKey_;
-    std::optional<PublicKey> remoteStaticKey_;
-    std::optional<std::vector<uint8_t>> handshakeHash_;
+    std::string peerID;
+    NoiseRole role;
+    bool sessionEstablished;
+    PrivateKey localStaticKey;
+    std::optional<PublicKey> remoteStaticKey;
+    std::optional<std::vector<uint8_t>> handshakeHash;
 
     // noise-c state
-    NoiseHandshakeState *handshakeState_;
-    NoiseCipherState *sendCipher_;
-    NoiseCipherState *receiveCipher_;
+    NoiseHandshakeState *handshakeState;
+    NoiseCipherState *sendCipher;
+    NoiseCipherState *receiveCipher;
 
     // Security tracking
-    uint64_t messageCount_;
-    std::chrono::system_clock::time_point sessionStartTime_;
-    std::chrono::system_clock::time_point lastActivityTime_;
+    uint64_t messageCount;
+    std::chrono::system_clock::time_point sessionStartTime;
+    std::chrono::system_clock::time_point lastActivityTime;
 
     // Handshake tracking
-    uint32_t handshakeStep_;
+    uint32_t handshakeStep;
 
     // Thread safety
-    mutable std::mutex sessionMutex_;
+    mutable std::mutex sessionMutex;
 
 public:
     NoiseSessionImpl(const std::string &peerID, NoiseRole role, const PrivateKey &localStaticKey)
-        : peerID_(peerID)
-        , role_(role)
-        , isEstablished_(false)
-        , localStaticKey_(localStaticKey)
-        , handshakeState_(nullptr)
-        , sendCipher_(nullptr)
-        , receiveCipher_(nullptr)
-        , messageCount_(0)
-        , sessionStartTime_(std::chrono::system_clock::now())
-        , lastActivityTime_(std::chrono::system_clock::now())
-        , handshakeStep_(0)
+        : peerID(peerID)
+        , role(role)
+        , sessionEstablished(false)
+        , localStaticKey(localStaticKey)
+        , handshakeState(nullptr)
+        , sendCipher(nullptr)
+        , receiveCipher(nullptr)
+        , messageCount(0)
+        , sessionStartTime(std::chrono::system_clock::now())
+        , lastActivityTime(std::chrono::system_clock::now())
+        , handshakeStep(0)
     {
     }
 
     ~NoiseSessionImpl()
     {
-        if (handshakeState_)
+        if (handshakeState)
         {
-            noise_handshakestate_free(handshakeState_);
+            noise_handshakestate_free(handshakeState);
         }
-        if (sendCipher_)
+        if (sendCipher)
         {
-            noise_cipherstate_free(sendCipher_);
+            noise_cipherstate_free(sendCipher);
         }
-        if (receiveCipher_)
+        if (receiveCipher)
         {
-            noise_cipherstate_free(receiveCipher_);
+            noise_cipherstate_free(receiveCipher);
         }
     }
 
     std::string getPeerID() const override
     {
-        return peerID_;
+        return peerID;
     }
 
-    bool isEstablished() const override
+    bool isSessionEstablished() const override
     {
-        std::lock_guard<std::mutex> lock(sessionMutex_);
-        return isEstablished_;
+        std::lock_guard<std::mutex> lock(sessionMutex);
+        return sessionEstablished;
     }
 
     std::optional<PublicKey> getRemoteStaticPublicKey() const override
     {
-        std::lock_guard<std::mutex> lock(sessionMutex_);
-        return remoteStaticKey_;
+        std::lock_guard<std::mutex> lock(sessionMutex);
+        return remoteStaticKey;
     }
 
     std::optional<std::vector<uint8_t>> getHandshakeHash() const override
     {
-        std::lock_guard<std::mutex> lock(sessionMutex_);
-        return handshakeHash_;
+        std::lock_guard<std::mutex> lock(sessionMutex);
+        return handshakeHash;
     }
 
     bool needsRenegotiation() const override
     {
-        std::lock_guard<std::mutex> lock(sessionMutex_);
+        std::lock_guard<std::mutex> lock(sessionMutex);
 
         // Check if we've used more than 90% of message limit
         uint64_t messageThreshold = static_cast<uint64_t>(NoiseSecurityConstants::maxMessagesPerSession * 0.9);
-        if (messageCount_ >= messageThreshold)
+        if (messageCount >= messageThreshold)
         {
             return true;
         }
 
         // Check if last activity was more than 30 minutes ago
         auto now = std::chrono::system_clock::now();
-        if (now - lastActivityTime_ > std::chrono::minutes(30))
+        if (now - lastActivityTime > std::chrono::minutes(30))
         {
             return true;
         }
@@ -114,40 +114,40 @@ public:
 
     uint64_t getMessageCount() const override
     {
-        std::lock_guard<std::mutex> lock(sessionMutex_);
-        return messageCount_;
+        std::lock_guard<std::mutex> lock(sessionMutex);
+        return messageCount;
     }
 
     std::chrono::system_clock::time_point getLastActivityTime() const override
     {
-        std::lock_guard<std::mutex> lock(sessionMutex_);
-        return lastActivityTime_;
+        std::lock_guard<std::mutex> lock(sessionMutex);
+        return lastActivityTime;
     }
 
     bool handshakeInProgress() const override
     {
-        std::lock_guard<std::mutex> lock(sessionMutex_);
-        return !isEstablished_ && handshakeState_ != nullptr;
+        std::lock_guard<std::mutex> lock(sessionMutex);
+        return !sessionEstablished && handshakeState != nullptr;
     }
 
     std::vector<uint8_t> encrypt(const std::vector<uint8_t> &plaintext) override
     {
-        std::lock_guard<std::mutex> lock(sessionMutex_);
+        std::lock_guard<std::mutex> lock(sessionMutex);
 
-        if (!isEstablished_ || !sendCipher_)
+        if (!sessionEstablished || !sendCipher)
         {
             throw std::runtime_error("Session not established");
         }
 
         // Check session age
         auto now = std::chrono::system_clock::now();
-        if (now - sessionStartTime_ > NoiseSecurityConstants::sessionTimeout)
+        if (now - sessionStartTime > NoiseSecurityConstants::sessionTimeout)
         {
             throw std::runtime_error("Session expired");
         }
 
         // Check message count
-        if (messageCount_ >= NoiseSecurityConstants::maxMessagesPerSession)
+        if (messageCount >= NoiseSecurityConstants::maxMessagesPerSession)
         {
             throw std::runtime_error("Session exhausted");
         }
@@ -166,31 +166,31 @@ public:
         // Copy plaintext to buffer
         std::copy(plaintext.begin(), plaintext.end(), ciphertext.begin());
 
-        int result = noise_cipherstate_encrypt(sendCipher_, &buffer);
+        int result = noise_cipherstate_encrypt(sendCipher, &buffer);
         if (result != NOISE_ERROR_NONE)
         {
             throw std::runtime_error("Encryption failed");
         }
 
         ciphertext.resize(buffer.size);
-        messageCount_++;
-        lastActivityTime_ = now;
+        messageCount++;
+        lastActivityTime = now;
 
         return ciphertext;
     }
 
     std::vector<uint8_t> decrypt(const std::vector<uint8_t> &ciphertext) override
     {
-        std::lock_guard<std::mutex> lock(sessionMutex_);
+        std::lock_guard<std::mutex> lock(sessionMutex);
 
-        if (!isEstablished_ || !receiveCipher_)
+        if (!sessionEstablished || !receiveCipher)
         {
             throw std::runtime_error("Session not established");
         }
 
         // Check session age
         auto now = std::chrono::system_clock::now();
-        if (now - sessionStartTime_ > NoiseSecurityConstants::sessionTimeout)
+        if (now - sessionStartTime > NoiseSecurityConstants::sessionTimeout)
         {
             throw std::runtime_error("Session expired");
         }
@@ -204,19 +204,19 @@ public:
         // Use noise-c to decrypt
         std::vector<uint8_t> plaintext(ciphertext.size());
         NoiseBuffer buffer;
-        noise_buffer_set_inout(buffer, plaintext.data(), ciphertext.size(), plaintext.size());
+        noise_buffer_set_inout(buffer, plaintext.data(), ciphertext.size(), ciphertext.size());
 
         // Copy ciphertext to buffer
         std::copy(ciphertext.begin(), ciphertext.end(), plaintext.begin());
 
-        int result = noise_cipherstate_decrypt(receiveCipher_, &buffer);
+        int result = noise_cipherstate_decrypt(receiveCipher, &buffer);
         if (result != NOISE_ERROR_NONE)
         {
             throw std::runtime_error("Decryption failed");
         }
 
         plaintext.resize(buffer.size);
-        lastActivityTime_ = now;
+        lastActivityTime = now;
 
         return plaintext;
     }
@@ -240,30 +240,30 @@ public:
     // Internal methods for handshake
     std::vector<uint8_t> startHandshake()
     {
-        std::lock_guard<std::mutex> lock(sessionMutex_);
+        std::lock_guard<std::mutex> lock(sessionMutex);
 
         spdlog::info("=== STARTING NOISE HANDSHAKE ===");
-        spdlog::info("Peer: {}, Role: {}", peerID_, role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
+        spdlog::info("Peer: {}, Role: {}", peerID, role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
 
-        if (isEstablished_)
+        if (sessionEstablished)
         {
             spdlog::error("Session already established");
             throw std::runtime_error("Session already established");
         }
 
         // Validate local static key
-        if (localStaticKey_.size() != 32)
+        if (localStaticKey.size() != 32)
         {
-            spdlog::error("Invalid local static key size: {} (expected 32)", localStaticKey_.size());
+            spdlog::error("Invalid local static key size: {} (expected 32)", localStaticKey.size());
             throw std::runtime_error("Invalid local static key size");
         }
 
         // Debug: log complete key for comparison with Swift
         std::string keyHex;
-        for (size_t i = 0; i < localStaticKey_.size(); ++i)
+        for (size_t i = 0; i < localStaticKey.size(); ++i)
         {
             char hex[3];
-            snprintf(hex, sizeof(hex), "%02x", localStaticKey_[i]);
+            snprintf(hex, sizeof(hex), "%02x", localStaticKey[i]);
             keyHex += hex;
         }
         spdlog::info("=== LOCAL STATIC KEY COMPARISON ===");
@@ -273,12 +273,12 @@ public:
 
         // Initialize noise-c handshake state
         spdlog::info("Creating handshake state with pattern: Noise_XX_25519_ChaChaPoly_SHA256");
-        spdlog::info("Role: {}", role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
+        spdlog::info("Role: {}", role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
         spdlog::info("Expected protocol name from Swift: Noise_XX_25519_ChaChaPoly_SHA256");
         spdlog::info("Expected initial hash from Swift: 4e6f6973655f58585f32353531395f43...");
 
-        int result = noise_handshakestate_new_by_name(&handshakeState_, "Noise_XX_25519_ChaChaPoly_SHA256",
-                                                      role_ == NoiseRole::Initiator ? NOISE_ROLE_INITIATOR : NOISE_ROLE_RESPONDER);
+        int result = noise_handshakestate_new_by_name(&handshakeState, "Noise_XX_25519_ChaChaPoly_SHA256",
+                                                      role == NoiseRole::Initiator ? NOISE_ROLE_INITIATOR : NOISE_ROLE_RESPONDER);
         if (result != NOISE_ERROR_NONE)
         {
             char errorBuf[256];
@@ -288,10 +288,10 @@ public:
         }
 
         spdlog::info("Handshake state created successfully");
-        spdlog::info("Handshake state pointer: {}", (void *)handshakeState_);
+        spdlog::info("Handshake state pointer: {}", (void *)handshakeState);
 
         // Verify handshake state is valid
-        if (!handshakeState_)
+        if (!handshakeState)
         {
             spdlog::error("Handshake state is null after creation!");
             throw std::runtime_error("Handshake state is null after creation");
@@ -301,7 +301,7 @@ public:
         spdlog::info("=== CHECKING INITIAL HASH STATE ===");
         size_t initialHashLen = 32;
         std::vector<uint8_t> initialHash(initialHashLen);
-        int initialHashResult = noise_handshakestate_get_handshake_hash(handshakeState_, initialHash.data(), initialHashLen);
+        int initialHashResult = noise_handshakestate_get_handshake_hash(handshakeState, initialHash.data(), initialHashLen);
         spdlog::info("noise_handshakestate_get_handshake_hash returned: {} (0x{:x})", initialHashResult, initialHashResult);
 
         if (initialHashResult == NOISE_ERROR_NONE)
@@ -317,8 +317,8 @@ public:
             spdlog::info("Initial hash from noise-c: {}", initialHashHex);
             spdlog::info("Expected from Swift: 4e6f6973655f58585f32353531395f43...");
             spdlog::info("Protocol: Noise_XX_25519_ChaChaPoly_SHA256");
-            spdlog::info("Role: {}", role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
-            spdlog::info("PeerID: {}", peerID_);
+            spdlog::info("Role: {}", role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
+            spdlog::info("PeerID: {}", peerID);
 
             // Check if initial hash matches Swift
             std::string expectedInitialHash = "4e6f6973655f58585f32353531395f43";
@@ -346,11 +346,11 @@ public:
 
         // Set local static key
         spdlog::info("Setting local static key...");
-        NoiseDHState *localDH = noise_handshakestate_get_local_keypair_dh(handshakeState_);
+        NoiseDHState *localDH = noise_handshakestate_get_local_keypair_dh(handshakeState);
         if (localDH)
         {
             spdlog::info("Local DH state found, setting private key...");
-            result = noise_dhstate_set_keypair_private(localDH, localStaticKey_.data(), localStaticKey_.size());
+            result = noise_dhstate_set_keypair_private(localDH, localStaticKey.data(), localStaticKey.size());
             spdlog::info("noise_dhstate_set_keypair_private returned: {} (0x{:x})", result, result);
 
             if (result != NOISE_ERROR_NONE)
@@ -366,9 +366,9 @@ public:
             size_t keyLen = noise_dhstate_get_private_key_length(localDH);
             spdlog::info("Private key length in DH state: {}", keyLen);
 
-            if (keyLen != localStaticKey_.size())
+            if (keyLen != localStaticKey.size())
             {
-                spdlog::error("Key length mismatch: expected {}, got {}", localStaticKey_.size(), keyLen);
+                spdlog::error("Key length mismatch: expected {}, got {}", localStaticKey.size(), keyLen);
                 throw std::runtime_error("Key length mismatch");
             }
         }
@@ -379,14 +379,14 @@ public:
         }
 
         // Check if we need to start the handshake
-        int action = noise_handshakestate_get_action(handshakeState_);
+        int action = noise_handshakestate_get_action(handshakeState);
         spdlog::info("Initial handshake action: {} (0x{:x})", action, action);
 
         // Start the handshake if needed
         if (action == NOISE_ACTION_NONE)
         {
             spdlog::info("Starting handshake...");
-            result = noise_handshakestate_start(handshakeState_);
+            result = noise_handshakestate_start(handshakeState);
             if (result != NOISE_ERROR_NONE)
             {
                 char errorBuf[256];
@@ -397,17 +397,17 @@ public:
             spdlog::info("Handshake started successfully");
 
             // Check action after start
-            action = noise_handshakestate_get_action(handshakeState_);
+            action = noise_handshakestate_get_action(handshakeState);
             spdlog::info("Handshake action after start: {} (0x{:x})", action, action);
         }
 
         // Only initiator writes the first message
-        if (role_ == NoiseRole::Initiator)
+        if (role == NoiseRole::Initiator)
         {
             spdlog::info("Initiator: preparing to write first message");
 
             // Double-check the action before writing
-            action = noise_handshakestate_get_action(handshakeState_);
+            action = noise_handshakestate_get_action(handshakeState);
             spdlog::info("Initiator handshake action before write: {} (0x{:x})", action, action);
             spdlog::info("Expected action: {} (0x{:x})", NOISE_ACTION_WRITE_MESSAGE, NOISE_ACTION_WRITE_MESSAGE);
 
@@ -431,13 +431,13 @@ public:
         return std::vector<uint8_t>();
     }
 
-    std::optional<std::vector<uint8_t>> processHandshakeMessage(const std::vector<uint8_t> &message)
+    std::optional<std::vector<uint8_t>> processHandshakeMessage(const std::vector<uint8_t> &message) override
     {
-        std::lock_guard<std::mutex> lock(sessionMutex_);
+        std::lock_guard<std::mutex> lock(sessionMutex);
 
         spdlog::info("=== PROCESSING HANDSHAKE MESSAGE ===");
-        spdlog::info("Peer: {}, Message size: {}", peerID_, message.size());
-        spdlog::info("Role: {}", role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
+        spdlog::info("Peer: {}, Message size: {}", peerID, message.size());
+        spdlog::info("Role: {}", role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
         spdlog::info("Protocol: Noise_XX_25519_ChaChaPoly_SHA256");
 
         // Log complete message for comparison
@@ -454,7 +454,7 @@ public:
         spdlog::info("Expected from Swift: [COMPARE WITH SWIFT LOG]");
         spdlog::info("=== END MESSAGE COMPARISON ===");
 
-        if (isEstablished_)
+        if (sessionEstablished)
         {
             spdlog::error("Session already established");
             throw std::runtime_error("Session already established");
@@ -466,7 +466,7 @@ public:
         // Responder -> Initiator: 96 bytes (ephemeral e, static s, payload+tag)
         // Initiator -> Responder: 48 bytes (static s, payload)
 
-        if (role_ == NoiseRole::Responder)
+        if (role == NoiseRole::Responder)
         {
             if (message.size() == 32)
             {
@@ -514,15 +514,15 @@ public:
         }
 
         // Initialize handshake state if needed (for responders)
-        if (!handshakeState_)
+        if (!handshakeState)
         {
             spdlog::info("=== CREATING NEW HANDSHAKE STATE ===");
-            spdlog::info("Role: {} (determined by message context)", role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
+            spdlog::info("Role: {} (determined by message context)", role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
             spdlog::info("Protocol: Noise_XX_25519_ChaChaPoly_SHA256");
-            spdlog::info("Noise role: {}", role_ == NoiseRole::Initiator ? "NOISE_ROLE_INITIATOR" : "NOISE_ROLE_RESPONDER");
+            spdlog::info("Noise role: {}", role == NoiseRole::Initiator ? "NOISE_ROLE_INITIATOR" : "NOISE_ROLE_RESPONDER");
 
-            int result = noise_handshakestate_new_by_name(&handshakeState_, "Noise_XX_25519_ChaChaPoly_SHA256",
-                                                          role_ == NoiseRole::Initiator ? NOISE_ROLE_INITIATOR : NOISE_ROLE_RESPONDER);
+            int result = noise_handshakestate_new_by_name(&handshakeState, "Noise_XX_25519_ChaChaPoly_SHA256",
+                                                          role == NoiseRole::Initiator ? NOISE_ROLE_INITIATOR : NOISE_ROLE_RESPONDER);
             if (result != NOISE_ERROR_NONE)
             {
                 char errorBuf[256];
@@ -531,20 +531,20 @@ public:
                 throw std::runtime_error("Failed to create handshake state");
             }
 
-            spdlog::info("Handshake state created for {}", role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
+            spdlog::info("Handshake state created for {}", role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
 
-            NoiseDHState *localDH = noise_handshakestate_get_local_keypair_dh(handshakeState_);
+            NoiseDHState *localDH = noise_handshakestate_get_local_keypair_dh(handshakeState);
             if (localDH)
             {
-                spdlog::info("Setting local static key for {}...", role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
-                spdlog::info("Local static key size: {} bytes", localStaticKey_.size());
+                spdlog::info("Setting local static key for {}...", role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
+                spdlog::info("Local static key size: {} bytes", localStaticKey.size());
 
                 // Log complete key for comparison
                 std::string keyHex;
-                for (size_t i = 0; i < localStaticKey_.size(); ++i)
+                for (size_t i = 0; i < localStaticKey.size(); ++i)
                 {
                     char hex[3];
-                    snprintf(hex, sizeof(hex), "%02x", localStaticKey_[i]);
+                    snprintf(hex, sizeof(hex), "%02x", localStaticKey[i]);
                     keyHex += hex;
                 }
                 spdlog::info("=== LOCAL STATIC KEY COMPARISON (PROCESS) ===");
@@ -552,7 +552,7 @@ public:
                 spdlog::info("Expected from Swift: [COMPARE WITH SWIFT LOG]");
                 spdlog::info("=== END KEY COMPARISON ===");
 
-                result = noise_dhstate_set_keypair_private(localDH, localStaticKey_.data(), localStaticKey_.size());
+                result = noise_dhstate_set_keypair_private(localDH, localStaticKey.data(), localStaticKey.size());
                 if (result != NOISE_ERROR_NONE)
                 {
                     char errorBuf[256];
@@ -560,7 +560,7 @@ public:
                     spdlog::error("Failed to set local static key: {} ({})", result, errorBuf);
                     throw std::runtime_error("Failed to set local static key");
                 }
-                spdlog::info("Local static key set successfully for {}", role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
+                spdlog::info("Local static key set successfully for {}", role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
 
                 // Verify the key was set correctly
                 size_t keyLen = noise_dhstate_get_private_key_length(localDH);
@@ -568,43 +568,43 @@ public:
             }
             else
             {
-                spdlog::error("No local DH state available for {}", role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
+                spdlog::error("No local DH state available for {}", role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
                 throw std::runtime_error("No local DH state available");
             }
 
             // Start the handshake
-            int action = noise_handshakestate_get_action(handshakeState_);
+            int action = noise_handshakestate_get_action(handshakeState);
             spdlog::info("{} handshake action before start: {} (0x{:x})",
-                         role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER", action, action);
+                         role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER", action, action);
 
             if (action == NOISE_ACTION_NONE)
             {
-                spdlog::info("Starting {} handshake...", role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
-                result = noise_handshakestate_start(handshakeState_);
+                spdlog::info("Starting {} handshake...", role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
+                result = noise_handshakestate_start(handshakeState);
                 if (result != NOISE_ERROR_NONE)
                 {
                     char errorBuf[256];
                     noise_strerror(result, errorBuf, sizeof(errorBuf));
                     spdlog::error("Failed to start {} handshake: {} ({})",
-                                  role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER", result, errorBuf);
+                                  role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER", result, errorBuf);
                     throw std::runtime_error("Failed to start handshake");
                 }
-                spdlog::info("{} handshake started successfully", role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
+                spdlog::info("{} handshake started successfully", role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
 
-                action = noise_handshakestate_get_action(handshakeState_);
+                action = noise_handshakestate_get_action(handshakeState);
                 spdlog::info("{} handshake action after start: {} (0x{:x})",
-                             role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER", action, action);
+                             role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER", action, action);
             }
             else
             {
                 spdlog::info("{} handshake already started, action: {} (0x{:x})",
-                             role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER", action, action);
+                             role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER", action, action);
             }
         }
         else
         {
             spdlog::info("Using existing handshake state");
-            int action = noise_handshakestate_get_action(handshakeState_);
+            int action = noise_handshakestate_get_action(handshakeState);
             spdlog::info("Current handshake action: {} (0x{:x})", action, action);
         }
 
@@ -669,12 +669,12 @@ public:
         }
 
         // Log symmetric state before reading (if available)
-        if (handshakeState_)
+        if (handshakeState)
         {
             // Get current hash state
             size_t hashLen = 32;
             std::vector<uint8_t> currentHash(hashLen);
-            int hashResult = noise_handshakestate_get_handshake_hash(handshakeState_, currentHash.data(), hashLen);
+            int hashResult = noise_handshakestate_get_handshake_hash(handshakeState, currentHash.data(), hashLen);
             if (hashResult == NOISE_ERROR_NONE)
             {
                 std::string hashHex;
@@ -717,7 +717,7 @@ public:
         }
 
         // Check if handshake state is ready for reading
-        int currentAction = noise_handshakestate_get_action(handshakeState_);
+        int currentAction = noise_handshakestate_get_action(handshakeState);
         spdlog::info("Handshake action before read: {} (0x{:x})", currentAction, currentAction);
         spdlog::info("Expected action for read: {} (0x{:x})", NOISE_ACTION_READ_MESSAGE, NOISE_ACTION_READ_MESSAGE);
 
@@ -729,7 +729,7 @@ public:
         }
 
         spdlog::info("Calling noise_handshakestate_read_message...");
-        spdlog::info("Handshake state: {}", (void *)handshakeState_);
+        spdlog::info("Handshake state: {}", (void *)handshakeState);
         spdlog::info("Message buffer: data={}, size={}, max_size={}",
                      (void *)messageBuffer.data, messageBuffer.size, messageBuffer.max_size);
         spdlog::info("Payload buffer: data={}, size={}, max_size={}",
@@ -739,11 +739,11 @@ public:
         spdlog::info("=== BEFORE STATIC KEY DECRYPTION ===");
 
         // Get current hash state before decryption
-        if (handshakeState_)
+        if (handshakeState)
         {
             size_t hashLen = 32;
             std::vector<uint8_t> currentHash(hashLen);
-            int hashResult = noise_handshakestate_get_handshake_hash(handshakeState_, currentHash.data(), hashLen);
+            int hashResult = noise_handshakestate_get_handshake_hash(handshakeState, currentHash.data(), hashLen);
             spdlog::info("noise_handshakestate_get_handshake_hash (before decryption) returned: {} (0x{:x})", hashResult, hashResult);
 
             if (hashResult == NOISE_ERROR_NONE)
@@ -793,7 +793,7 @@ public:
             spdlog::info("=== STATIC KEY DATA COMPARISON ===");
             spdlog::info("Static key data to decrypt (48 bytes): {}", staticKeyHex);
             spdlog::info("Expected from Swift: b27a49c908e0deafbd1f1a4e57b8f46c33b3f11cec59c5b6e3c985aa228116a4");
-            spdlog::info("Role: {}", role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
+            spdlog::info("Role: {}", role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
             spdlog::info("Message size: {} bytes", message.size());
 
             // Check if static key data matches Swift
@@ -814,7 +814,7 @@ public:
 
         spdlog::info("=== ATTEMPTING STATIC KEY DECRYPTION ===");
 
-        int result = noise_handshakestate_read_message(handshakeState_, &messageBuffer, &payloadBuffer);
+        int result = noise_handshakestate_read_message(handshakeState, &messageBuffer, &payloadBuffer);
         spdlog::info("noise_handshakestate_read_message returned: {} (0x{:x})", result, result);
 
         if (result != NOISE_ERROR_NONE)
@@ -835,15 +835,15 @@ public:
         spdlog::info("Handshake message read successfully");
 
         // Increment handshake step after successful read
-        handshakeStep_++;
-        spdlog::info("Handshake step incremented to: {} (after reading message)", handshakeStep_);
+        handshakeStep++;
+        spdlog::info("Handshake step incremented to: {} (after reading message)", handshakeStep);
 
         // Log symmetric state after reading
-        if (handshakeState_)
+        if (handshakeState)
         {
             size_t hashLen = 32;
             std::vector<uint8_t> currentHash(hashLen);
-            int hashResult = noise_handshakestate_get_handshake_hash(handshakeState_, currentHash.data(), hashLen);
+            int hashResult = noise_handshakestate_get_handshake_hash(handshakeState, currentHash.data(), hashLen);
             if (hashResult == NOISE_ERROR_NONE)
             {
                 std::string hashHex;
@@ -861,24 +861,24 @@ public:
         }
 
         // Check if handshake is complete
-        int readAction = noise_handshakestate_get_action(handshakeState_);
+        int readAction = noise_handshakestate_get_action(handshakeState);
         spdlog::info("Handshake action after read: {} (0x{:x})", readAction, readAction);
 
         if (readAction == NOISE_ACTION_SPLIT)
         {
             spdlog::info("=== HANDSHAKE COMPLETE ===");
-            spdlog::info("Role: {}", role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
+            spdlog::info("Role: {}", role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
             spdlog::info("Getting transport ciphers");
 
             // Handshake complete, get transport ciphers
-            result = noise_handshakestate_split(handshakeState_, &sendCipher_, &receiveCipher_);
+            result = noise_handshakestate_split(handshakeState, &sendCipher, &receiveCipher);
             if (result != NOISE_ERROR_NONE)
             {
                 throw std::runtime_error("Failed to split handshake");
             }
 
             // Get remote static key
-            NoiseDHState *remoteDH = noise_handshakestate_get_remote_public_key_dh(handshakeState_);
+            NoiseDHState *remoteDH = noise_handshakestate_get_remote_public_key_dh(handshakeState);
             if (remoteDH)
             {
                 size_t remoteKeyLen = noise_dhstate_get_public_key_length(remoteDH);
@@ -888,8 +888,8 @@ public:
                 result = noise_dhstate_get_public_key(remoteDH, remoteKeyData.data(), remoteKeyLen);
                 if (result == NOISE_ERROR_NONE)
                 {
-                    remoteStaticKey_.emplace();
-                    std::copy(remoteKeyData.begin(), remoteKeyData.end(), remoteStaticKey_->begin());
+                    remoteStaticKey.emplace();
+                    std::copy(remoteKeyData.begin(), remoteKeyData.end(), remoteStaticKey->begin());
 
                     // Log first few bytes of remote public key
                     std::string remoteKeyHex;
@@ -913,43 +913,43 @@ public:
 
             // Get handshake hash
             size_t hashLen = 32;
-            handshakeHash_.emplace(hashLen);
-            result = noise_handshakestate_get_handshake_hash(handshakeState_, handshakeHash_->data(), hashLen);
+            handshakeHash.emplace(hashLen);
+            result = noise_handshakestate_get_handshake_hash(handshakeState, handshakeHash->data(), hashLen);
             if (result != NOISE_ERROR_NONE)
             {
                 spdlog::error("Failed to get handshake hash: {}", result);
-                handshakeHash_.reset();
+                handshakeHash.reset();
             }
             else
             {
                 // Log first few bytes of handshake hash for debugging
                 std::string hashHex;
-                for (size_t i = 0; i < std::min(size_t(16), handshakeHash_->size()); ++i)
+                for (size_t i = 0; i < std::min(size_t(16), handshakeHash->size()); ++i)
                 {
                     char hex[3];
-                    snprintf(hex, sizeof(hex), "%02x", (*handshakeHash_)[i]);
+                    snprintf(hex, sizeof(hex), "%02x", (*handshakeHash)[i]);
                     hashHex += hex;
                 }
                 spdlog::info("Handshake hash (first 16 bytes): {}", hashHex);
             }
 
-            isEstablished_ = true;
+            sessionEstablished = true;
             spdlog::info("=== SESSION ESTABLISHED ===");
-            spdlog::info("Role: {}", role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
-            spdlog::info("Peer: {}", peerID_);
+            spdlog::info("Role: {}", role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
+            spdlog::info("Peer: {}", peerID);
             spdlog::info("Session is now ready for encrypted communication");
 
-            noise_handshakestate_free(handshakeState_);
-            handshakeState_ = nullptr;
+            noise_handshakestate_free(handshakeState);
+            handshakeState = nullptr;
 
             return std::nullopt;
         }
         else if (readAction == NOISE_ACTION_WRITE_MESSAGE)
         {
             spdlog::info("=== HANDSHAKE NEEDS RESPONSE ===");
-            spdlog::info("Role: {}", role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
+            spdlog::info("Role: {}", role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
 
-            if (role_ == NoiseRole::Responder)
+            if (role == NoiseRole::Responder)
             {
                 spdlog::info("Responder: generating 96-byte response to initiator");
                 spdlog::info("This should be the first response in the XX handshake");
@@ -968,16 +968,16 @@ public:
             // CRITICAL FIX: For initiator, establish session after writing final message
             // Check if this is the final message (handshake step 2 for initiator)
             spdlog::info("=== CHECKING INITIATOR SESSION ESTABLISHMENT ===");
-            spdlog::info("Role: {}", (role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER"));
-            spdlog::info("Handshake step: {}", handshakeStep_);
+            spdlog::info("Role: {}", (role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER"));
+            spdlog::info("Handshake step: {}", handshakeStep);
 
             // Get current handshake action from noise-c
-            int handshakeAction = noise_handshakestate_get_action(handshakeState_);
+            int handshakeAction = noise_handshakestate_get_action(handshakeState);
             spdlog::info("Handshake action after write: {} (0x{:x})", handshakeAction, handshakeAction);
-            spdlog::info("Condition check: role_ == Initiator && handshakeAction == 16644 (complete)");
-            spdlog::info("Result: {}", (role_ == NoiseRole::Initiator && handshakeAction == 16644));
+            spdlog::info("Condition check: role == Initiator && handshakeAction == 16644 (complete)");
+            spdlog::info("Result: {}", (role == NoiseRole::Initiator && handshakeAction == 16644));
 
-            if (role_ == NoiseRole::Initiator && handshakeAction == 16644)
+            if (role == NoiseRole::Initiator && handshakeAction == 16644)
             {
                 spdlog::info("=== INITIATOR SESSION ESTABLISHMENT ===");
                 spdlog::info("Initiator completed handshake by sending final message");
@@ -985,7 +985,7 @@ public:
 
                 // CRITICAL FIX: Get transport ciphers for initiator
                 spdlog::info("Getting transport ciphers for initiator");
-                int result = noise_handshakestate_split(handshakeState_, &sendCipher_, &receiveCipher_);
+                int result = noise_handshakestate_split(handshakeState, &sendCipher, &receiveCipher);
                 if (result != NOISE_ERROR_NONE)
                 {
                     spdlog::error("Failed to split handshake for initiator: {}", result);
@@ -993,7 +993,7 @@ public:
                 }
 
                 // Get remote static key
-                NoiseDHState *remoteDH = noise_handshakestate_get_remote_public_key_dh(handshakeState_);
+                NoiseDHState *remoteDH = noise_handshakestate_get_remote_public_key_dh(handshakeState);
                 if (remoteDH)
                 {
                     size_t remoteKeyLen = noise_dhstate_get_public_key_length(remoteDH);
@@ -1003,8 +1003,8 @@ public:
                     result = noise_dhstate_get_public_key(remoteDH, remoteKeyData.data(), remoteKeyLen);
                     if (result == NOISE_ERROR_NONE)
                     {
-                        remoteStaticKey_.emplace();
-                        std::copy(remoteKeyData.begin(), remoteKeyData.end(), remoteStaticKey_->begin());
+                        remoteStaticKey.emplace();
+                        std::copy(remoteKeyData.begin(), remoteKeyData.end(), remoteStaticKey->begin());
 
                         // Log first few bytes of remote public key
                         std::string remoteKeyHex;
@@ -1028,33 +1028,33 @@ public:
 
                 // Get handshake hash
                 size_t hashLen = 32;
-                handshakeHash_ = std::vector<uint8_t>(hashLen);
-                result = noise_handshakestate_get_handshake_hash(handshakeState_, handshakeHash_->data(), hashLen);
+                handshakeHash = std::vector<uint8_t>(hashLen);
+                result = noise_handshakestate_get_handshake_hash(handshakeState, handshakeHash->data(), hashLen);
                 if (result != NOISE_ERROR_NONE)
                 {
                     spdlog::error("Failed to get handshake hash: {}", result);
-                    handshakeHash_.reset();
+                    handshakeHash.reset();
                 }
                 else
                 {
                     std::string hashHex;
-                    for (size_t i = 0; i < std::min(size_t(16), handshakeHash_->size()); ++i)
+                    for (size_t i = 0; i < std::min(size_t(16), handshakeHash->size()); ++i)
                     {
                         char hex[3];
-                        snprintf(hex, sizeof(hex), "%02x", (*handshakeHash_)[i]);
+                        snprintf(hex, sizeof(hex), "%02x", (*handshakeHash)[i]);
                         hashHex += hex;
                     }
                     spdlog::info("Handshake hash (first 16 bytes): {}", hashHex);
                 }
 
-                isEstablished_ = true;
+                sessionEstablished = true;
                 spdlog::info("=== SESSION ESTABLISHED ===");
                 spdlog::info("Role: INITIATOR");
-                spdlog::info("Peer: {}", peerID_);
+                spdlog::info("Peer: {}", peerID);
                 spdlog::info("Session is now ready for encrypted communication");
 
-                noise_handshakestate_free(handshakeState_);
-                handshakeState_ = nullptr;
+                noise_handshakestate_free(handshakeState);
+                handshakeState = nullptr;
             }
 
             spdlog::info("Returning response for transmission");
@@ -1073,7 +1073,7 @@ private:
         spdlog::info("=== WRITING HANDSHAKE MESSAGE ===");
 
         // Validate handshake state
-        if (!handshakeState_)
+        if (!handshakeState)
         {
             spdlog::error("Handshake state is null");
             throw std::runtime_error("Handshake state is null");
@@ -1082,7 +1082,7 @@ private:
         // Log symmetric state before writing
         size_t hashLen = 32;
         std::vector<uint8_t> currentHash(hashLen);
-        int hashResult = noise_handshakestate_get_handshake_hash(handshakeState_, currentHash.data(), hashLen);
+        int hashResult = noise_handshakestate_get_handshake_hash(handshakeState, currentHash.data(), hashLen);
         if (hashResult == NOISE_ERROR_NONE)
         {
             std::string hashHex;
@@ -1096,7 +1096,7 @@ private:
         }
 
         // Check if we're in the right state to write
-        int action = noise_handshakestate_get_action(handshakeState_);
+        int action = noise_handshakestate_get_action(handshakeState);
         spdlog::info("Current handshake action: {} (0x{:x})", action, action);
         spdlog::info("Expected action: {} (0x{:x})", NOISE_ACTION_WRITE_MESSAGE, NOISE_ACTION_WRITE_MESSAGE);
 
@@ -1109,11 +1109,11 @@ private:
 
         // Debug handshake state before writing
         spdlog::info("=== HANDSHAKE STATE DEBUG ===");
-        spdlog::info("Role: {}", role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
+        spdlog::info("Role: {}", role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
         spdlog::info("Protocol: Noise_XX_25519_ChaChaPoly_SHA256");
 
         // Get current hash to understand handshake progress (reuse existing variables)
-        hashResult = noise_handshakestate_get_handshake_hash(handshakeState_, currentHash.data(), hashLen);
+        hashResult = noise_handshakestate_get_handshake_hash(handshakeState, currentHash.data(), hashLen);
         if (hashResult == NOISE_ERROR_NONE)
         {
             std::string hashHex;
@@ -1128,36 +1128,36 @@ private:
 
         // Check handshake step and expected message size
         spdlog::info("=== HANDSHAKE STEP ANALYSIS ===");
-        spdlog::info("Current handshake step: {}", handshakeStep_);
+        spdlog::info("Current handshake step: {}", handshakeStep);
 
-        if (role_ == NoiseRole::Initiator)
+        if (role == NoiseRole::Initiator)
         {
-            if (handshakeStep_ == 0)
+            if (handshakeStep == 0)
             {
                 spdlog::info("Initiator: This is the FIRST message (32 bytes)");
                 spdlog::info("Initiator: Expected: 32 bytes (ephemeral key)");
             }
-            else if (handshakeStep_ == 2)
+            else if (handshakeStep == 2)
             {
                 spdlog::info("Initiator: This is the FINAL message (48 bytes)");
                 spdlog::info("Initiator: Expected: 48 bytes (static key + payload)");
             }
             else
             {
-                spdlog::error("Initiator: Unexpected handshake step: {}", handshakeStep_);
+                spdlog::error("Initiator: Unexpected handshake step: {}", handshakeStep);
                 throw std::runtime_error("Unexpected handshake step for initiator");
             }
         }
-        else if (role_ == NoiseRole::Responder)
+        else if (role == NoiseRole::Responder)
         {
-            if (handshakeStep_ == 1)
+            if (handshakeStep == 1)
             {
                 spdlog::info("Responder: This is the RESPONSE message (96 bytes)");
                 spdlog::info("Responder: Expected: 96 bytes (ephemeral + encrypted static + tag)");
             }
             else
             {
-                spdlog::error("Responder: Unexpected handshake step: {}", handshakeStep_);
+                spdlog::error("Responder: Unexpected handshake step: {}", handshakeStep);
                 throw std::runtime_error("Unexpected handshake step for responder");
             }
         }
@@ -1190,10 +1190,10 @@ private:
         spdlog::info("Validating parameters before write_message...");
 
         // Check handshake state
-        if (!handshakeState_)
+        if (!handshakeState)
         {
-            spdlog::error("handshakeState_ is null");
-            throw std::runtime_error("handshakeState_ is null");
+            spdlog::error("handshakeState is null");
+            throw std::runtime_error("handshakeState is null");
         }
 
         // Check message buffer
@@ -1216,7 +1216,7 @@ private:
 
         // CRITICAL FIX: Force set local static key before write_message
         spdlog::info("=== FORCE SET LOCAL STATIC KEY ===");
-        NoiseDHState *localDH = noise_handshakestate_get_local_keypair_dh(handshakeState_);
+        NoiseDHState *localDH = noise_handshakestate_get_local_keypair_dh(handshakeState);
         if (!localDH)
         {
             spdlog::error("No local DH state available for write");
@@ -1224,19 +1224,19 @@ private:
         }
 
         spdlog::info("Setting local static key before write_message...");
-        spdlog::info("Local static key size: {} bytes", localStaticKey_.size());
+        spdlog::info("Local static key size: {} bytes", localStaticKey.size());
 
         // Log first few bytes of the key being set
         std::string keyHex;
-        for (size_t i = 0; i < std::min(size_t(8), localStaticKey_.size()); ++i)
+        for (size_t i = 0; i < std::min(size_t(8), localStaticKey.size()); ++i)
         {
             char hex[3];
-            snprintf(hex, sizeof(hex), "%02x", localStaticKey_[i]);
+            snprintf(hex, sizeof(hex), "%02x", localStaticKey[i]);
             keyHex += hex;
         }
         spdlog::info("Local static key (first 8 bytes): {}", keyHex);
 
-        int keyResult = noise_dhstate_set_keypair_private(localDH, localStaticKey_.data(), localStaticKey_.size());
+        int keyResult = noise_dhstate_set_keypair_private(localDH, localStaticKey.data(), localStaticKey.size());
         spdlog::info("noise_dhstate_set_keypair_private returned: {} (0x{:x})", keyResult, keyResult);
 
         if (keyResult != NOISE_ERROR_NONE)
@@ -1253,7 +1253,7 @@ private:
         spdlog::info("✓ Message buffer: size=0, max_size=1024 (correct for output)");
         spdlog::info("✓ No payload buffer (testing if nullptr causes AEAD tag)");
         // CRITICAL: Pass nullptr for payload buffer to test if this causes AEAD tag
-        int result = noise_handshakestate_write_message(handshakeState_, &messageBuffer, nullptr);
+        int result = noise_handshakestate_write_message(handshakeState, &messageBuffer, nullptr);
         spdlog::info("noise_handshakestate_write_message returned: {} (0x{:x})", result, result);
 
         if (result != NOISE_ERROR_NONE)
@@ -1269,11 +1269,11 @@ private:
         spdlog::info("=== BUFFER SIZE DEBUG ===");
         spdlog::info("After write_message: messageBuffer.size={}, messageBuffer.max_size={}",
                      messageBuffer.size, messageBuffer.max_size);
-        spdlog::info("Role: {}", role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
+        spdlog::info("Role: {}", role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
 
-        if (role_ == NoiseRole::Initiator)
+        if (role == NoiseRole::Initiator)
         {
-            if (handshakeStep_ == 0)
+            if (handshakeStep == 0)
             {
                 spdlog::info("Initiator expected: 32 bytes (first XX message)");
                 if (messageBuffer.size != 32)
@@ -1294,7 +1294,7 @@ private:
                     spdlog::info("=== END BUFFER CONTENT DEBUG ===");
                 }
             }
-            else if (handshakeStep_ == 2)
+            else if (handshakeStep == 2)
             {
                 spdlog::info("Initiator expected: 64 bytes (final XX message with 32-byte AEAD tag)");
                 if (messageBuffer.size != 64)
@@ -1316,7 +1316,7 @@ private:
                 }
             }
         }
-        else if (role_ == NoiseRole::Responder)
+        else if (role == NoiseRole::Responder)
         {
             spdlog::info("Responder expected: 96 bytes (XX response message)");
             if (messageBuffer.size != 96)
@@ -1364,9 +1364,9 @@ private:
 
         // Validate message size based on role and handshake step
         bool sizeValid = false;
-        if (role_ == NoiseRole::Initiator)
+        if (role == NoiseRole::Initiator)
         {
-            if (handshakeStep_ == 0)
+            if (handshakeStep == 0)
             {
                 // Initiator first message should be 32 bytes
                 sizeValid = (message.size() == 32);
@@ -1376,7 +1376,7 @@ private:
                     spdlog::warn("This might indicate a noise-c configuration issue");
                 }
             }
-            else if (handshakeStep_ == 2)
+            else if (handshakeStep == 2)
             {
                 // Initiator final message should be 48 bytes
                 sizeValid = (message.size() == 48);
@@ -1387,9 +1387,9 @@ private:
                 }
             }
         }
-        else if (role_ == NoiseRole::Responder)
+        else if (role == NoiseRole::Responder)
         {
-            if (handshakeStep_ == 1)
+            if (handshakeStep == 1)
             {
                 // Responder response should be 96 bytes
                 sizeValid = (message.size() == 96);
@@ -1411,7 +1411,7 @@ private:
         }
 
         // Log symmetric state after writing
-        hashResult = noise_handshakestate_get_handshake_hash(handshakeState_, currentHash.data(), hashLen);
+        hashResult = noise_handshakestate_get_handshake_hash(handshakeState, currentHash.data(), hashLen);
         if (hashResult == NOISE_ERROR_NONE)
         {
             std::string hashHex;
@@ -1424,7 +1424,7 @@ private:
             spdlog::info("Symmetric state hash after write (first 16 bytes): {}", hashHex);
         }
 
-        if (role_ == NoiseRole::Responder)
+        if (role == NoiseRole::Responder)
         {
             spdlog::info("Responder: expected 96 bytes, got {} bytes", message.size());
             if (message.size() != 96)
@@ -1432,7 +1432,7 @@ private:
                 spdlog::warn("Responder generated message of {} bytes, expected 96 bytes", message.size());
             }
         }
-        else if (role_ == NoiseRole::Initiator)
+        else if (role == NoiseRole::Initiator)
         {
             spdlog::info("Initiator: expected 48 bytes, got {} bytes", message.size());
             if (message.size() != 48)
@@ -1452,11 +1452,11 @@ private:
         spdlog::info("=== OUTGOING MESSAGE COMPARISON ===");
         spdlog::info("Handshake message ({} bytes): {}", message.size(), messageHex);
         spdlog::info("Expected from Swift: [COMPARE WITH SWIFT LOG]");
-        spdlog::info("Role: {}", role_ == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
+        spdlog::info("Role: {}", role == NoiseRole::Initiator ? "INITIATOR" : "RESPONDER");
         spdlog::info("=== END MESSAGE COMPARISON ===");
 
         // Check if handshake is complete after writing
-        int writeAction = noise_handshakestate_get_action(handshakeState_);
+        int writeAction = noise_handshakestate_get_action(handshakeState);
         spdlog::info("Handshake action after write: {} (0x{:x})", writeAction, writeAction);
 
         if (writeAction == NOISE_ACTION_SPLIT)
@@ -1468,15 +1468,15 @@ private:
         spdlog::info("Returning message with size: {} bytes", message.size());
 
         // Final verification based on handshake step
-        if (role_ == NoiseRole::Initiator)
+        if (role == NoiseRole::Initiator)
         {
-            if (handshakeStep_ == 0 && message.size() != 32)
+            if (handshakeStep == 0 && message.size() != 32)
             {
                 spdlog::error("FINAL VERIFICATION FAILED: Initiator first message returning {} bytes, expected 32 bytes", message.size());
                 spdlog::error("This will cause handshake failure - the responder will reject this message");
                 spdlog::error("The issue is that noise-c is writing {} bytes instead of 32", message.size());
             }
-            else if (handshakeStep_ == 2 && message.size() != 64)
+            else if (handshakeStep == 2 && message.size() != 64)
             {
                 spdlog::error("FINAL VERIFICATION FAILED: Initiator final message returning {} bytes, expected 64 bytes", message.size());
                 spdlog::error("This will cause handshake failure - the responder will reject this message");
@@ -1505,7 +1505,7 @@ private:
                 spdlog::info("Extra bytes ({}): {}", message.size() - 48, extraHex);
             }
         }
-        else if (role_ == NoiseRole::Responder && message.size() != 96)
+        else if (role == NoiseRole::Responder && message.size() != 96)
         {
             spdlog::error("FINAL VERIFICATION FAILED: Responder returning {} bytes, expected 96 bytes", message.size());
         }
@@ -1517,8 +1517,8 @@ private:
         spdlog::info("=== END FINAL MESSAGE VERIFICATION ===");
 
         // Increment handshake step
-        handshakeStep_++;
-        spdlog::info("Handshake step incremented to: {}", handshakeStep_);
+        handshakeStep++;
+        spdlog::info("Handshake step incremented to: {}", handshakeStep);
 
         spdlog::info("=== HANDSHAKE MESSAGE WRITTEN ===");
         return message;
@@ -1528,10 +1528,10 @@ private:
 // MARK: - NoiseSessionManager Implementation
 
 NoiseSessionManager::NoiseSessionManager(const PrivateKey &localStaticKey)
-    : localStaticKey_(localStaticKey)
+    : localStaticKey(localStaticKey)
 {
     spdlog::info("=== NOISE SESSION MANAGER CONSTRUCTOR ===");
-    spdlog::info("Local static key size: {}", localStaticKey_.size());
+    spdlog::info("Local static key size: {}", localStaticKey.size());
 
     // Test noise-c functionality
     spdlog::info("Testing noise-c functionality...");
@@ -1596,19 +1596,19 @@ NoiseSessionManager::NoiseSessionManager(const PrivateKey &localStaticKey)
 
 std::shared_ptr<NoiseSession> NoiseSessionManager::createSession(const std::string &peerID, NoiseRole role)
 {
-    std::lock_guard<std::mutex> lock(sessionsMutex_);
+    std::lock_guard<std::mutex> lock(sessionsMutex);
 
-    auto session = std::make_shared<NoiseSessionImpl>(peerID, role, localStaticKey_);
-    sessions_[peerID] = session;
+    auto session = std::make_shared<NoiseSessionImpl>(peerID, role, localStaticKey);
+    sessions[peerID] = session;
     return session;
 }
 
 std::shared_ptr<NoiseSession> NoiseSessionManager::getSession(const std::string &peerID) const
 {
-    std::lock_guard<std::mutex> lock(sessionsMutex_);
+    std::lock_guard<std::mutex> lock(sessionsMutex);
 
-    auto it = sessions_.find(peerID);
-    if (it != sessions_.end())
+    auto it = sessions.find(peerID);
+    if (it != sessions.end())
     {
         return it->second;
     }
@@ -1617,18 +1617,18 @@ std::shared_ptr<NoiseSession> NoiseSessionManager::getSession(const std::string 
 
 void NoiseSessionManager::removeSession(const std::string &peerID)
 {
-    std::lock_guard<std::mutex> lock(sessionsMutex_);
-    sessions_.erase(peerID);
+    std::lock_guard<std::mutex> lock(sessionsMutex);
+    sessions.erase(peerID);
 }
 
 std::unordered_map<std::string, std::shared_ptr<NoiseSession>> NoiseSessionManager::getEstablishedSessions() const
 {
-    std::lock_guard<std::mutex> lock(sessionsMutex_);
+    std::lock_guard<std::mutex> lock(sessionsMutex);
 
     std::unordered_map<std::string, std::shared_ptr<NoiseSession>> established;
-    for (const auto &[peerID, session] : sessions_)
+    for (const auto &[peerID, session] : sessions)
     {
-        if (session->isEstablished())
+        if (session->isSessionEstablished())
         {
             established[peerID] = session;
         }
@@ -1638,30 +1638,30 @@ std::unordered_map<std::string, std::shared_ptr<NoiseSession>> NoiseSessionManag
 
 std::vector<uint8_t> NoiseSessionManager::initiateHandshake(const std::string &remotePeerID)
 {
-    std::lock_guard<std::mutex> lock(sessionsMutex_);
+    std::lock_guard<std::mutex> lock(sessionsMutex);
 
     spdlog::info("=== INITIATING HANDSHAKE ===");
     spdlog::info("Remote Peer ID: {}", remotePeerID);
 
     // Check if we already have an established session
-    auto it = sessions_.find(remotePeerID);
-    if (it != sessions_.end() && it->second->isEstablished())
+    auto it = sessions.find(remotePeerID);
+    if (it != sessions.end() && it->second->isSessionEstablished())
     {
         spdlog::warn("Session already established with {}", remotePeerID);
         throw std::runtime_error("Session already established");
     }
 
     // Remove any existing session (we're starting fresh)
-    if (it != sessions_.end())
+    if (it != sessions.end())
     {
         spdlog::info("Removing existing session for {}", remotePeerID);
-        sessions_.erase(it);
+        sessions.erase(it);
     }
 
     // Create new session with Initiator role (we're initiating)
     spdlog::info("Creating new initiator session for {}", remotePeerID);
-    auto session = std::make_shared<NoiseSessionImpl>(remotePeerID, NoiseRole::Initiator, localStaticKey_);
-    sessions_[remotePeerID] = session;
+    auto session = std::make_shared<NoiseSessionImpl>(remotePeerID, NoiseRole::Initiator, localStaticKey);
+    sessions[remotePeerID] = session;
 
     try
     {
@@ -1675,7 +1675,7 @@ std::vector<uint8_t> NoiseSessionManager::initiateHandshake(const std::string &r
     {
         // Clean up failed session
         spdlog::error("Handshake initiation failed for {}: {}", remotePeerID, e.what());
-        sessions_.erase(remotePeerID);
+        sessions.erase(remotePeerID);
         throw;
     }
 }
@@ -1685,7 +1685,7 @@ std::optional<std::vector<uint8_t>> NoiseSessionManager::handleIncomingHandshake
     const std::vector<uint8_t> &message,
     const std::string &localPeerID)
 {
-    std::lock_guard<std::mutex> lock(sessionsMutex_);
+    std::lock_guard<std::mutex> lock(sessionsMutex);
     spdlog::info("HandleIncomingHandshake: local='{}', remote='{}'", localPeerID, remotePeerID);
 
     // Always define role by PeerID, never by message size
@@ -1702,23 +1702,23 @@ std::optional<std::vector<uint8_t>> NoiseSessionManager::handleIncomingHandshake
     bool forceReset = (message.size() == 32);
     spdlog::info("Message size: {} bytes, forceReset: {}", message.size(), forceReset);
 
-    auto it = sessions_.find(remotePeerID);
-    if (it != sessions_.end())
+    auto it = sessions.find(remotePeerID);
+    if (it != sessions.end())
     {
-        auto session = std::static_pointer_cast<NoiseSessionImpl>(it->second);
+        auto session = it->second;
 
         // Any INIT: always reset!
         if (forceReset)
         {
             spdlog::info("Forcing session reset on new handshake INIT from {}", remotePeerID);
-            sessions_.erase(it);
+            sessions.erase(it);
         }
-        else if (session->isEstablished())
+        else if (session->isSessionEstablished())
         {
             if (session->needsRenegotiation())
             {
                 spdlog::info("Established session needs rekey for {}", remotePeerID);
-                sessions_.erase(it);
+                sessions.erase(it);
             }
             else
             {
@@ -1729,27 +1729,27 @@ std::optional<std::vector<uint8_t>> NoiseSessionManager::handleIncomingHandshake
     }
 
     // Create new session if doesn't exist (always creates on handshake INIT due to reset above)
-    auto &session = sessions_[remotePeerID];
+    auto &session = sessions[remotePeerID];
     if (!session)
     {
         spdlog::info("Creating new session for {} with role {}", remotePeerID,
                      (role == NoiseRole::Initiator ? "Initiator" : "Responder"));
-        session = std::make_shared<NoiseSessionImpl>(remotePeerID, role, localStaticKey_);
+        session = std::make_shared<NoiseSessionImpl>(remotePeerID, role, localStaticKey);
     }
 
     // Process handshake
     try
     {
-        auto response = std::static_pointer_cast<NoiseSessionImpl>(session)->processHandshakeMessage(message);
+        auto response = session->processHandshakeMessage(message);
 
         // Debug session establishment
         spdlog::info("=== SESSION ESTABLISHMENT DEBUG ===");
         spdlog::info("Session exists: {}", (session != nullptr));
-        spdlog::info("Session isEstablished: {}", session->isEstablished());
+        spdlog::info("Session isEstablished: {}", session->isSessionEstablished());
         spdlog::info("Session peerID: {}", session->getPeerID());
         spdlog::info("=== END SESSION ESTABLISHMENT DEBUG ===");
 
-        if (session->isEstablished() && onSessionEstablished_)
+        if (session->isSessionEstablished() && onSessionEstablished_)
         {
             auto remoteKey = session->getRemoteStaticPublicKey();
             if (remoteKey)
@@ -1760,7 +1760,7 @@ std::optional<std::vector<uint8_t>> NoiseSessionManager::handleIncomingHandshake
     catch (const std::exception &e)
     {
         spdlog::error("Handshake failed for {}: {}", remotePeerID, e.what());
-        sessions_.erase(remotePeerID);
+        sessions.erase(remotePeerID);
         if (onSessionFailed_)
             onSessionFailed_(remotePeerID, e);
         throw;
@@ -1791,10 +1791,10 @@ std::vector<uint8_t> NoiseSessionManager::decrypt(const std::vector<uint8_t> &ci
 
 bool NoiseSessionManager::isSessionEstablished(const std::string &peerID) const
 {
-    std::lock_guard<std::mutex> lock(sessionsMutex_);
+    std::lock_guard<std::mutex> lock(sessionsMutex);
 
-    auto it = sessions_.find(peerID);
-    return it != sessions_.end() && it->second->isEstablished();
+    auto it = sessions.find(peerID);
+    return it != sessions.end() && it->second->isSessionEstablished();
 }
 
 bool NoiseSessionManager::hasEstablishedSession(const std::string &peerID) const
@@ -1804,12 +1804,12 @@ bool NoiseSessionManager::hasEstablishedSession(const std::string &peerID) const
 
 std::vector<std::string> NoiseSessionManager::getEstablishedSessionIDs() const
 {
-    std::lock_guard<std::mutex> lock(sessionsMutex_);
+    std::lock_guard<std::mutex> lock(sessionsMutex);
 
     std::vector<std::string> established;
-    for (const auto &[peerID, session] : sessions_)
+    for (const auto &[peerID, session] : sessions)
     {
-        if (session->isEstablished())
+        if (session->isSessionEstablished())
         {
             established.push_back(peerID);
         }
@@ -1841,12 +1841,12 @@ std::optional<std::vector<uint8_t>> NoiseSessionManager::getHandshakeHash(const 
 
 std::vector<std::pair<std::string, bool>> NoiseSessionManager::getSessionsNeedingRekey() const
 {
-    std::lock_guard<std::mutex> lock(sessionsMutex_);
+    std::lock_guard<std::mutex> lock(sessionsMutex);
 
     std::vector<std::pair<std::string, bool>> needingRekey;
-    for (const auto &[peerID, session] : sessions_)
+    for (const auto &[peerID, session] : sessions)
     {
-        if (session->isEstablished())
+        if (session->isSessionEstablished())
         {
             bool needsRekey = session->needsRenegotiation();
             needingRekey.emplace_back(peerID, needsRekey);

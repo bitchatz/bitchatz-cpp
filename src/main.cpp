@@ -27,12 +27,12 @@ void onMessageReceived(const BitchatMessage &message)
     ChatHelper::show("[{}] {}: {}", timebuf, message.getSender(), message.getContent());
 }
 
-void onPeerJoined(const std::string & /*peerId*/, const std::string &nickname)
+void onPeerJoined(const std::string & /*peerID*/, const std::string &nickname)
 {
     ChatHelper::info("*** {} joined ***", nickname);
 }
 
-void onPeerLeft(const std::string & /*peerId*/, const std::string &nickname)
+void onPeerLeft(const std::string & /*peerID*/, const std::string &nickname)
 {
     ChatHelper::info("*** {} left ***", nickname);
 }
@@ -53,7 +53,7 @@ void showOnlinePeers()
     time_t now = time(nullptr);
     bool found = false;
 
-    for (const auto &[peerId, peer] : peers)
+    for (const auto &[peerID, peer] : peers)
     {
         // Show all peers that have been seen recently (within 3 minutes)
         if ((now - peer.getLastSeen()) < 180)
@@ -61,7 +61,7 @@ void showOnlinePeers()
             std::string peerInfo = "- " + peer.getNickname();
 
             // Check if this is us (by comparing peer ID)
-            if (peerId == manager->getPeerId())
+            if (peerID == manager->getPeerID())
             {
                 peerInfo += " (you)";
             }
@@ -176,7 +176,7 @@ int main()
     ChatHelper::initialize();
 
     ChatHelper::info("=== Bitchat Terminal Client ===");
-    ChatHelper::info("Peer ID: {}", manager->getPeerId());
+    ChatHelper::info("Peer ID: {}", manager->getPeerID());
     ChatHelper::info("Nickname: {}", manager->getNickname());
     ChatHelper::info("Connected! Type /help for commands.");
 
