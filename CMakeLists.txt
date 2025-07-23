@@ -28,14 +28,8 @@ include(cmake/functions.cmake)
 # Include noise-c configuration
 include(cmake/noise-c.cmake)
 
-# Library options
-set(BUILD_SHARED_LIBS OFF)
-set(BUILD_STATIC_LIBS ON)
-
-# LZ4 options
-set(LZ4_BUILD_CLI OFF)
-set(LZ4_BUILD_LEGACY_LZ4C OFF)
-set(LZ4_BUNDLED_MODE OFF)
+# Include lz4 configuration
+include(cmake/lz4.cmake)
 
 # Platform-specific settings
 if(APPLE)
@@ -60,13 +54,6 @@ CPMAddPackage(
     VERSION 1.15.3
 )
 
-CPMAddPackage(
-    NAME lz4
-    GITHUB_REPOSITORY lz4/lz4
-    VERSION 1.10.0
-    SOURCE_SUBDIR "build/cmake"
-)
-
 CPMAddPackage("gh:nlohmann/json@3.12.0")
 
 # Add Google Test only if tests are enabled
@@ -82,15 +69,17 @@ set(COMMON_LIBRARIES
     spdlog::spdlog
     nlohmann_json::nlohmann_json
     noise-c
+    lz4
     OpenSSL::SSL
     OpenSSL::Crypto
-    lz4_static
 )
 
 # Source files
 set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/src/bitchat/helpers/protocol_helper.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/helpers/chat_helper.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/helpers/string_helper.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/helpers/datetime_helper.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/protocol/packet.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/protocol/message_padding.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/protocol/packet_serializer.cpp

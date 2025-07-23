@@ -12,7 +12,7 @@
 namespace bitchat
 {
 
-// BitchatManager: main orchestrator that coordinates all components
+// BitchatManager: Main orchestrator that coordinates all components
 class BitchatManager
 {
 public:

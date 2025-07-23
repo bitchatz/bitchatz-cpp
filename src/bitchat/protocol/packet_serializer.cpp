@@ -1,7 +1,8 @@
 #include "bitchat/protocol/packet_serializer.h"
 #include "bitchat/compression/compression_manager.h"
 #include "bitchat/crypto/crypto_manager.h"
-#include "bitchat/helpers/protocol_helper.h"
+#include "bitchat/helpers/datetime_helper.h"
+#include "bitchat/helpers/string_helper.h"
 #include "bitchat/protocol/message_padding.h"
 #include <algorithm>
 #include <spdlog/spdlog.h>
@@ -21,6 +22,7 @@ std::vector<uint8_t> PacketSerializer::serializePacket(const BitchatPacket &pack
     bool isCompressed = false;
 
     CompressionManager compressionManager;
+
     if (compressionManager.shouldCompress(packet.getPayload()))
     {
         std::vector<uint8_t> compressedPayload = compressionManager.compressData(packet.getPayload());
@@ -163,8 +165,7 @@ BitchatPacket PacketSerializer::deserializePacket(const std::vector<uint8_t> &da
         uint16_t originalSize = readUint16(unpaddedData, offset);
 
         // Compressed payload
-        std::vector<uint8_t> compressedPayload(unpaddedData.begin() + offset,
-                                               unpaddedData.begin() + offset + packet.getPayloadLength() - 2);
+        std::vector<uint8_t> compressedPayload(unpaddedData.begin() + offset, unpaddedData.begin() + offset + packet.getPayloadLength() - 2);
         offset += packet.getPayloadLength() - 2;
 
         // Decompress
@@ -177,8 +178,7 @@ BitchatPacket PacketSerializer::deserializePacket(const std::vector<uint8_t> &da
         // Normal payload
         if (offset + packet.getPayloadLength() <= unpaddedData.size())
         {
-            std::vector<uint8_t> payload(unpaddedData.begin() + offset,
-                                         unpaddedData.begin() + offset + packet.getPayloadLength());
+            std::vector<uint8_t> payload(unpaddedData.begin() + offset, unpaddedData.begin() + offset + packet.getPayloadLength());
             packet.setPayload(payload);
             offset += packet.getPayloadLength();
         }
@@ -198,7 +198,7 @@ std::vector<uint8_t> PacketSerializer::makeMessagePayload(const BitchatMessage &
 {
     std::vector<uint8_t> data;
 
-    // Flags - calculate based on present fields
+    // Calculate flags based on present fields
     uint8_t flags = 0;
 
     if (message.isRelay())
@@ -247,55 +247,49 @@ std::vector<uint8_t> PacketSerializer::makeMessagePayload(const BitchatMessage &
     writeUint64(data, message.getTimestamp());
 
     // Message ID (variable length, max 255 bytes)
-    std::string id = message.getId().empty() ? ProtocolHelper::uuidv4() : message.getId();
+    std::string id = message.getId().empty() ? StringHelper::uuidv4() : message.getId();
     writeUint8(data, static_cast<uint8_t>(std::min(static_cast<size_t>(255), id.size())));
-    data.insert(data.end(), id.begin(),
-                id.begin() + std::min(static_cast<size_t>(255), id.size()));
+    data.insert(data.end(), id.begin(), id.begin() + std::min(static_cast<size_t>(255), id.size()));
 
     // Sender nickname (variable length, max 255 bytes)
     writeUint8(data, static_cast<uint8_t>(std::min(static_cast<size_t>(255), message.getSender().size())));
-    data.insert(data.end(), message.getSender().begin(),
-                message.getSender().begin() + std::min(static_cast<size_t>(255), message.getSender().size()));
+    data.insert(data.end(), message.getSender().begin(), message.getSender().begin() + std::min(static_cast<size_t>(255), message.getSender().size()));
 
     // Content length and content (2 bytes for length, max 65535)
     uint16_t contentLength = static_cast<uint16_t>(std::min(static_cast<size_t>(65535), message.getContent().size()));
     writeUint16(data, contentLength);
-    data.insert(data.end(), message.getContent().begin(),
-                message.getContent().begin() + contentLength);
+    data.insert(data.end(), message.getContent().begin(), message.getContent().begin() + contentLength);
 
     // Optional fields based on flags
     if (!message.getOriginalSender().empty())
     {
         writeUint8(data, static_cast<uint8_t>(std::min(static_cast<size_t>(255), message.getOriginalSender().size())));
-        data.insert(data.end(), message.getOriginalSender().begin(),
-                    message.getOriginalSender().begin() + std::min(static_cast<size_t>(255), message.getOriginalSender().size()));
+        data.insert(data.end(), message.getOriginalSender().begin(), message.getOriginalSender().begin() + std::min(static_cast<size_t>(255), message.getOriginalSender().size()));
     }
 
     if (!message.getRecipientNickname().empty())
     {
         writeUint8(data, static_cast<uint8_t>(std::min(static_cast<size_t>(255), message.getRecipientNickname().size())));
-        data.insert(data.end(), message.getRecipientNickname().begin(),
-                    message.getRecipientNickname().begin() + std::min(static_cast<size_t>(255), message.getRecipientNickname().size()));
+        data.insert(data.end(), message.getRecipientNickname().begin(), message.getRecipientNickname().begin() + std::min(static_cast<size_t>(255), message.getRecipientNickname().size()));
     }
 
     if (!message.getSenderPeerID().empty())
     {
         // Convert peer ID bytes to hex string for Swift compatibility
-        std::string peerIDHex = ProtocolHelper::toHexCompact(message.getSenderPeerID());
+        std::string peerIDHex = StringHelper::toHex(message.getSenderPeerID());
         writeUint8(data, static_cast<uint8_t>(std::min(static_cast<size_t>(255), peerIDHex.size())));
-        data.insert(data.end(), peerIDHex.begin(),
-                    peerIDHex.begin() + std::min(static_cast<size_t>(255), peerIDHex.size()));
+        data.insert(data.end(), peerIDHex.begin(), peerIDHex.begin() + std::min(static_cast<size_t>(255), peerIDHex.size()));
     }
 
     // Mentions array
     if (!message.getMentions().empty())
     {
         writeUint8(data, static_cast<uint8_t>(std::min(static_cast<size_t>(255), message.getMentions().size())));
+
         for (const auto &mention : message.getMentions())
         {
             writeUint8(data, static_cast<uint8_t>(std::min(static_cast<size_t>(255), mention.size())));
-            data.insert(data.end(), mention.begin(),
-                        mention.begin() + std::min(static_cast<size_t>(255), mention.size()));
+            data.insert(data.end(), mention.begin(), mention.begin() + std::min(static_cast<size_t>(255), mention.size()));
         }
     }
 
@@ -303,8 +297,7 @@ std::vector<uint8_t> PacketSerializer::makeMessagePayload(const BitchatMessage &
     if (!message.getChannel().empty())
     {
         writeUint8(data, static_cast<uint8_t>(std::min(static_cast<size_t>(255), message.getChannel().size())));
-        data.insert(data.end(), message.getChannel().begin(),
-                    message.getChannel().begin() + std::min(static_cast<size_t>(255), message.getChannel().size()));
+        data.insert(data.end(), message.getChannel().begin(), message.getChannel().begin() + std::min(static_cast<size_t>(255), message.getChannel().size()));
     }
 
     return data;
@@ -377,7 +370,9 @@ BitchatMessage PacketSerializer::parseMessagePayload(const std::vector<uint8_t> 
         // Store encrypted content as bytes
         std::vector<uint8_t> encryptedContent(payload.begin() + offset, payload.begin() + offset + contentLen);
         message.setEncryptedContent(encryptedContent);
-        message.setContent(""); // Empty placeholder
+
+        // Empty placeholder
+        message.setContent("");
     }
     else
     {
@@ -484,16 +479,13 @@ void PacketSerializer::parseAnnouncePayload(const std::vector<uint8_t> &payload,
     nickname = std::string(payload.begin(), payload.end());
 }
 
-BitchatPacket PacketSerializer::makePacket(uint8_t type, const std::vector<uint8_t> &payload,
-                                           bool hasRecipient, bool hasSignature, const std::string &senderID)
+BitchatPacket PacketSerializer::makePacket(uint8_t type, const std::vector<uint8_t> &payload, bool hasRecipient, bool hasSignature, const std::string &senderID)
 {
     BitchatPacket packet;
     packet.setType(type);
-    packet.setTimestamp(std::chrono::duration_cast<std::chrono::milliseconds>(
-                            std::chrono::system_clock::now().time_since_epoch())
-                            .count());
+    packet.setTimestamp(DateTimeHelper::getCurrentTimestamp());
 
-    // Convert string to UTF-8 bytes for Swift compatibility
+    // Convert string to UTF-8 bytes
     std::vector<uint8_t> currentSenderID(senderID.begin(), senderID.end());
     currentSenderID.resize(8, 0); // Pad to 8 bytes
     packet.setSenderID(currentSenderID);
@@ -514,16 +506,16 @@ BitchatPacket PacketSerializer::makePacket(uint8_t type, const std::vector<uint8
 
     packet.setFlags(flags);
 
-    // Recipient ID (broadcast = all 0xFF for Swift compatibility)
+    // Recipient ID (broadcast = all 0xFF)
     if (hasRecipient)
     {
-        packet.setRecipientID(std::vector<uint8_t>(8, 0xFF)); // Broadcast to all
+        // Broadcast to all
+        packet.setRecipientID(std::vector<uint8_t>(8, 0xFF));
     }
 
     return packet;
 }
 
-// Helper functions for serialization
 void PacketSerializer::writeUint64(std::vector<uint8_t> &data, uint64_t value)
 {
     for (int i = 7; i >= 0; --i)
@@ -543,7 +535,6 @@ void PacketSerializer::writeUint8(std::vector<uint8_t> &data, uint8_t value)
     data.push_back(value);
 }
 
-// Helper functions for deserialization
 uint64_t PacketSerializer::readUint64(const std::vector<uint8_t> &data, size_t &offset)
 {
     uint64_t value = 0;

@@ -1,5 +1,7 @@
 #include "bitchat/core/network_manager.h"
+#include "bitchat/helpers/datetime_helper.h"
 #include "bitchat/helpers/protocol_helper.h"
+#include "bitchat/helpers/string_helper.h"
 #include "bitchat/platform/bluetooth_interface.h"
 #include "bitchat/protocol/packet_serializer.h"
 #include <chrono>
@@ -29,11 +31,17 @@ bool NetworkManager::initialize(std::shared_ptr<BluetoothInterface> bluetooth)
     }
 
     // Set up Bluetooth callbacks
-    bluetoothInterface->setPacketReceivedCallback([this](const BitchatPacket &packet)
-                                                  { onPacketReceived(packet); });
+    // clang-format off
+    bluetoothInterface->setPacketReceivedCallback([this](const BitchatPacket &packet) {
+        onPacketReceived(packet);
+    });
+    // clang-format on
 
-    bluetoothInterface->setPeerDisconnectedCallback([this](const std::string &peerID)
-                                                    { onPeerDisconnected(peerID); });
+    // clang-format off
+    bluetoothInterface->setPeerDisconnectedCallback([this](const std::string &peerID) {
+        onPeerDisconnected(peerID);
+    });
+    // clang-format on
 
     spdlog::info("NetworkManager initialized");
     return true;
@@ -149,11 +157,13 @@ bool NetworkManager::isPeerOnline(const std::string &peerID) const
 std::optional<BitchatPeer> NetworkManager::getPeerInfo(const std::string &peerID) const
 {
     std::lock_guard<std::mutex> lock(peersMutex);
+
     auto it = onlinePeers.find(peerID);
     if (it != onlinePeers.end())
     {
         return it->second;
     }
+
     return std::nullopt;
 }
 
@@ -237,7 +247,7 @@ void NetworkManager::announceLoop()
             }
 
             announcePacket.setSenderID(senderID);
-            announcePacket.setTimestamp(ProtocolHelper::getCurrentTimestamp());
+            announcePacket.setTimestamp(DateTimeHelper::getCurrentTimestamp());
 
             // Send announce packet
             if (bluetoothInterface && bluetoothInterface->isReady())
@@ -315,13 +325,12 @@ void NetworkManager::processPacket(const BitchatPacket &packet)
     // Validate packet
     if (!packet.isValid())
     {
-        spdlog::warn("Received invalid packet from {}", ProtocolHelper::toHexCompact(packet.getSenderID()));
+        spdlog::warn("Received invalid packet from {}", StringHelper::toHex(packet.getSenderID()));
         return;
     }
 
     // Check if we've already processed this message
-    std::string messageID = ProtocolHelper::toHexCompact(packet.getSenderID()) + "_" +
-                            std::to_string(packet.getTimestamp());
+    std::string messageID = StringHelper::toHex(packet.getSenderID()) + "_" + std::to_string(packet.getTimestamp());
 
     if (wasMessageProcessed(messageID))
     {
@@ -337,42 +346,42 @@ void NetworkManager::processPacket(const BitchatPacket &packet)
         processAnnouncePacket(packet);
         break;
     case PKT_TYPE_MESSAGE:
-        spdlog::debug("Received MESSAGE packet from {}", ProtocolHelper::toHexCompact(packet.getSenderID()));
+        spdlog::debug("Received MESSAGE packet from {}", StringHelper::toHex(packet.getSenderID()));
         if (packetReceivedCallback)
         {
             packetReceivedCallback(packet);
         }
         break;
     case PKT_TYPE_LEAVE:
-        spdlog::debug("Received LEAVE packet from {}", ProtocolHelper::toHexCompact(packet.getSenderID()));
+        spdlog::debug("Received LEAVE packet from {}", StringHelper::toHex(packet.getSenderID()));
         if (packetReceivedCallback)
         {
             packetReceivedCallback(packet);
         }
         break;
     case PKT_TYPE_NOISE_HANDSHAKE_INIT:
-        spdlog::info("Received NOISE_HANDSHAKE_INIT from {} (payload size: {})", ProtocolHelper::toHexCompact(packet.getSenderID()), packet.getPayload().size());
+        spdlog::info("Received NOISE_HANDSHAKE_INIT from {} (payload size: {})", StringHelper::toHex(packet.getSenderID()), packet.getPayload().size());
         if (packetReceivedCallback)
         {
             packetReceivedCallback(packet);
         }
         break;
     case PKT_TYPE_NOISE_HANDSHAKE_RESP:
-        spdlog::info("Received NOISE_HANDSHAKE_RESP from {}", ProtocolHelper::toHexCompact(packet.getSenderID()));
+        spdlog::info("Received NOISE_HANDSHAKE_RESP from {}", StringHelper::toHex(packet.getSenderID()));
         if (packetReceivedCallback)
         {
             packetReceivedCallback(packet);
         }
         break;
     case PKT_TYPE_NOISE_ENCRYPTED:
-        spdlog::info("Received NOISE_ENCRYPTED from {}", ProtocolHelper::toHexCompact(packet.getSenderID()));
+        spdlog::info("Received NOISE_ENCRYPTED from {}", StringHelper::toHex(packet.getSenderID()));
         if (packetReceivedCallback)
         {
             packetReceivedCallback(packet);
         }
         break;
     case PKT_TYPE_NOISE_IDENTITY_ANNOUNCE:
-        spdlog::info("Received NOISE_IDENTITY_ANNOUNCE from {}", ProtocolHelper::toHexCompact(packet.getSenderID()));
+        spdlog::info("Received NOISE_IDENTITY_ANNOUNCE from {}", StringHelper::toHex(packet.getSenderID()));
         if (packetReceivedCallback)
         {
             packetReceivedCallback(packet);
@@ -397,7 +406,7 @@ void NetworkManager::relayPacket(const BitchatPacket &packet)
     relayPacket.setTTL(packet.getTTL() - 1);
 
     // Send to all connected peers except sender
-    std::string senderID = ProtocolHelper::toHexCompact(packet.getSenderID());
+    std::string senderID = StringHelper::toHex(packet.getSenderID());
 
     std::lock_guard<std::mutex> lock(peersMutex);
     for (const auto &[peerID, peer] : onlinePeers)
@@ -437,7 +446,7 @@ void NetworkManager::processAnnouncePacket(const BitchatPacket &packet)
         std::string nickname;
         serializer.parseAnnouncePayload(packet.getPayload(), nickname);
 
-        std::string peerID = ProtocolHelper::toHexCompact(packet.getSenderID());
+        std::string peerID = StringHelper::toHex(packet.getSenderID());
 
         {
             std::lock_guard<std::mutex> lock(peersMutex);

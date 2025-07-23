@@ -2,7 +2,9 @@
 #include "bitchat/compression/compression_manager.h"
 #include "bitchat/core/network_manager.h"
 #include "bitchat/crypto/crypto_manager.h"
+#include "bitchat/helpers/datetime_helper.h"
 #include "bitchat/helpers/protocol_helper.h"
+#include "bitchat/helpers/string_helper.h"
 #include "bitchat/noise/noise_session.h"
 #include "bitchat/protocol/packet_serializer.h"
 #include <algorithm>
@@ -12,15 +14,12 @@ namespace bitchat
 {
 
 MessageManager::MessageManager()
-    : currentChannel("") // No default channel - user must join one explicitly
+    : currentChannel("")
 {
-    nickname = ProtocolHelper::randomNickname();
+    nickname = StringHelper::randomNickname();
 }
 
-bool MessageManager::initialize(std::shared_ptr<NetworkManager> network,
-                                std::shared_ptr<CryptoManager> crypto,
-                                std::shared_ptr<CompressionManager> compression,
-                                std::shared_ptr<noise::NoiseSessionManager> noise)
+bool MessageManager::initialize(std::shared_ptr<NetworkManager> network, std::shared_ptr<CryptoManager> crypto, std::shared_ptr<CompressionManager> compression, std::shared_ptr<noise::NoiseSessionManager> noise)
 {
     networkManager = network;
     cryptoManager = crypto;
@@ -34,10 +33,14 @@ bool MessageManager::initialize(std::shared_ptr<NetworkManager> network,
     }
 
     // Set up network callbacks
-    networkManager->setPacketReceivedCallback([this](const BitchatPacket &packet)
-                                              { onPacketReceived(packet); });
+    // clang-format off
+    networkManager->setPacketReceivedCallback([this](const BitchatPacket &packet) {
+        onPacketReceived(packet);
+    });
+    // clang-format on
 
     spdlog::info("MessageManager initialized");
+
     return true;
 }
 
@@ -180,11 +183,13 @@ std::vector<BitchatMessage> MessageManager::getMessageHistory() const
 std::vector<BitchatMessage> MessageManager::getMessageHistory(const std::string &channel) const
 {
     std::lock_guard<std::mutex> lock(historyMutex);
+
     auto it = messageHistory.find(channel);
     if (it != messageHistory.end())
     {
         return it->second;
     }
+
     return {};
 }
 
@@ -260,8 +265,7 @@ void MessageManager::processMessagePacket(const BitchatPacket &packet)
         PacketSerializer serializer;
         BitchatMessage message = serializer.parseMessagePayload(packet.getPayload());
 
-        spdlog::debug("Processing message packet - ID: {}, Sender: {}, Content: {}, Channel: {}, Private: {}",
-                      message.getId(), message.getSender(), message.getContent(), message.getChannel(), message.isPrivate());
+        spdlog::debug("Processing message packet - ID: {}, Sender: {}, Content: {}, Channel: {}, Private: {}", message.getId(), message.getSender(), message.getContent(), message.getChannel(), message.isPrivate());
 
         // Check if we've already processed this message
         if (wasMessageProcessed(message.getId()))
@@ -270,8 +274,8 @@ void MessageManager::processMessagePacket(const BitchatPacket &packet)
             return;
         }
 
-        // IMPORTANT: Ignore messages from ourselves to prevent duplication
-        std::string senderID = ProtocolHelper::toHexCompact(packet.getSenderID());
+        // Ignore messages from ourselves to prevent duplication
+        std::string senderID = StringHelper::toHex(packet.getSenderID());
         std::string localPeerID = networkManager->getLocalPeerID();
         spdlog::debug("Message sender ID: {}, Local peer ID: {}", senderID, localPeerID);
 
@@ -304,8 +308,7 @@ void MessageManager::processMessagePacket(const BitchatPacket &packet)
         }
         else
         {
-            spdlog::debug("Message not for us - Channel: {} (current: {}), Private: {}, Recipient: {} (our nick: {})",
-                          message.getChannel(), currentChannel, message.isPrivate(), message.getRecipientNickname(), nickname);
+            spdlog::debug("Message not for us - Channel: {} (current: {}), Private: {}, Recipient: {} (our nick: {})", message.getChannel(), currentChannel, message.isPrivate(), message.getRecipientNickname(), nickname);
         }
 
         if (shouldAddToHistory)
@@ -342,7 +345,7 @@ void MessageManager::processChannelAnnouncePacket(const BitchatPacket &packet)
         bool joining;
         serializer.parseChannelAnnouncePayload(packet.getPayload(), channel, joining);
 
-        std::string peerID = ProtocolHelper::toHexCompact(packet.getSenderID());
+        std::string peerID = StringHelper::toHex(packet.getSenderID());
         auto peerInfo = networkManager->getPeerInfo(peerID);
 
         if (peerInfo)
@@ -351,8 +354,7 @@ void MessageManager::processChannelAnnouncePacket(const BitchatPacket &packet)
             networkManager->updatePeerInfo(peerID, *peerInfo);
         }
 
-        spdlog::debug("Processed channel announce: {} {} channel {}",
-                      peerID, joining ? "joined" : "left", channel);
+        spdlog::debug("Processed channel announce: {} {} channel {}", peerID, joining ? "joined" : "left", channel);
     }
     catch (const std::exception &e)
     {
@@ -422,6 +424,7 @@ BitchatPacket MessageManager::createMessagePacket(const BitchatMessage &message)
         {
             // Use the first established session for encryption
             auto firstPeerId = establishedSessionIDs[0];
+
             try
             {
                 auto encryptedPayload = noiseSessionManager->encrypt(payload, firstPeerId);
@@ -446,8 +449,8 @@ BitchatPacket MessageManager::createMessagePacket(const BitchatMessage &message)
     }
 
     BitchatPacket packet(packetType, payload);
-    packet.setSenderID(ProtocolHelper::stringToVector(networkManager->getLocalPeerID()));
-    packet.setTimestamp(ProtocolHelper::getCurrentTimestamp());
+    packet.setSenderID(StringHelper::stringToVector(networkManager->getLocalPeerID()));
+    packet.setTimestamp(DateTimeHelper::getCurrentTimestamp());
     packet.setCompressed(compressionManager && compressionManager->shouldCompress(payload));
 
     // Set recipient ID for channel messages (broadcast)
@@ -475,8 +478,8 @@ BitchatPacket MessageManager::createAnnouncePacket()
     std::vector<uint8_t> payload = serializer.makeAnnouncePayload(nickname);
 
     BitchatPacket packet(PKT_TYPE_ANNOUNCE, payload);
-    packet.setSenderID(ProtocolHelper::stringToVector(networkManager->getLocalPeerID()));
-    packet.setTimestamp(ProtocolHelper::getCurrentTimestamp());
+    packet.setSenderID(StringHelper::stringToVector(networkManager->getLocalPeerID()));
+    packet.setTimestamp(DateTimeHelper::getCurrentTimestamp());
 
     return packet;
 }
@@ -487,15 +490,14 @@ BitchatPacket MessageManager::createChannelAnnouncePacket(const std::string &cha
     std::vector<uint8_t> payload = serializer.makeChannelAnnouncePayload(channel, joining);
 
     BitchatPacket packet(PKT_TYPE_CHANNEL_ANNOUNCE, payload);
-    packet.setSenderID(ProtocolHelper::stringToVector(networkManager->getLocalPeerID()));
-    packet.setTimestamp(ProtocolHelper::getCurrentTimestamp());
+    packet.setTimestamp(DateTimeHelper::getCurrentTimestamp());
 
     return packet;
 }
 
 std::string MessageManager::generateMessageID() const
 {
-    return ProtocolHelper::uuidv4();
+    return StringHelper::uuidv4();
 }
 
 } // namespace bitchat
