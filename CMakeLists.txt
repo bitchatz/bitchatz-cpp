@@ -89,6 +89,8 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/src/bitchat/core/network_manager.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/core/message_manager.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/core/identity_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/runners/bluetooth_announce_runner.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/runners/cleanup_runner.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/noise/noise_protocol.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/noise/noise_session.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/identity/identity_models.cpp

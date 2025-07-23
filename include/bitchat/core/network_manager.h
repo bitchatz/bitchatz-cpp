@@ -14,11 +14,12 @@
 
 namespace bitchat
 {
-
 // Forward declarations
+class BluetoothAnnounceRunner;
+class CleanupRunner;
 class BluetoothInterface;
 
-// NetworkManager: manages network operations, peer discovery, and message routing
+// NetworkManager: Manages network operations, peer discovery, and message routing
 class NetworkManager
 {
 public:
@@ -79,6 +80,10 @@ public:
     // Set nickname for announce packets
     void setNickname(const std::string &nickname);
 
+    // Set runner instances
+    void setAnnounceRunner(std::shared_ptr<BluetoothAnnounceRunner> runner);
+    void setCleanupRunner(std::shared_ptr<CleanupRunner> runner);
+
 private:
     // Bluetooth interface
     std::shared_ptr<BluetoothInterface> bluetoothInterface;
@@ -89,10 +94,12 @@ private:
     std::string localPeerID;
     std::string nickname;
 
+    // Runners
+    std::shared_ptr<BluetoothAnnounceRunner> announceRunner;
+    std::shared_ptr<CleanupRunner> cleanupRunner;
+
     // Threading
     std::atomic<bool> shouldExit;
-    std::thread announceThread;
-    std::thread cleanupThread;
 
     // Mutexes
     mutable std::mutex peersMutex;
@@ -104,8 +111,6 @@ private:
     PeerDisconnectedCallback peerDisconnectedCallback;
 
     // Internal methods
-    void announceLoop();
-    void cleanupLoop();
     void onPeerConnected(const std::string &peerID, const std::string &nickname);
     void onPeerDisconnected(const std::string &peerID);
     void onPacketReceived(const BitchatPacket &packet);
@@ -116,9 +121,7 @@ private:
     void markMessageProcessed(const std::string &messageID);
 
     // Constants
-    static constexpr int ANNOUNCE_INTERVAL = 15; // seconds
-    static constexpr int CLEANUP_INTERVAL = 30;  // seconds
-    static constexpr int PEER_TIMEOUT = 180;     // seconds
+    static constexpr int PEER_TIMEOUT = 180; // seconds
 };
 
 } // namespace bitchat

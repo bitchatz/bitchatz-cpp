@@ -4,6 +4,8 @@
 #include "bitchat/helpers/string_helper.h"
 #include "bitchat/platform/bluetooth_interface.h"
 #include "bitchat/protocol/packet_serializer.h"
+#include "bitchat/runners/bluetooth_announce_runner.h"
+#include "bitchat/runners/cleanup_runner.h"
 #include <chrono>
 #include <spdlog/spdlog.h>
 
@@ -43,7 +45,14 @@ bool NetworkManager::initialize(std::shared_ptr<BluetoothInterface> bluetooth)
     });
     // clang-format on
 
+    // Initialize runners
+    if (announceRunner)
+    {
+        announceRunner->setBluetoothInterface(bluetoothInterface);
+    }
+
     spdlog::info("NetworkManager initialized");
+
     return true;
 }
 
@@ -58,6 +67,12 @@ void NetworkManager::setLocalPeerID(const std::string &peerID)
     // Set the local peer ID in the Bluetooth interface
     bluetoothInterface->setLocalPeerID(peerID);
     localPeerID = peerID;
+
+    // Set the peer ID in the announce runner
+    if (announceRunner)
+    {
+        announceRunner->setLocalPeerID(peerID);
+    }
 }
 
 bool NetworkManager::start()
@@ -82,9 +97,16 @@ bool NetworkManager::start()
 
     shouldExit = false;
 
-    // Start background threads
-    announceThread = std::thread(&NetworkManager::announceLoop, this);
-    cleanupThread = std::thread(&NetworkManager::cleanupLoop, this);
+    // Start runners
+    if (announceRunner)
+    {
+        announceRunner->start();
+    }
+
+    if (cleanupRunner)
+    {
+        cleanupRunner->start();
+    }
 
     spdlog::info("NetworkManager started");
 
@@ -95,14 +117,15 @@ void NetworkManager::stop()
 {
     shouldExit = true;
 
-    if (announceThread.joinable())
+    // Stop runners
+    if (announceRunner)
     {
-        announceThread.join();
+        announceRunner->stop();
     }
 
-    if (cleanupThread.joinable())
+    if (cleanupRunner)
     {
-        cleanupThread.join();
+        cleanupRunner->stop();
     }
 
     if (bluetoothInterface)
@@ -220,67 +243,22 @@ bool NetworkManager::isReady() const
 void NetworkManager::setNickname(const std::string &nick)
 {
     nickname = nick;
-}
 
-void NetworkManager::announceLoop()
-{
-    spdlog::info("NetworkManager: Announce loop started");
-    PacketSerializer serializer;
-
-    while (!shouldExit)
+    // Set the nickname in the announce runner
+    if (announceRunner)
     {
-        try
-        {
-            // Create announce packet with nickname
-            std::vector<uint8_t> payload = serializer.makeAnnouncePayload(nickname);
-
-            BitchatPacket announcePacket(PKT_TYPE_ANNOUNCE, payload);
-
-            // Convert hex string to bytes correctly
-            std::vector<uint8_t> senderID;
-
-            for (size_t i = 0; i < localPeerID.length(); i += 2)
-            {
-                std::string byteString = localPeerID.substr(i, 2);
-                uint8_t byte = static_cast<uint8_t>(std::stoi(byteString, nullptr, 16));
-                senderID.push_back(byte);
-            }
-
-            announcePacket.setSenderID(senderID);
-            announcePacket.setTimestamp(DateTimeHelper::getCurrentTimestamp());
-
-            // Send announce packet
-            if (bluetoothInterface && bluetoothInterface->isReady())
-            {
-                bluetoothInterface->sendPacket(announcePacket);
-            }
-
-            // Sleep for announce interval
-            std::this_thread::sleep_for(std::chrono::seconds(ANNOUNCE_INTERVAL));
-        }
-        catch (const std::exception &e)
-        {
-            spdlog::error("Error in announce loop: {}", e.what());
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
+        announceRunner->setNickname(nick);
     }
 }
 
-void NetworkManager::cleanupLoop()
+void NetworkManager::setAnnounceRunner(std::shared_ptr<BluetoothAnnounceRunner> runner)
 {
-    while (!shouldExit)
-    {
-        try
-        {
-            cleanupStalePeers(PEER_TIMEOUT);
-            std::this_thread::sleep_for(std::chrono::seconds(CLEANUP_INTERVAL));
-        }
-        catch (const std::exception &e)
-        {
-            spdlog::error("Error in cleanup loop: {}", e.what());
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
-    }
+    announceRunner = runner;
+}
+
+void NetworkManager::setCleanupRunner(std::shared_ptr<CleanupRunner> runner)
+{
+    cleanupRunner = runner;
 }
 
 void NetworkManager::onPeerConnected(const std::string &peerID, const std::string &nickname)

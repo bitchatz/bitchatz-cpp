@@ -4,6 +4,8 @@
 #include "bitchat/helpers/string_helper.h"
 #include "bitchat/platform/bluetooth_factory.h"
 #include "bitchat/protocol/packet.h"
+#include "bitchat/runners/bluetooth_announce_runner.h"
+#include "bitchat/runners/cleanup_runner.h"
 #include <openssl/evp.h>
 #include <spdlog/spdlog.h>
 
@@ -19,13 +21,17 @@ BitchatManager::~BitchatManager()
     stop();
 }
 
-bool BitchatManager::initialize()
+bool BitchatManager::initialize(std::shared_ptr<BluetoothAnnounceRunner> announceRunner, std::shared_ptr<CleanupRunner> cleanupRunner)
 {
     if (initialized)
     {
         spdlog::warn("BitchatManager already initialized");
         return true;
     }
+
+    // Store runners
+    this->announceRunner = announceRunner;
+    this->cleanupRunner = cleanupRunner;
 
     try
     {
@@ -47,6 +53,17 @@ bool BitchatManager::initialize()
         messageManager = std::make_shared<MessageManager>();
         cryptoManager = std::make_shared<CryptoManager>();
         compressionManager = std::make_shared<CompressionManager>();
+
+        // Set runners in NetworkManager before initialization
+        if (announceRunner)
+        {
+            networkManager->setAnnounceRunner(announceRunner);
+        }
+
+        if (cleanupRunner)
+        {
+            networkManager->setCleanupRunner(cleanupRunner);
+        }
 
         // Initialize managers
         if (!networkManager->initialize(bluetoothInterface))

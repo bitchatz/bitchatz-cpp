@@ -1,5 +1,7 @@
 #include "bitchat/core/bitchat_manager.h"
 #include "bitchat/helpers/chat_helper.h"
+#include "bitchat/runners/bluetooth_announce_runner.h"
+#include "bitchat/runners/cleanup_runner.h"
 #include <chrono>
 #include <iostream>
 #include <spdlog/sinks/rotating_file_sink.h>
@@ -149,6 +151,10 @@ int main()
 
     spdlog::info("=== Bitchat Terminal Client ===");
 
+    // Create runners
+    auto bluetoothAnnounceRunner = std::make_shared<bitchat::BluetoothAnnounceRunner>();
+    auto cleanupRunner = std::make_shared<bitchat::CleanupRunner>();
+
     // Create and initialize manager
     manager = std::make_shared<bitchat::BitchatManager>();
 
@@ -158,8 +164,8 @@ int main()
     manager->setPeerLeftCallback(onPeerLeft);
     manager->setStatusCallback(onStatusUpdate);
 
-    // Initialize
-    if (!manager->initialize())
+    // Initialize with runners
+    if (!manager->initialize(bluetoothAnnounceRunner, cleanupRunner))
     {
         spdlog::error("Failed to initialize BitchatManager");
         return 1;

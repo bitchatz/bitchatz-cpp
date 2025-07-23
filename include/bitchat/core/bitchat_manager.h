@@ -12,6 +12,10 @@
 namespace bitchat
 {
 
+// Forward declarations
+class BluetoothAnnounceRunner;
+class CleanupRunner;
+
 // BitchatManager: Main orchestrator that coordinates all components
 class BitchatManager
 {
@@ -20,7 +24,7 @@ public:
     ~BitchatManager();
 
     // Initialize the manager
-    bool initialize();
+    bool initialize(std::shared_ptr<BluetoothAnnounceRunner> announceRunner = nullptr, std::shared_ptr<CleanupRunner> cleanupRunner = nullptr);
 
     // Start the manager
     bool start();
@@ -70,6 +74,10 @@ private:
     std::shared_ptr<CryptoManager> cryptoManager;
     std::shared_ptr<CompressionManager> compressionManager;
     std::shared_ptr<noise::NoiseSessionManager> noiseSessionManager;
+
+    // Runners
+    std::shared_ptr<BluetoothAnnounceRunner> announceRunner;
+    std::shared_ptr<CleanupRunner> cleanupRunner;
 
     // Bluetooth interface
     std::shared_ptr<BluetoothInterface> bluetoothInterface;
