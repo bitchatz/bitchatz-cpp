@@ -20,8 +20,8 @@ const double BLE_CONNECTION_TIMEOUT_SECONDS = 10.0;
 const size_t BLE_MIN_PACKET_SIZE_BYTES = 21;
 const size_t BLE_MAX_PACKET_SIZE_BYTES = 512;
 
-// Peer ID generation constants
-const size_t BLE_PEER_ID_LENGTH_CHARS = 16; // 8 bytes = 16 hex characters
+// Peer ID generation constants (8 bytes = 16 hex characters)
+const size_t BLE_PEER_ID_LENGTH_CHARS = 16;
 
 // BLE Service Properties
 const uint32_t BLE_CHARACTERISTIC_PROPERTIES =

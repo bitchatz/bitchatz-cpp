@@ -203,7 +203,7 @@ void MessageManager::setNickname(const std::string &nick)
 {
     nickname = nick;
 
-    // Update NetworkManager nickname for announce packets
+    // Update network manager nickname for announce packets
     if (networkManager)
     {
         networkManager->setNickname(nick);

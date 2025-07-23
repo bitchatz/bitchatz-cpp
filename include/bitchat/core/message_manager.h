@@ -29,10 +29,7 @@ public:
     ~MessageManager() = default;
 
     // Initialize the message manager
-    bool initialize(std::shared_ptr<NetworkManager> networkManager,
-                    std::shared_ptr<CryptoManager> cryptoManager,
-                    std::shared_ptr<CompressionManager> compressionManager,
-                    std::shared_ptr<noise::NoiseSessionManager> noiseSessionManager);
+    bool initialize(std::shared_ptr<NetworkManager> networkManager, std::shared_ptr<CryptoManager> cryptoManager, std::shared_ptr<CompressionManager> compressionManager, std::shared_ptr<noise::NoiseSessionManager> noiseSessionManager);
 
     // Send a message to a channel
     bool sendMessage(const std::string &content, const std::string &channel = "");

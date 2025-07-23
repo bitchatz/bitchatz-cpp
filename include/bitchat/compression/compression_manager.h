@@ -7,7 +7,7 @@
 namespace bitchat
 {
 
-// CompressionManager: handles LZ4 compression and decompression
+// CompressionManager: Handles LZ4 compression and decompression
 class CompressionManager
 {
 public:

@@ -20,22 +20,27 @@ std::vector<uint8_t> CompressionManager::compressData(const std::vector<uint8_t>
     int maxCompressedSize = calculateCompressionBound(data.size());
     if (maxCompressedSize <= 0)
     {
-        return data; // Return original on error
+        // Return original on error
+        return data;
     }
 
     // Allocate buffer for compressed data
     std::vector<uint8_t> compressed(maxCompressedSize);
 
     // Compress using LZ4
+    // clang-format off
     int compressedSize = LZ4_compress_default(
         reinterpret_cast<const char *>(data.data()),
         reinterpret_cast<char *>(compressed.data()),
         static_cast<int>(data.size()),
-        maxCompressedSize);
+        maxCompressedSize
+    );
+    // clang-format on
 
     if (compressedSize <= 0)
     {
-        return data; // Return original on error
+        // Return original on error
+        return data;
     }
 
     // Only return compressed if it's actually smaller
@@ -45,11 +50,11 @@ std::vector<uint8_t> CompressionManager::compressData(const std::vector<uint8_t>
         return compressed;
     }
 
-    return data; // Return original if compression didn't help
+    // Return original if compression didn't help
+    return data;
 }
 
-std::vector<uint8_t> CompressionManager::decompressData(const std::vector<uint8_t> &compressedData,
-                                                        size_t originalSize)
+std::vector<uint8_t> CompressionManager::decompressData(const std::vector<uint8_t> &compressedData, size_t originalSize)
 {
     // Allocate buffer for decompressed data
     std::vector<uint8_t> decompressed(originalSize);
@@ -63,7 +68,8 @@ std::vector<uint8_t> CompressionManager::decompressData(const std::vector<uint8_
 
     if (decompressedSize <= 0)
     {
-        return compressedData; // Return original on error
+        // Return original on error
+        return compressedData;
     }
 
     if (decompressedSize != static_cast<int>(originalSize))
@@ -87,9 +93,10 @@ bool CompressionManager::shouldCompress(const std::vector<uint8_t> &data) const
     std::set<uint8_t> uniqueBytes(data.begin(), data.end());
 
     // If we have very high byte diversity, data is likely already compressed
-    double uniqueByteRatio = static_cast<double>(uniqueBytes.size()) /
-                             std::min(data.size(), static_cast<size_t>(256));
-    return uniqueByteRatio < 0.9; // Compress if less than 90% unique bytes
+    double uniqueByteRatio = static_cast<double>(uniqueBytes.size()) / std::min(data.size(), static_cast<size_t>(256));
+
+    // Compress if less than 90% unique bytes
+    return uniqueByteRatio < 0.9;
 }
 
 int CompressionManager::calculateCompressionBound(size_t dataSize) const
