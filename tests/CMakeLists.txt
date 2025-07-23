@@ -2,6 +2,10 @@
 set(TEST_SOURCES
     ${COMMON_SOURCES}
     ${CMAKE_CURRENT_SOURCE_DIR}/bitchat/core/bitchat_manager_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/bitchat/helpers/string_helper_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/bitchat/helpers/protocol_helper_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/bitchat/helpers/datetime_helper_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/bitchat/helpers/chat_helper_test.cpp
 )
 
 # Create test executable
