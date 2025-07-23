@@ -3,16 +3,14 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <openssl/evp.h>
 #include <string>
 #include <vector>
-
-// Forward declaration for OpenSSL types
-typedef struct evp_pkey_st EVP_PKEY;
 
 namespace bitchat
 {
 
-// CryptoManager: handles encryption, signatures, and key management
+// CryptoManager: Handles encryption, signatures, and key management
 class CryptoManager
 {
 public:

@@ -15,6 +15,7 @@ namespace bitchat
 CryptoManager::CryptoManager()
     : signingPrivateKey(nullptr)
 {
+    //
 }
 
 CryptoManager::~CryptoManager()
