@@ -53,7 +53,7 @@ public:
     // Getters
     uint8_t getVersion() const { return version; }
     uint8_t getType() const { return type; }
-    uint8_t getTtl() const { return ttl; }
+    uint8_t getTTL() const { return ttl; }
     uint64_t getTimestamp() const { return timestamp; }
     uint8_t getFlags() const { return flags; }
     uint16_t getPayloadLength() const { return payloadLength; }
@@ -65,7 +65,7 @@ public:
     // Setters
     void setVersion(uint8_t v) { version = v; }
     void setType(uint8_t t) { type = t; }
-    void setTtl(uint8_t t) { ttl = t; }
+    void setTTL(uint8_t t) { ttl = t; }
     void setTimestamp(uint64_t ts) { timestamp = ts; }
     void setFlags(uint8_t f) { flags = f; }
     void setPayloadLength(uint16_t len) { payloadLength = len; }

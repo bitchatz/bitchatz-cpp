@@ -379,7 +379,7 @@ void NetworkManager::processPacket(const BitchatPacket &packet)
     }
 
     // Relay packet if needed
-    if (packet.getTtl() > 0)
+    if (packet.getTTL() > 0)
     {
         relayPacket(packet);
     }
@@ -389,7 +389,7 @@ void NetworkManager::relayPacket(const BitchatPacket &packet)
 {
     // Create relay packet with decremented TTL
     BitchatPacket relayPacket = packet;
-    relayPacket.setTtl(packet.getTtl() - 1);
+    relayPacket.setTTL(packet.getTTL() - 1);
 
     // Send to all connected peers except sender
     std::string senderID = ProtocolHelper::toHexCompact(packet.getSenderID());
