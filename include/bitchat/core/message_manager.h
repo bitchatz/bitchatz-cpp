@@ -16,12 +16,14 @@ namespace bitchat
 class NetworkManager;
 class CryptoManager;
 class CompressionManager;
+
 namespace noise
 {
+// Forward declarations
 class NoiseSessionManager;
-}
+} // namespace noise
 
-// MessageManager: manages chat messages, history, and message processing
+// MessageManager: Manages chat messages, history, and message processing
 class MessageManager
 {
 public:
