@@ -44,6 +44,9 @@ public:
     // Get local peer ID
     virtual std::string getLocalPeerId() const = 0;
 
+    // Set local peer ID
+    virtual void setLocalPeerId(const std::string &peerId) = 0;
+
     // Set callbacks - PURE TRANSPORT ONLY
     virtual void setPeerDisconnectedCallback(PeerDisconnectedCallback callback) = 0;
     virtual void setPacketReceivedCallback(PacketReceivedCallback callback) = 0;

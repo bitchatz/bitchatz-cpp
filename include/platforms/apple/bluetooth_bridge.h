@@ -94,6 +94,12 @@ public:
     std::string getLocalPeerId() const override;
 
     /**
+     * @brief Set the local device's peer identifier
+     * @param peerId The peer ID to set
+     */
+    void setLocalPeerId(const std::string &peerId) override;
+
+    /**
      * @brief Set callback for peer disconnection events
      * @param callback Function to call when a peer disconnects
      */

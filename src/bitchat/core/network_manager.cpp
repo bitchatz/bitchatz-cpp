@@ -35,11 +35,21 @@ bool NetworkManager::initialize(std::unique_ptr<BluetoothInterface> bluetooth)
     bluetoothInterface->setPeerDisconnectedCallback([this](const std::string &peerId)
                                                     { onPeerDisconnected(peerId); });
 
-    // Get local peer ID
-    localPeerId = bluetoothInterface->getLocalPeerId();
-
-    spdlog::info("NetworkManager initialized with local peer ID: {}", localPeerId);
+    spdlog::info("NetworkManager initialized");
     return true;
+}
+
+void NetworkManager::setLocalPeerId(const std::string &peerId)
+{
+    if (!bluetoothInterface)
+    {
+        spdlog::error("NetworkManager: Cannot set peer ID without Bluetooth interface");
+        return;
+    }
+
+    // Set the local peer ID in the Bluetooth interface
+    bluetoothInterface->setLocalPeerId(peerId);
+    localPeerId = peerId;
 }
 
 bool NetworkManager::start()

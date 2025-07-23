@@ -46,8 +46,8 @@ LinuxBluetooth::LinuxBluetooth()
     hci_read_bd_addr(hciSocket, &bdAddr, 1000);
     char addr[19];
     ba2str(&bdAddr, addr);
-    localPeerId = addr;
-    spdlog::info("Local Bluetooth adapter address: {}", localPeerId);
+
+    spdlog::info("Bluetooth adapter address: {}", addr);
 }
 
 LinuxBluetooth::~LinuxBluetooth()
@@ -169,6 +169,11 @@ bool LinuxBluetooth::isReady() const
 std::string LinuxBluetooth::getLocalPeerId() const
 {
     return localPeerId;
+}
+
+void LinuxBluetooth::setLocalPeerId(const std::string &peerId)
+{
+    localPeerId = peerId;
 }
 
 void LinuxBluetooth::setPeerDisconnectedCallback(PeerDisconnectedCallback callback)

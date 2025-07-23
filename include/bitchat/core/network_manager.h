@@ -28,6 +28,9 @@ public:
     // Initialize the network manager
     bool initialize(std::unique_ptr<BluetoothInterface> bluetooth);
 
+    // Set local peer ID
+    void setLocalPeerId(const std::string &peerId);
+
     // Start network operations
     bool start();
 

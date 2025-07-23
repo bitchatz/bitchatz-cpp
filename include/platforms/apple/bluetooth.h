@@ -39,6 +39,7 @@
 // State
 - (BOOL)isReady;
 - (NSString *)getLocalPeerId;
+- (void)setLocalPeerId:(NSString *)peerId;
 - (NSUInteger)getConnectedPeersCount;
 
 // Callback setters

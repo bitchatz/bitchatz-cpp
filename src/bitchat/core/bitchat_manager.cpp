@@ -27,6 +27,10 @@ bool BitchatManager::initialize()
 
     try
     {
+        // Generate local peer ID
+        std::string localPeerId = ProtocolHelper::randomPeerId();
+        spdlog::info("Generated local peer ID: {}", localPeerId);
+
         // Create Bluetooth interface
         bluetoothInterface = createBluetoothInterface();
         if (!bluetoothInterface)
@@ -47,6 +51,9 @@ bool BitchatManager::initialize()
             spdlog::error("Failed to initialize NetworkManager");
             return false;
         }
+
+        // Set the local peer ID
+        networkManager->setLocalPeerId(localPeerId);
 
         if (!cryptoManager->initialize())
         {
@@ -292,6 +299,23 @@ std::string BitchatManager::getPeerId() const
         return "";
     }
     return networkManager->getLocalPeerId();
+}
+
+void BitchatManager::setPeerId(const std::string &peerId)
+{
+    if (!networkManager)
+    {
+        spdlog::error("Cannot set peer ID: NetworkManager not initialized");
+        return;
+    }
+
+    if (!ProtocolHelper::isValidPeerId(peerId))
+    {
+        spdlog::error("Invalid peer ID format: {}", peerId);
+        return;
+    }
+
+    networkManager->setLocalPeerId(peerId);
 }
 
 std::map<std::string, OnlinePeer> BitchatManager::getOnlinePeers() const

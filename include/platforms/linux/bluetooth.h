@@ -25,6 +25,7 @@ public:
     bool sendPacketToPeer(const BitchatPacket &packet, const std::string &peerId) override;
     bool isReady() const override;
     std::string getLocalPeerId() const override;
+    void setLocalPeerId(const std::string &peerId) override;
     void setPeerDisconnectedCallback(PeerDisconnectedCallback callback) override;
     void setPacketReceivedCallback(PacketReceivedCallback callback) override;
     size_t getConnectedPeersCount() const override;

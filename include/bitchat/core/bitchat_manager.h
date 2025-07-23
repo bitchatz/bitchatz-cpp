@@ -44,6 +44,9 @@ public:
     std::string getNickname() const;
     std::string getPeerId() const;
     std::map<std::string, OnlinePeer> getOnlinePeers() const;
+
+    // Setters
+    void setPeerId(const std::string &peerId);
     std::vector<BitchatMessage> getMessageHistory() const;
     size_t getConnectedPeersCount() const;
 

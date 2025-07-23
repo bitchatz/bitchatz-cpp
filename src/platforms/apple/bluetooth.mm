@@ -77,6 +77,7 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
         self.ready = NO;                                                                 // Not ready until managers are powered on
         self.lock = [[NSLock alloc] init];                                               // Thread safety lock
         self.bleQueue = dispatch_queue_create("com.bitchat.ble", DISPATCH_QUEUE_SERIAL); // Serial queue for BLE operations
+        self.localPeerId = nil;                                                          // Initialize peer ID to nil
 
         // Initialize managers on main queue (required for Core Bluetooth)
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -271,28 +272,29 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
 /**
  * @brief Get the local device's peer identifier
  *
- * Generates a random 8-character hex ID if not already set.
+ * Returns the peer ID
  * This ID is used to identify this device to other peers.
  *
  * @return The local peer ID as a string
  */
 - (NSString *)getLocalPeerId
 {
-    // Generate a random peer ID if not set
-    if (!self.localPeerId)
+    return self.localPeerId ? self.localPeerId : @"";
+}
+
+/**
+ * @brief Set the local device's peer identifier
+ *
+ * Sets the peer ID that will be used to identify this device to other peers.
+ *
+ * @param peerId The peer ID to set
+ */
+- (void)setLocalPeerId:(NSString *)peerId
+{
+    if (peerId && peerId.length > 0)
     {
-        // Generate 8 random bytes (64 bits) for strong collision resistance like Swift
-        NSMutableString *peerId = [NSMutableString string];
-
-        for (size_t i = 0; i < 8; i++)
-        {
-            [peerId appendFormat:@"%02x", arc4random_uniform(256)]; // Generate random hex byte
-        }
-
-        self.localPeerId = [peerId copy];
+        _localPeerId = [peerId copy];
     }
-
-    return self.localPeerId;
 }
 
 /**
@@ -696,8 +698,14 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
 {
     if (self.peripheralManager.state == CBManagerStatePoweredOn)
     {
-        // Use peer ID as local name
+        // Use peer ID as local name, but only if it's been set
         NSString *localName = [self getLocalPeerId];
+
+        // If no peer ID has been set yet, use a default name
+        if (!localName || localName.length == 0)
+        {
+            localName = @"Unknown";
+        }
 
         // Set up advertisement data
         NSDictionary *advertisementData = @{
