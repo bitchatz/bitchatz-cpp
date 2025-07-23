@@ -58,7 +58,7 @@ void showOnlinePeers()
         // Show all peers that have been seen recently (within 3 minutes)
         if ((now - peer.getLastSeen()) < 180)
         {
-            std::string peerInfo = "- " + peer.getNick();
+            std::string peerInfo = "- " + peer.getNickname();
 
             // Check if this is us (by comparing peer ID)
             if (peerId == manager->getPeerId())
@@ -66,9 +66,9 @@ void showOnlinePeers()
                 peerInfo += " (you)";
             }
 
-            if (!peer.getCanal().empty())
+            if (!peer.getChannel().empty())
             {
-                peerInfo += " (channel: " + peer.getCanal() + ")";
+                peerInfo += " (channel: " + peer.getChannel() + ")";
             }
             if (peer.getRSSI() > -100)
             {

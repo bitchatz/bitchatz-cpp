@@ -43,7 +43,7 @@ public:
     std::string getCurrentChannel() const;
     std::string getNickname() const;
     std::string getPeerId() const;
-    std::map<std::string, OnlinePeer> getOnlinePeers() const;
+    std::map<std::string, BitchatPeer> getOnlinePeers() const;
 
     // Setters
     void setPeerId(const std::string &peerId);

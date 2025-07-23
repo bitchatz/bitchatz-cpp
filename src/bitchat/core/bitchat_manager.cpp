@@ -318,7 +318,7 @@ void BitchatManager::setPeerId(const std::string &peerId)
     networkManager->setLocalPeerId(peerId);
 }
 
-std::map<std::string, OnlinePeer> BitchatManager::getOnlinePeers() const
+std::map<std::string, BitchatPeer> BitchatManager::getOnlinePeers() const
 {
     if (!networkManager)
     {

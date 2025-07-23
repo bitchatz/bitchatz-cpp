@@ -145,31 +145,32 @@ std::string BitchatMessage::getDisplayContent() const
     return content;
 }
 
-// OnlinePeer implementations
-OnlinePeer::OnlinePeer(const std::string &nickname, const std::vector<uint8_t> &peerId)
-    : nick(nickname)
+// BitchatPeer implementations
+BitchatPeer::BitchatPeer(const std::vector<uint8_t> &peerId, const std::string &nickname)
+    : nickname(nickname)
+    , channel("")
     , peerId(peerId)
 {
     updateLastSeen();
 }
 
-void OnlinePeer::updateLastSeen()
+void BitchatPeer::updateLastSeen()
 {
     lastSeen = std::time(nullptr);
 }
 
-bool OnlinePeer::isStale(time_t timeout) const
+bool BitchatPeer::isStale(time_t timeout) const
 {
     return (std::time(nullptr) - lastSeen) > timeout;
 }
 
-std::string OnlinePeer::getDisplayName() const
+std::string BitchatPeer::getDisplayName() const
 {
-    if (nick.empty())
+    if (nickname.empty())
     {
         return ProtocolHelper::toHexCompact(peerId);
     }
-    return nick;
+    return nickname;
 }
 
 } // namespace bitchat

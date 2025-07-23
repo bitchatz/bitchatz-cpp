@@ -124,7 +124,7 @@ bool NetworkManager::sendPacketToPeer(const BitchatPacket &packet, const std::st
     return bluetoothInterface->sendPacketToPeer(packet, peerId);
 }
 
-std::map<std::string, OnlinePeer> NetworkManager::getOnlinePeers() const
+std::map<std::string, BitchatPeer> NetworkManager::getOnlinePeers() const
 {
     std::lock_guard<std::mutex> lock(peersMutex);
     return onlinePeers;
@@ -145,7 +145,7 @@ bool NetworkManager::isPeerOnline(const std::string &peerId) const
     return onlinePeers.find(peerId) != onlinePeers.end();
 }
 
-std::optional<OnlinePeer> NetworkManager::getPeerInfo(const std::string &peerId) const
+std::optional<BitchatPeer> NetworkManager::getPeerInfo(const std::string &peerId) const
 {
     std::lock_guard<std::mutex> lock(peersMutex);
     auto it = onlinePeers.find(peerId);
@@ -156,7 +156,7 @@ std::optional<OnlinePeer> NetworkManager::getPeerInfo(const std::string &peerId)
     return std::nullopt;
 }
 
-void NetworkManager::updatePeerInfo(const std::string &peerId, const OnlinePeer &peer)
+void NetworkManager::updatePeerInfo(const std::string &peerId, const BitchatPeer &peer)
 {
     std::lock_guard<std::mutex> lock(peersMutex);
     onlinePeers[peerId] = peer;
@@ -287,7 +287,7 @@ void NetworkManager::onPeerDisconnected(const std::string &peerId)
         auto it = onlinePeers.find(peerId);
         if (it != onlinePeers.end())
         {
-            nickname = it->second.getNick();
+            nickname = it->second.getNickname();
             onlinePeers.erase(it);
         }
     }
@@ -444,11 +444,13 @@ void NetworkManager::processAnnouncePacket(const BitchatPacket &packet)
                 // Update existing peer's last seen time
                 it->second.updateLastSeen();
                 spdlog::debug("Updated existing peer: {} ({})", peerId, nickname);
-                return; // Don't notify about connection again
+
+                // Don't notify about connection again
+                return;
             }
 
             // Add new peer
-            OnlinePeer peer(nickname, packet.getSenderId());
+            BitchatPeer peer(packet.getSenderId(), nickname);
             peer.updateLastSeen();
             onlinePeers[peerId] = peer;
         }

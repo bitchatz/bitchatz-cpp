@@ -143,8 +143,7 @@ EVP_PKEY *CryptoManager::loadPrivateKey(const std::string &filename)
         return nullptr;
     }
 
-    std::string pemData((std::istreambuf_iterator<char>(file)),
-                        std::istreambuf_iterator<char>());
+    std::string pemData((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
     BIO *bio = BIO_new_mem_buf(pemData.c_str(), pemData.length());
     if (!bio)

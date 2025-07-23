@@ -44,7 +44,7 @@ public:
     bool sendPacketToPeer(const BitchatPacket &packet, const std::string &peerId);
 
     // Get online peers
-    std::map<std::string, OnlinePeer> getOnlinePeers() const;
+    std::map<std::string, BitchatPeer> getOnlinePeers() const;
 
     // Get connected peers count
     size_t getConnectedPeersCount() const;
@@ -53,10 +53,10 @@ public:
     bool isPeerOnline(const std::string &peerId) const;
 
     // Get peer information
-    std::optional<OnlinePeer> getPeerInfo(const std::string &peerId) const;
+    std::optional<BitchatPeer> getPeerInfo(const std::string &peerId) const;
 
     // Update peer information
-    void updatePeerInfo(const std::string &peerId, const OnlinePeer &peer);
+    void updatePeerInfo(const std::string &peerId, const BitchatPeer &peer);
 
     // Remove stale peers
     void cleanupStalePeers(time_t timeout = 180);
@@ -84,7 +84,7 @@ private:
     std::unique_ptr<BluetoothInterface> bluetoothInterface;
 
     // Network state
-    std::map<std::string, OnlinePeer> onlinePeers;
+    std::map<std::string, BitchatPeer> onlinePeers;
     std::set<std::string> processedMessages;
     std::string localPeerId;
     std::string nickname;

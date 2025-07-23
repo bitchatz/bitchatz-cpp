@@ -347,7 +347,7 @@ void MessageManager::processChannelAnnouncePacket(const BitchatPacket &packet)
 
         if (peerInfo)
         {
-            peerInfo->setCanal(joining ? channel : "");
+            peerInfo->setChannel(joining ? channel : "");
             networkManager->updatePeerInfo(peerId, *peerInfo);
         }
 

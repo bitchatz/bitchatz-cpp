@@ -10,7 +10,7 @@ namespace bitchat
 // Packet type constants
 constexpr uint8_t PKT_VERSION = 1;
 constexpr uint8_t PKT_TYPE_ANNOUNCE = 0x01;
-// 0x02 was legacy keyExchange - removed
+constexpr uint8_t PKT_TYPE_KEY_EXCHANGE = 0x02;
 constexpr uint8_t PKT_TYPE_LEAVE = 0x03;
 constexpr uint8_t PKT_TYPE_MESSAGE = 0x04;
 constexpr uint8_t PKT_TYPE_FRAGMENT_START = 0x05;
@@ -180,16 +180,16 @@ private:
     bool isEncryptedFlag = false;
 };
 
-// OnlinePeer: represents an online peer in the network
-class OnlinePeer
+// BitchatPeer: represents a peer in the network
+class BitchatPeer
 {
 public:
-    OnlinePeer() = default;
-    OnlinePeer(const std::string &nickname, const std::vector<uint8_t> &peerId);
+    BitchatPeer() = default;
+    BitchatPeer(const std::vector<uint8_t> &peerId, const std::string &nickname);
 
     // Getters
-    const std::string &getNick() const { return nick; }
-    const std::string &getCanal() const { return canal; }
+    const std::string &getNickname() const { return nickname; }
+    const std::string &getChannel() const { return channel; }
     const std::vector<uint8_t> &getPeerId() const { return peerId; }
     time_t getLastSeen() const { return lastSeen; }
     int getRSSI() const { return RSSI; }
@@ -197,8 +197,8 @@ public:
     const std::string &getPeripheralUUID() const { return peripheralUUID; }
 
     // Setters
-    void setNick(const std::string &n) { nick = n; }
-    void setCanal(const std::string &c) { canal = c; }
+    void setNickname(const std::string &n) { nickname = n; }
+    void setChannel(const std::string &c) { channel = c; }
     void setPeerId(const std::vector<uint8_t> &pid) { peerId = pid; }
     void setLastSeen(time_t ls) { lastSeen = ls; }
     void setRSSI(int r) { RSSI = r; }
@@ -211,8 +211,8 @@ public:
     std::string getDisplayName() const;
 
 private:
-    std::string nick;
-    std::string canal;
+    std::string nickname;
+    std::string channel;
     std::vector<uint8_t> peerId;
     time_t lastSeen = 0;
     int RSSI = -100;
