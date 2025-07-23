@@ -8,6 +8,6 @@ namespace bitchat
 
 // Factory function that creates the appropriate Bluetooth interface for the current platform
 // Each platform implements this function to return their specific implementation
-std::unique_ptr<BluetoothInterface> createBluetoothInterface();
+std::shared_ptr<BluetoothInterface> createBluetoothInterface();
 
 } // namespace bitchat

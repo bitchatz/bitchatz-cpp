@@ -32,7 +32,7 @@ class AppleBluetoothBridge : public bitchat::BluetoothInterface
 private:
     AppleBluetooth *impl;                                  // Objective-C implementation instance
     std::string localPeerID;                               // Local device peer identifier
-    std::unique_ptr<bitchat::PacketSerializer> serializer; // Handles packet serialization/deserialization
+    std::shared_ptr<bitchat::PacketSerializer> serializer; // Handles packet serialization/deserialization
 
     // Callback function pointers for C++ interface
     PeerDisconnectedCallback peerDisconnectedCallback; // Called when a peer disconnects

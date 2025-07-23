@@ -12,7 +12,7 @@ namespace bitchat
 // ============================================================================
 
 AppleBluetoothBridge::AppleBluetoothBridge()
-    : impl(nil), serializer(std::make_unique<PacketSerializer>())
+    : impl(nil), serializer(std::make_shared<PacketSerializer>())
 {
     // Create the Objective-C Bluetooth implementation
     impl = [[AppleBluetooth alloc] init];

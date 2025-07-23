@@ -72,7 +72,7 @@ private:
     std::shared_ptr<noise::NoiseSessionManager> noiseSessionManager;
 
     // Bluetooth interface
-    std::unique_ptr<BluetoothInterface> bluetoothInterface;
+    std::shared_ptr<BluetoothInterface> bluetoothInterface;
 
     // State
     bool initialized = false;

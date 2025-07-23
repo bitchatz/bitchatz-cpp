@@ -18,9 +18,9 @@ NetworkManager::~NetworkManager()
     stop();
 }
 
-bool NetworkManager::initialize(std::unique_ptr<BluetoothInterface> bluetooth)
+bool NetworkManager::initialize(std::shared_ptr<BluetoothInterface> bluetooth)
 {
-    bluetoothInterface = std::move(bluetooth);
+    bluetoothInterface = bluetooth;
 
     if (!bluetoothInterface)
     {
@@ -79,6 +79,7 @@ bool NetworkManager::start()
     cleanupThread = std::thread(&NetworkManager::cleanupLoop, this);
 
     spdlog::info("NetworkManager started");
+
     return true;
 }
 
@@ -213,6 +214,7 @@ void NetworkManager::setNickname(const std::string &nick)
 
 void NetworkManager::announceLoop()
 {
+    spdlog::info("NetworkManager: Announce loop started");
     PacketSerializer serializer;
 
     while (!shouldExit)
@@ -223,14 +225,17 @@ void NetworkManager::announceLoop()
             std::vector<uint8_t> payload = serializer.makeAnnouncePayload(nickname);
 
             BitchatPacket announcePacket(PKT_TYPE_ANNOUNCE, payload);
+
             // Convert hex string to bytes correctly
             std::vector<uint8_t> senderID;
+
             for (size_t i = 0; i < localPeerID.length(); i += 2)
             {
                 std::string byteString = localPeerID.substr(i, 2);
                 uint8_t byte = static_cast<uint8_t>(std::stoi(byteString, nullptr, 16));
                 senderID.push_back(byte);
             }
+
             announcePacket.setSenderID(senderID);
             announcePacket.setTimestamp(ProtocolHelper::getCurrentTimestamp());
 

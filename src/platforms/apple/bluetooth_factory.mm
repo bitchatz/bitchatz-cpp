@@ -9,13 +9,13 @@ namespace bitchat
  * @brief Factory function to create a Bluetooth interface instance
  *
  * This function is called by the BluetoothFactory to create a platform-specific
- * Bluetooth implementation. It returns a unique_ptr to ensure proper memory management.
+ * Bluetooth implementation. It returns a shared_ptr to ensure proper memory management.
  *
- * @return Unique pointer to the Bluetooth interface implementation
+ * @return Shared pointer to the Bluetooth interface implementation
  */
-std::unique_ptr<BluetoothInterface> createBluetoothInterface()
+std::shared_ptr<BluetoothInterface> createBluetoothInterface()
 {
-    return std::make_unique<AppleBluetoothBridge>();
+    return std::make_shared<AppleBluetoothBridge>();
 }
 
 } // namespace bitchat

@@ -46,7 +46,7 @@ bool BitchatManager::initialize()
         compressionManager = std::make_shared<CompressionManager>();
 
         // Initialize managers
-        if (!networkManager->initialize(std::move(bluetoothInterface)))
+        if (!networkManager->initialize(bluetoothInterface))
         {
             spdlog::error("Failed to initialize NetworkManager");
             return false;
@@ -347,8 +347,7 @@ size_t BitchatManager::getConnectedPeersCount() const
 
 bool BitchatManager::isReady() const
 {
-    return initialized && started && networkManager && messageManager &&
-           networkManager->isReady() && messageManager->isReady();
+    return initialized && started && networkManager && messageManager && networkManager->isReady() && messageManager->isReady();
 }
 
 void BitchatManager::setMessageCallback(MessageCallback callback)

@@ -49,61 +49,61 @@ public:
     static std::vector<uint8_t> serializeMessage(const BitchatMessage &message);
 
     /// Deserialize a message from binary format
-    static std::unique_ptr<BitchatMessage> deserializeMessage(const std::vector<uint8_t> &data);
+    static std::shared_ptr<BitchatMessage> deserializeMessage(const std::vector<uint8_t> &data);
 
     /// Serialize handshake message
     static std::vector<uint8_t> serializeHandshakeMessage(const BitchatHandshakeMessage &message);
 
     /// Deserialize handshake message
-    static std::unique_ptr<BitchatHandshakeMessage> deserializeHandshakeMessage(const std::vector<uint8_t> &data);
+    static std::shared_ptr<BitchatHandshakeMessage> deserializeHandshakeMessage(const std::vector<uint8_t> &data);
 
     /// Serialize handshake response message
     static std::vector<uint8_t> serializeHandshakeResponseMessage(const BitchatHandshakeResponseMessage &message);
 
     /// Deserialize handshake response message
-    static std::unique_ptr<BitchatHandshakeResponseMessage> deserializeHandshakeResponseMessage(const std::vector<uint8_t> &data);
+    static std::shared_ptr<BitchatHandshakeResponseMessage> deserializeHandshakeResponseMessage(const std::vector<uint8_t> &data);
 
     /// Serialize chat message
     static std::vector<uint8_t> serializeChatMessage(const BitchatChatMessage &message);
 
     /// Deserialize chat message
-    static std::unique_ptr<BitchatChatMessage> deserializeChatMessage(const std::vector<uint8_t> &data);
+    static std::shared_ptr<BitchatChatMessage> deserializeChatMessage(const std::vector<uint8_t> &data);
 
     /// Serialize channel join message
     static std::vector<uint8_t> serializeChannelJoinMessage(const BitchatChannelJoinMessage &message);
 
     /// Deserialize channel join message
-    static std::unique_ptr<BitchatChannelJoinMessage> deserializeChannelJoinMessage(const std::vector<uint8_t> &data);
+    static std::shared_ptr<BitchatChannelJoinMessage> deserializeChannelJoinMessage(const std::vector<uint8_t> &data);
 
     /// Serialize channel leave message
     static std::vector<uint8_t> serializeChannelLeaveMessage(const BitchatChannelLeaveMessage &message);
 
     /// Deserialize channel leave message
-    static std::unique_ptr<BitchatChannelLeaveMessage> deserializeChannelLeaveMessage(const std::vector<uint8_t> &data);
+    static std::shared_ptr<BitchatChannelLeaveMessage> deserializeChannelLeaveMessage(const std::vector<uint8_t> &data);
 
     /// Serialize peer info message
     static std::vector<uint8_t> serializePeerInfoMessage(const BitchatPeerInfoMessage &message);
 
     /// Deserialize peer info message
-    static std::unique_ptr<BitchatPeerInfoMessage> deserializePeerInfoMessage(const std::vector<uint8_t> &data);
+    static std::shared_ptr<BitchatPeerInfoMessage> deserializePeerInfoMessage(const std::vector<uint8_t> &data);
 
     /// Serialize channel key share message
     static std::vector<uint8_t> serializeChannelKeyShareMessage(const BitchatChannelKeyShareMessage &message);
 
     /// Deserialize channel key share message
-    static std::unique_ptr<BitchatChannelKeyShareMessage> deserializeChannelKeyShareMessage(const std::vector<uint8_t> &data);
+    static std::shared_ptr<BitchatChannelKeyShareMessage> deserializeChannelKeyShareMessage(const std::vector<uint8_t> &data);
 
     /// Serialize keep alive message
     static std::vector<uint8_t> serializeKeepAliveMessage(const BitchatKeepAliveMessage &message);
 
     /// Deserialize keep alive message
-    static std::unique_ptr<BitchatKeepAliveMessage> deserializeKeepAliveMessage(const std::vector<uint8_t> &data);
+    static std::shared_ptr<BitchatKeepAliveMessage> deserializeKeepAliveMessage(const std::vector<uint8_t> &data);
 
     /// Serialize error message
     static std::vector<uint8_t> serializeErrorMessage(const BitchatErrorMessage &message);
 
     /// Deserialize error message
-    static std::unique_ptr<BitchatErrorMessage> deserializeErrorMessage(const std::vector<uint8_t> &data);
+    static std::shared_ptr<BitchatErrorMessage> deserializeErrorMessage(const std::vector<uint8_t> &data);
 
     // MARK: - Validation
 
@@ -168,7 +168,7 @@ public:
     BinaryProtocolParser();
 
     /// Parse binary data into messages
-    std::vector<std::unique_ptr<BitchatMessage>> parseData(const std::vector<uint8_t> &data);
+    std::vector<std::shared_ptr<BitchatMessage>> parseData(const std::vector<uint8_t> &data);
 
     /// Get remaining incomplete data
     std::vector<uint8_t> getRemainingData() const;
@@ -182,7 +182,7 @@ public:
 private:
     std::vector<uint8_t> buffer_;
 
-    std::unique_ptr<BitchatMessage> parseNextMessage();
+    std::shared_ptr<BitchatMessage> parseNextMessage();
     bool hasCompleteMessage() const;
     size_t getNextMessageSize() const;
 };

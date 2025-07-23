@@ -1,9 +1,18 @@
 cmake_minimum_required(VERSION 3.20)
 project(bitchat)
 
+# General settings
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Testing option
+option(ENABLE_ASAN "Enable AddressSanitizer" ON)
+option(ENABLE_TESTS "Build tests" OFF)
+
+if(ENABLE_TESTS)
+    enable_testing()
+endif()
 
 # Set output directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -12,6 +21,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # Include CPM for dependency management
 include(cmake/CPM.cmake)
+
+# Include custom functions
+include(cmake/functions.cmake)
 
 # Include noise-c configuration
 include(cmake/noise-c.cmake)
@@ -57,26 +69,45 @@ CPMAddPackage(
 
 CPMAddPackage("gh:nlohmann/json@3.12.0")
 
+# Add Google Test only if tests are enabled
+if(ENABLE_TESTS)
+    CPMAddPackage("gh:google/googletest@1.17.0")
+endif()
+
 # Find OpenSSL
 find_package(OpenSSL REQUIRED)
 
+# Common libraries
+set(COMMON_LIBRARIES
+    spdlog::spdlog
+    nlohmann_json::nlohmann_json
+    noise-c
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    lz4_static
+)
+
 # Source files
+set(COMMON_SOURCES
+    ${CMAKE_SOURCE_DIR}/src/bitchat/helpers/protocol_helper.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/helpers/chat_helper.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/protocol/packet.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/protocol/message_padding.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/protocol/packet_serializer.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/compression/compression_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/crypto/crypto_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/core/bitchat_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/core/network_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/core/message_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/core/identity_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/noise/noise_protocol.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/noise/noise_session.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/identity/identity_models.cpp
+)
+
 set(SOURCES
     src/main.cpp
-    src/bitchat/helpers/protocol_helper.cpp
-    src/bitchat/helpers/chat_helper.cpp
-    src/bitchat/protocol/packet.cpp
-    src/bitchat/protocol/message_padding.cpp
-    src/bitchat/protocol/packet_serializer.cpp
-    src/bitchat/compression/compression_manager.cpp
-    src/bitchat/crypto/crypto_manager.cpp
-    src/bitchat/core/bitchat_manager.cpp
-    src/bitchat/core/network_manager.cpp
-    src/bitchat/core/message_manager.cpp
-    src/bitchat/core/identity_manager.cpp
-    src/bitchat/noise/noise_protocol.cpp
-    src/bitchat/noise/noise_session.cpp
-    src/bitchat/identity/identity_models.cpp
+    ${COMMON_SOURCES}
 )
 
 # Platform-specific source files
@@ -100,14 +131,7 @@ target_include_directories(bitchat PRIVATE
 )
 
 # Link libraries
-target_link_libraries(bitchat
-    spdlog::spdlog
-    nlohmann_json::nlohmann_json
-    noise-c
-    OpenSSL::SSL
-    OpenSSL::Crypto
-    lz4_static
-)
+target_link_libraries(bitchat ${COMMON_LIBRARIES})
 
 # Platform-specific linking
 if(PLATFORM_APPLE)
@@ -122,23 +146,19 @@ elseif(PLATFORM_LINUX)
     target_include_directories(bitchat PRIVATE ${BLUEZ_INCLUDE_DIRS})
 endif()
 
-# Compiler-specific flags
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    target_compile_options(bitchat PRIVATE -Wall -Wextra -Wpedantic)
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    target_compile_options(bitchat PRIVATE -Wall -Wextra -Wpedantic)
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-    target_compile_options(bitchat PRIVATE /W4)
-endif()
+# Apply compiler flags to main executable
+apply_compiler_flags(bitchat)
 
 # AddressSanitizer option
-option(ENABLE_ASAN "Enable AddressSanitizer" ON)
-
 if(ENABLE_ASAN)
     message(STATUS "Building with AddressSanitizer enabled")
     set(ASAN_FLAGS -fsanitize=address -fno-omit-frame-pointer)
     target_compile_options(bitchat PRIVATE ${ASAN_FLAGS})
     target_link_options(bitchat PRIVATE -fsanitize=address)
+endif()
+
+if(ENABLE_TESTS)
+    add_subdirectory(tests)
 endif()
 
 # Install target
@@ -153,3 +173,4 @@ message(STATUS "Platform: ${CMAKE_SYSTEM_NAME}")
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID}")
 message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "Testing enabled: ${ENABLE_TESTS}")

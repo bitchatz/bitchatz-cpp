@@ -26,7 +26,7 @@ public:
     ~NetworkManager();
 
     // Initialize the network manager
-    bool initialize(std::unique_ptr<BluetoothInterface> bluetooth);
+    bool initialize(std::shared_ptr<BluetoothInterface> bluetooth);
 
     // Set local peer ID
     void setLocalPeerID(const std::string &peerID);
@@ -81,7 +81,7 @@ public:
 
 private:
     // Bluetooth interface
-    std::unique_ptr<BluetoothInterface> bluetoothInterface;
+    std::shared_ptr<BluetoothInterface> bluetoothInterface;
 
     // Network state
     std::map<std::string, BitchatPeer> onlinePeers;

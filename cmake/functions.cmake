@@ -1,0 +1,10 @@
+# Function to apply compiler flags consistently across targets
+function(apply_compiler_flags target)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+        target_compile_options(${target} PRIVATE /W4)
+    endif()
+endfunction()

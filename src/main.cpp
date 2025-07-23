@@ -10,7 +10,7 @@
 using namespace bitchat;
 
 // Global manager instance
-std::unique_ptr<bitchat::BitchatManager> manager;
+std::shared_ptr<bitchat::BitchatManager> manager;
 
 // Callback functions for UI updates
 void onMessageReceived(const BitchatMessage &message)
@@ -150,7 +150,7 @@ int main()
     spdlog::info("=== Bitchat Terminal Client ===");
 
     // Create and initialize manager
-    manager = std::make_unique<bitchat::BitchatManager>();
+    manager = std::make_shared<bitchat::BitchatManager>();
 
     // Set callbacks
     manager->setMessageCallback(onMessageReceived);

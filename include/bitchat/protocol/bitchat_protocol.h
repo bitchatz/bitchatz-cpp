@@ -193,12 +193,12 @@ struct BitchatErrorMessage : public BitchatMessage
 class BitchatMessageFactory
 {
 public:
-    static std::unique_ptr<BitchatMessage> createMessage(BitchatMessageType type);
-    static std::unique_ptr<BitchatMessage> parseMessage(const std::vector<uint8_t> &data);
+    static std::shared_ptr<BitchatMessage> createMessage(BitchatMessageType type);
+    static std::shared_ptr<BitchatMessage> parseMessage(const std::vector<uint8_t> &data);
     static std::vector<uint8_t> serializeMessage(const BitchatMessage &message);
 
 private:
-    static std::unique_ptr<BitchatMessage> createMessageFromJson(const nlohmann::json &json);
+    static std::shared_ptr<BitchatMessage> createMessageFromJson(const nlohmann::json &json);
 };
 
 // MARK: - Protocol Validator

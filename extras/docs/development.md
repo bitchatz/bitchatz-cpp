@@ -106,7 +106,7 @@ cmake --build . --config Release
 
 - **C++20 Features** 🚀: Use modern C++ features where appropriate
 - **RAII Principles** 🏗️: Resource Acquisition Is Initialization
-- **Smart Pointers** 🧠: Use `std::unique_ptr` and `std::shared_ptr` for memory management
+- **Smart Pointers** 🧠: Use `std::shared_ptr` for memory management
 - **Exception Safety** 🛡️: Provide strong exception guarantees
 
 ### Naming Conventions
@@ -264,12 +264,12 @@ Update `src/platforms/bluetooth_factory.cpp`:
 #include "bitchat/platform/bluetooth_factory.h"
 #include "platforms/your_platform/bluetooth.h"
 
-std::unique_ptr<bitchat::BluetoothInterface>
+std::shared_ptr<bitchat::BluetoothInterface>
 bitchat::BluetoothFactory::createBluetoothInterface() {
     #ifdef YOUR_PLATFORM_DEFINE
-        return std::make_unique<platforms::your_platform::Bluetooth>();
+        return std::make_shared<platforms::your_platform::Bluetooth>();
     #elif defined(APPLE)
-        return std::make_unique<platforms::apple::Bluetooth>();
+        return std::make_shared<platforms::apple::Bluetooth>();
     #else
         throw std::runtime_error("No Bluetooth implementation available for this platform");
     #endif
@@ -300,14 +300,14 @@ endif()
 class BitchatManagerTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        manager = std::make_unique<bitchat::BitchatManager>();
+        manager = std::make_shared<bitchat::BitchatManager>();
     }
 
     void TearDown() override {
         manager.reset();
     }
 
-    std::unique_ptr<bitchat::BitchatManager> manager;
+    std::shared_ptr<bitchat::BitchatManager> manager;
 };
 
 TEST_F(BitchatManagerTest, InitializeSuccessfully) {
@@ -324,8 +324,8 @@ TEST_F(BitchatManagerTest, SendMessage) {
 
 ```cpp
 TEST_F(IntegrationTest, PeerDiscovery) {
-    auto manager1 = std::make_unique<bitchat::BitchatManager>();
-    auto manager2 = std::make_unique<bitchat::BitchatManager>();
+    auto manager1 = std::make_shared<bitchat::BitchatManager>();
+    auto manager2 = std::make_shared<bitchat::BitchatManager>();
 
     manager1->initialize();
     manager2->initialize();
