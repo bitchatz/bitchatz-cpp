@@ -1,4 +1,4 @@
-.PHONY: help format windows-format clean build run run-windows test
+.PHONY: help format windows-format clean build run run-windows test package
 .DEFAULT_GOAL := help
 
 help:
@@ -10,11 +10,12 @@ help:
 	@echo "- clean"
 	@echo ""
 	@echo "- build"
-	@echo "- build-debug"
+	@echo "- build-dev"
 	@echo "- run"
 	@echo "- run-windows"
 	@echo "- run-leaks"
 	@echo "- test"
+	@echo "- package"
 	@echo ""
 
 format:
@@ -32,9 +33,9 @@ build:
 	cmake -B build . -G Ninja
 	cmake --build build
 
-build-debug:
+build-dev:
 	rm -rf build
-	cmake -B build . -G Ninja -DCMAKE_BUILD_TYPE=Debug
+	cmake -B build . -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=ON
 	cmake --build build
 
 run:
@@ -48,6 +49,9 @@ run-leaks:
 
 test:
 	rm -rf build
-	cmake -B build . -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENABLE_TESTS=ON
+	cmake -B build . -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENABLE_TESTS=ON -DENABLE_ASAN=ON
 	cmake --build build
 	cd build && ctest --output-on-failure --verbose
+
+package: build
+	cd build && cpack

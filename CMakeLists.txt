@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Testing option
-option(ENABLE_ASAN "Enable AddressSanitizer" ON)
+option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
 option(ENABLE_TESTS "Build tests" OFF)
 
 if(ENABLE_TESTS)
@@ -163,3 +163,6 @@ message(STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID}")
 message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Testing enabled: ${ENABLE_TESTS}")
+
+# CPack configuration
+include(cmake/cpack.cmake)
