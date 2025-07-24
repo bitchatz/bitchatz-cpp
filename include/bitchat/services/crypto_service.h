@@ -10,12 +10,12 @@
 namespace bitchat
 {
 
-// CryptoManager: Handles encryption, signatures, and key management
-class CryptoManager
+// CryptoService: Handles encryption, signatures, and key management
+class CryptoService
 {
 public:
-    CryptoManager();
-    ~CryptoManager();
+    CryptoService();
+    ~CryptoService();
 
     // Initialize crypto subsystem
     bool initialize();

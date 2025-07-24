@@ -13,9 +13,9 @@ namespace bitchat
 {
 
 // Forward declarations
-class NetworkManager;
-class CryptoManager;
-class CompressionManager;
+class NetworkService;
+class CryptoService;
+class CompressionHelper;
 
 namespace noise
 {
@@ -23,15 +23,15 @@ namespace noise
 class NoiseSessionManager;
 } // namespace noise
 
-// MessageManager: Manages chat messages, history, and message processing
-class MessageManager
+// MessageService: Manages chat messages, history, and message processing
+class MessageService
 {
 public:
-    MessageManager();
-    ~MessageManager() = default;
+    MessageService();
+    ~MessageService() = default;
 
-    // Initialize the message manager
-    bool initialize(std::shared_ptr<NetworkManager> networkManager, std::shared_ptr<CryptoManager> cryptoManager, std::shared_ptr<CompressionManager> compressionManager, std::shared_ptr<noise::NoiseSessionManager> noiseSessionManager);
+    // Initialize the message service
+    bool initialize(std::shared_ptr<NetworkService> networkService, std::shared_ptr<CryptoService> cryptoService, std::shared_ptr<noise::NoiseSessionManager> noiseSessionManager);
 
     // Send a message to a channel
     bool sendMessage(const std::string &content, const std::string &channel = "");
@@ -75,14 +75,13 @@ public:
     // Process incoming packet
     void processPacket(const BitchatPacket &packet);
 
-    // Check if manager is ready
+    // Check if service is ready
     bool isReady() const;
 
 private:
     // Dependencies
-    std::shared_ptr<NetworkManager> networkManager;
-    std::shared_ptr<CryptoManager> cryptoManager;
-    std::shared_ptr<CompressionManager> compressionManager;
+    std::shared_ptr<NetworkService> networkService;
+    std::shared_ptr<CryptoService> cryptoService;
     std::shared_ptr<noise::NoiseSessionManager> noiseSessionManager;
 
     // State

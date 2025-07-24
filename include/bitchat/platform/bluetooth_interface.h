@@ -13,7 +13,8 @@ class BitchatPacket;
 class BitchatMessage;
 
 // Callback types for Bluetooth transport events
-using PeerDisconnectedCallback = std::function<void(const std::string &peerID)>;
+using PeerConnectedCallback = std::function<void(const std::string &peripheralID)>;
+using PeerDisconnectedCallback = std::function<void(const std::string &peripheralID)>;
 using PacketReceivedCallback = std::function<void(const BitchatPacket &packet)>;
 
 // Abstract Bluetooth interface that platforms must implement
@@ -48,6 +49,7 @@ public:
     virtual void setLocalPeerID(const std::string &peerID) = 0;
 
     // Set callbacks
+    virtual void setPeerConnectedCallback(PeerConnectedCallback callback) = 0;
     virtual void setPeerDisconnectedCallback(PeerDisconnectedCallback callback) = 0;
     virtual void setPacketReceivedCallback(PacketReceivedCallback callback) = 0;
 

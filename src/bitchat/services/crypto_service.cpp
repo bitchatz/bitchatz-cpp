@@ -1,4 +1,4 @@
-#include "bitchat/crypto/crypto_manager.h"
+#include "bitchat/services/crypto_service.h"
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
@@ -12,25 +12,25 @@
 namespace bitchat
 {
 
-CryptoManager::CryptoManager()
+CryptoService::CryptoService()
     : signingPrivateKey(nullptr)
 {
     //
 }
 
-CryptoManager::~CryptoManager()
+CryptoService::~CryptoService()
 {
     cleanup();
 }
 
-bool CryptoManager::initialize()
+bool CryptoService::initialize()
 {
     OpenSSL_add_all_algorithms();
     ERR_load_crypto_strings();
     return true;
 }
 
-void CryptoManager::cleanup()
+void CryptoService::cleanup()
 {
     std::lock_guard<std::mutex> lock(cryptoMutex);
 
@@ -45,7 +45,7 @@ void CryptoManager::cleanup()
     ERR_free_strings();
 }
 
-bool CryptoManager::generateOrLoadKeyPair(const std::string &keyFile)
+bool CryptoService::generateOrLoadKeyPair(const std::string &keyFile)
 {
     std::lock_guard<std::mutex> lock(cryptoMutex);
 
@@ -86,7 +86,7 @@ bool CryptoManager::generateOrLoadKeyPair(const std::string &keyFile)
     return true;
 }
 
-std::vector<uint8_t> CryptoManager::signData(const std::vector<uint8_t> &data)
+std::vector<uint8_t> CryptoService::signData(const std::vector<uint8_t> &data)
 {
     std::lock_guard<std::mutex> lock(cryptoMutex);
 
@@ -136,7 +136,7 @@ std::vector<uint8_t> CryptoManager::signData(const std::vector<uint8_t> &data)
 }
 
 // Private helper functions
-EVP_PKEY *CryptoManager::loadPrivateKey(const std::string &filename)
+EVP_PKEY *CryptoService::loadPrivateKey(const std::string &filename)
 {
     std::ifstream file(filename, std::ios::binary);
     if (!file.is_open())
@@ -158,7 +158,7 @@ EVP_PKEY *CryptoManager::loadPrivateKey(const std::string &filename)
     return pkey;
 }
 
-void CryptoManager::savePrivateKey(EVP_PKEY *pkey, const std::string &filename)
+void CryptoService::savePrivateKey(EVP_PKEY *pkey, const std::string &filename)
 {
     if (!pkey)
     {
@@ -175,7 +175,7 @@ void CryptoManager::savePrivateKey(EVP_PKEY *pkey, const std::string &filename)
     BIO_free(bio);
 }
 
-std::vector<uint8_t> CryptoManager::getPublicKeyBytes(EVP_PKEY *pkey) const
+std::vector<uint8_t> CryptoService::getPublicKeyBytes(EVP_PKEY *pkey) const
 {
     if (!pkey)
     {
@@ -189,7 +189,7 @@ std::vector<uint8_t> CryptoManager::getPublicKeyBytes(EVP_PKEY *pkey) const
     return pubkey;
 }
 
-std::vector<uint8_t> CryptoManager::getCurve25519PrivateKey() const
+std::vector<uint8_t> CryptoService::getCurve25519PrivateKey() const
 {
     std::lock_guard<std::mutex> lock(cryptoMutex);
 

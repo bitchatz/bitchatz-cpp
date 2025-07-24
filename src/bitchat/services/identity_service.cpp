@@ -1,5 +1,5 @@
-#include "bitchat/core/identity_manager.h"
-#include "bitchat/crypto/crypto_manager.h"
+#include "bitchat/services/identity_service.h"
+#include "bitchat/services/crypto_service.h"
 #include <fstream>
 #include <iomanip>
 #include <openssl/evp.h>
@@ -10,15 +10,15 @@
 namespace bitchat
 {
 
-IdentityManager &IdentityManager::getInstance()
+IdentityService &IdentityService::getInstance()
 {
-    static IdentityManager instance;
+    static IdentityService instance;
     return instance;
 }
 
 // MARK: - Identity Resolution
 
-IdentityHint IdentityManager::resolveIdentity(const std::string &peerID [[maybe_unused]], const std::string &claimedNickname)
+IdentityHint IdentityService::resolveIdentity(const std::string &peerID [[maybe_unused]], const std::string &claimedNickname)
 {
     std::lock_guard<std::mutex> lock(mutex);
 
@@ -42,7 +42,7 @@ IdentityHint IdentityManager::resolveIdentity(const std::string &peerID [[maybe_
 
 // MARK: - Social Identity Management
 
-std::shared_ptr<SocialIdentity> IdentityManager::getSocialIdentity(const std::string &fingerprint)
+std::shared_ptr<SocialIdentity> IdentityService::getSocialIdentity(const std::string &fingerprint)
 {
     std::lock_guard<std::mutex> lock(mutex);
 
@@ -55,7 +55,7 @@ std::shared_ptr<SocialIdentity> IdentityManager::getSocialIdentity(const std::st
     return nullptr;
 }
 
-std::vector<SocialIdentity> IdentityManager::getAllSocialIdentities()
+std::vector<SocialIdentity> IdentityService::getAllSocialIdentities()
 {
     std::lock_guard<std::mutex> lock(mutex);
 
@@ -70,7 +70,7 @@ std::vector<SocialIdentity> IdentityManager::getAllSocialIdentities()
     return identities;
 }
 
-void IdentityManager::updateSocialIdentity(const SocialIdentity &identity)
+void IdentityService::updateSocialIdentity(const SocialIdentity &identity)
 {
     std::lock_guard<std::mutex> lock(mutex);
 
@@ -108,7 +108,7 @@ void IdentityManager::updateSocialIdentity(const SocialIdentity &identity)
 
 // MARK: - Favorites Management
 
-std::vector<std::string> IdentityManager::getFavorites()
+std::vector<std::string> IdentityService::getFavorites()
 {
     std::lock_guard<std::mutex> lock(mutex);
 
@@ -124,7 +124,7 @@ std::vector<std::string> IdentityManager::getFavorites()
     return favorites;
 }
 
-void IdentityManager::setFavorite(const std::string &fingerprint, bool isFavorite)
+void IdentityService::setFavorite(const std::string &fingerprint, bool isFavorite)
 {
     std::lock_guard<std::mutex> lock(mutex);
 
@@ -151,7 +151,7 @@ void IdentityManager::setFavorite(const std::string &fingerprint, bool isFavorit
     saveIdentityCache();
 }
 
-bool IdentityManager::isFavorite(const std::string &fingerprint)
+bool IdentityService::isFavorite(const std::string &fingerprint)
 {
     std::lock_guard<std::mutex> lock(mutex);
 
@@ -161,7 +161,7 @@ bool IdentityManager::isFavorite(const std::string &fingerprint)
 
 // MARK: - Blocked Users Management
 
-bool IdentityManager::isBlocked(const std::string &fingerprint)
+bool IdentityService::isBlocked(const std::string &fingerprint)
 {
     std::lock_guard<std::mutex> lock(mutex);
 
@@ -169,7 +169,7 @@ bool IdentityManager::isBlocked(const std::string &fingerprint)
     return (it != cache.socialIdentities.end()) ? it->second.isBlocked : false;
 }
 
-void IdentityManager::setBlocked(const std::string &fingerprint, bool isBlocked)
+void IdentityService::setBlocked(const std::string &fingerprint, bool isBlocked)
 {
     std::lock_guard<std::mutex> lock(mutex);
 
@@ -202,7 +202,7 @@ void IdentityManager::setBlocked(const std::string &fingerprint, bool isBlocked)
 
 // MARK: - Ephemeral Session Management
 
-void IdentityManager::registerEphemeralSession(const std::string &peerID, HandshakeState handshakeState)
+void IdentityService::registerEphemeralSession(const std::string &peerID, HandshakeState handshakeState)
 {
     std::lock_guard<std::mutex> lock(mutex);
 
@@ -214,7 +214,7 @@ void IdentityManager::registerEphemeralSession(const std::string &peerID, Handsh
     ephemeralSessions[peerID] = identity;
 }
 
-void IdentityManager::updateHandshakeState(const std::string &peerID, HandshakeState state, const std::string &fingerprint, const std::string &failureReason)
+void IdentityService::updateHandshakeState(const std::string &peerID, HandshakeState state, const std::string &fingerprint, const std::string &failureReason)
 {
     std::lock_guard<std::mutex> lock(mutex);
 
@@ -236,7 +236,7 @@ void IdentityManager::updateHandshakeState(const std::string &peerID, HandshakeS
     }
 }
 
-HandshakeState IdentityManager::getHandshakeState(const std::string &peerID)
+HandshakeState IdentityService::getHandshakeState(const std::string &peerID)
 {
     std::lock_guard<std::mutex> lock(mutex);
 
@@ -246,13 +246,13 @@ HandshakeState IdentityManager::getHandshakeState(const std::string &peerID)
 
 // MARK: - Pending Actions
 
-void IdentityManager::setPendingAction(const std::string &peerID, const PendingActions &action)
+void IdentityService::setPendingAction(const std::string &peerID, const PendingActions &action)
 {
     std::lock_guard<std::mutex> lock(mutex);
     pendingActions[peerID] = action;
 }
 
-void IdentityManager::applyPendingActions(const std::string &peerID, const std::string &fingerprint)
+void IdentityService::applyPendingActions(const std::string &peerID, const std::string &fingerprint)
 {
     std::lock_guard<std::mutex> lock(mutex);
 
@@ -305,7 +305,7 @@ void IdentityManager::applyPendingActions(const std::string &peerID, const std::
 
 // MARK: - Verification
 
-void IdentityManager::setVerified(const std::string &fingerprint, bool verified)
+void IdentityService::setVerified(const std::string &fingerprint, bool verified)
 {
     std::lock_guard<std::mutex> lock(mutex);
 
@@ -333,7 +333,7 @@ void IdentityManager::setVerified(const std::string &fingerprint, bool verified)
     saveIdentityCache();
 }
 
-bool IdentityManager::isVerified(const std::string &fingerprint)
+bool IdentityService::isVerified(const std::string &fingerprint)
 {
     std::lock_guard<std::mutex> lock(mutex);
 
@@ -342,7 +342,7 @@ bool IdentityManager::isVerified(const std::string &fingerprint)
 
 // MARK: - Cleanup
 
-void IdentityManager::clearAllIdentityData()
+void IdentityService::clearAllIdentityData()
 {
     std::lock_guard<std::mutex> lock(mutex);
 
@@ -354,7 +354,7 @@ void IdentityManager::clearAllIdentityData()
     // TODO: Delete from persistent storage
 }
 
-void IdentityManager::removeEphemeralSession(const std::string &peerID)
+void IdentityService::removeEphemeralSession(const std::string &peerID)
 {
     std::lock_guard<std::mutex> lock(mutex);
     ephemeralSessions.erase(peerID);
@@ -363,14 +363,14 @@ void IdentityManager::removeEphemeralSession(const std::string &peerID)
 
 // MARK: - Persistence
 
-bool IdentityManager::loadIdentityCache()
+bool IdentityService::loadIdentityCache()
 {
     // TODO: Implement loading from encrypted storage
     // For now, start with empty cache
     return true;
 }
 
-bool IdentityManager::saveIdentityCache()
+bool IdentityService::saveIdentityCache()
 {
     // TODO: Implement saving to encrypted storage
     // For now, just return success
@@ -379,7 +379,7 @@ bool IdentityManager::saveIdentityCache()
 
 // MARK: - Helper Methods
 
-std::string IdentityManager::generateFingerprint(const std::vector<uint8_t> &publicKey)
+std::string IdentityService::generateFingerprint(const std::vector<uint8_t> &publicKey)
 {
     // Use modern OpenSSL EVP interface instead of deprecated SHA256_* functions
     EVP_MD_CTX *ctx = EVP_MD_CTX_new();
@@ -419,16 +419,16 @@ std::string IdentityManager::generateFingerprint(const std::vector<uint8_t> &pub
     return ss.str();
 }
 
-std::vector<uint8_t> IdentityManager::encryptCache(const IdentityCache &cache [[maybe_unused]])
+std::vector<uint8_t> IdentityService::encryptCache(const IdentityCache &cache [[maybe_unused]])
 {
-    // TODO: Implement encryption using CryptoManager
+    // TODO: Implement encryption using CryptoService
     // For now, return empty vector
     return std::vector<uint8_t>();
 }
 
-IdentityCache IdentityManager::decryptCache(const std::vector<uint8_t> &encryptedData [[maybe_unused]])
+IdentityCache IdentityService::decryptCache(const std::vector<uint8_t> &encryptedData [[maybe_unused]])
 {
-    // TODO: Implement decryption using CryptoManager
+    // TODO: Implement decryption using CryptoService
     // For now, return empty cache
     return IdentityCache();
 }

@@ -12,6 +12,7 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
 @implementation AppleBluetooth
 {
     // Instance variables for callback properties
+    void (^peerConnectedCallback)(NSString *);    // Callback when a peer connects
     void (^peerDisconnectedCallback)(NSString *); // Callback when a peer disconnects
     void (^packetReceivedCallback)(NSData *);     // Callback when a packet is received
 }
@@ -19,6 +20,25 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
 // ============================================================================
 // Callback Properties - Manual getters and setters
 // ============================================================================
+
+/**
+ * @brief Getter for peer connection callback
+ * @return The stored callback block
+ */
+- (void (^)(NSString *))peerConnectedCallback
+{
+    return peerConnectedCallback;
+}
+
+/**
+ * @brief Setter for peer connection callback
+ * @param callback The callback block to store
+ */
+- (void)setPeerConnectedCallback:(void (^)(NSString *))callback
+{
+    // Copy to ensure block survives
+    peerConnectedCallback = [callback copy];
+}
 
 /**
  * @brief Getter for peer disconnection callback
@@ -388,9 +408,14 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
     didConnectPeripheral:(CBPeripheral *)peripheral
 {
     // Use UUID as temporary peer ID until we get the real one from announce packet
-    NSString *tempID = peripheral.identifier.UUIDString;
-    [self.connectedPeripherals setObject:peripheral forKey:tempID];          // Store connected peripheral
+    NSString *peripheralID = peripheral.identifier.UUIDString;
+    [self.connectedPeripherals setObject:peripheral forKey:peripheralID];    // Store connected peripheral
     [peripheral discoverServices:@[ [CBUUID UUIDWithString:SERVICE_UUID] ]]; // Discover our service
+
+    if (self.peerConnectedCallback)
+    {
+        self.peerConnectedCallback(peripheralID);
+    }
 }
 
 /**
@@ -407,13 +432,13 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
     didDisconnectPeripheral:(CBPeripheral *)peripheral
                       error:(NSError *)error
 {
-    NSString *tempID = peripheral.identifier.UUIDString;
-    [self.connectedPeripherals removeObjectForKey:tempID];          // Remove from connected devices
+    NSString *peripheralID = peripheral.identifier.UUIDString;
+    [self.connectedPeripherals removeObjectForKey:peripheralID];    // Remove from connected devices
     [self.peripheralCharacteristics removeObjectForKey:peripheral]; // Remove characteristic reference
 
     if (self.peerDisconnectedCallback)
     {
-        self.peerDisconnectedCallback(tempID);
+        self.peerDisconnectedCallback(peripheralID);
     }
 }
 

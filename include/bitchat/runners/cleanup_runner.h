@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bitchat/core/network_manager.h"
+#include "bitchat/services/network_service.h"
 #include <atomic>
 #include <memory>
 #include <thread>
@@ -9,7 +9,7 @@ namespace bitchat
 {
 
 // Forward declarations
-class NetworkManager;
+class NetworkService;
 
 // CleanupRunner: Handles periodic cleanup of stale peers
 class CleanupRunner
@@ -18,8 +18,8 @@ public:
     CleanupRunner();
     ~CleanupRunner();
 
-    // Set the network manager
-    void setNetworkManager(std::shared_ptr<NetworkManager> networkManager);
+    // Set the network service
+    void setNetworkService(std::shared_ptr<NetworkService> networkService);
 
     // Start the cleanup loop
     bool start();
@@ -31,8 +31,8 @@ public:
     bool isRunning() const;
 
 private:
-    // Network manager reference
-    std::shared_ptr<NetworkManager> networkManager;
+    // Network service reference
+    std::shared_ptr<NetworkService> networkService;
 
     // Threading
     std::atomic<bool> shouldExit;

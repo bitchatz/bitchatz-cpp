@@ -1,54 +1,53 @@
-#include "bitchat/core/message_manager.h"
-#include "bitchat/compression/compression_manager.h"
-#include "bitchat/core/network_manager.h"
-#include "bitchat/crypto/crypto_manager.h"
+#include "bitchat/services/message_service.h"
+#include "bitchat/helpers/compression_helper.h"
 #include "bitchat/helpers/datetime_helper.h"
 #include "bitchat/helpers/protocol_helper.h"
 #include "bitchat/helpers/string_helper.h"
 #include "bitchat/noise/noise_session.h"
 #include "bitchat/protocol/packet_serializer.h"
+#include "bitchat/services/crypto_service.h"
+#include "bitchat/services/network_service.h"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
 namespace bitchat
 {
 
-MessageManager::MessageManager()
+MessageService::MessageService()
     : currentChannel("")
 {
     nickname = StringHelper::randomNickname();
 }
 
-bool MessageManager::initialize(std::shared_ptr<NetworkManager> network, std::shared_ptr<CryptoManager> crypto, std::shared_ptr<CompressionManager> compression, std::shared_ptr<noise::NoiseSessionManager> noise)
+bool MessageService::initialize(std::shared_ptr<NetworkService> network, std::shared_ptr<CryptoService> crypto, std::shared_ptr<noise::NoiseSessionManager> noise)
 {
-    networkManager = network;
-    cryptoManager = crypto;
-    compressionManager = compression;
+    networkService = network;
+    cryptoService = crypto;
     noiseSessionManager = noise;
 
-    if (!networkManager || !cryptoManager || !compressionManager)
+    if (!networkService || !cryptoService)
     {
-        spdlog::error("MessageManager: Invalid dependencies provided");
+        spdlog::error("MessageService: Invalid dependencies provided");
         return false;
     }
 
     // Set up network callbacks
     // clang-format off
-    networkManager->setPacketReceivedCallback([this](const BitchatPacket &packet) {
+    networkService->setPacketReceivedCallback([this](const BitchatPacket &packet) {
         onPacketReceived(packet);
     });
     // clang-format on
 
-    spdlog::info("MessageManager initialized");
+    spdlog::info("MessageService initialized");
 
     return true;
 }
 
-bool MessageManager::sendMessage(const std::string &content, const std::string &channel)
+bool MessageService::sendMessage(const std::string &content, const std::string &channel)
 {
     if (!isReady())
     {
-        spdlog::error("MessageManager: Not ready to send message");
+        spdlog::error("MessageService: Not ready to send message");
         return false;
     }
 
@@ -60,7 +59,7 @@ bool MessageManager::sendMessage(const std::string &content, const std::string &
 
     // Create and send packet
     BitchatPacket packet = createMessagePacket(message);
-    bool success = networkManager->sendPacket(packet);
+    bool success = networkService->sendPacket(packet);
 
     if (success)
     {
@@ -76,11 +75,11 @@ bool MessageManager::sendMessage(const std::string &content, const std::string &
     return success;
 }
 
-bool MessageManager::sendPrivateMessage(const std::string &content, const std::string &recipientNickname)
+bool MessageService::sendPrivateMessage(const std::string &content, const std::string &recipientNickname)
 {
     if (!isReady())
     {
-        spdlog::error("MessageManager: Not ready to send private message");
+        spdlog::error("MessageService: Not ready to send private message");
         return false;
     }
 
@@ -92,7 +91,7 @@ bool MessageManager::sendPrivateMessage(const std::string &content, const std::s
 
     // Create and send packet
     BitchatPacket packet = createMessagePacket(message);
-    bool success = networkManager->sendPacket(packet);
+    bool success = networkService->sendPacket(packet);
 
     if (success)
     {
@@ -106,11 +105,11 @@ bool MessageManager::sendPrivateMessage(const std::string &content, const std::s
     return success;
 }
 
-void MessageManager::joinChannel(const std::string &channel)
+void MessageService::joinChannel(const std::string &channel)
 {
     if (channel.empty())
     {
-        spdlog::error("MessageManager: Cannot join empty channel");
+        spdlog::error("MessageService: Cannot join empty channel");
         return;
     }
 
@@ -133,7 +132,7 @@ void MessageManager::joinChannel(const std::string &channel)
 
     // Send channel announce packet
     BitchatPacket packet = createChannelAnnouncePacket(currentChannel, true);
-    networkManager->sendPacket(packet);
+    networkService->sendPacket(packet);
 
     if (channelJoinedCallback)
     {
@@ -143,7 +142,7 @@ void MessageManager::joinChannel(const std::string &channel)
     spdlog::info("Joined channel: {}", currentChannel);
 }
 
-void MessageManager::leaveChannel()
+void MessageService::leaveChannel()
 {
     if (currentChannel.empty())
     {
@@ -152,7 +151,7 @@ void MessageManager::leaveChannel()
 
     // Send channel leave packet
     BitchatPacket packet = createChannelAnnouncePacket(currentChannel, false);
-    networkManager->sendPacket(packet);
+    networkService->sendPacket(packet);
 
     std::string oldChannel = currentChannel;
     currentChannel.clear();
@@ -165,12 +164,12 @@ void MessageManager::leaveChannel()
     spdlog::info("Left channel: {}", oldChannel);
 }
 
-std::string MessageManager::getCurrentChannel() const
+std::string MessageService::getCurrentChannel() const
 {
     return currentChannel;
 }
 
-std::vector<BitchatMessage> MessageManager::getMessageHistory() const
+std::vector<BitchatMessage> MessageService::getMessageHistory() const
 {
     if (currentChannel.empty())
     {
@@ -180,7 +179,7 @@ std::vector<BitchatMessage> MessageManager::getMessageHistory() const
     return getMessageHistory(currentChannel);
 }
 
-std::vector<BitchatMessage> MessageManager::getMessageHistory(const std::string &channel) const
+std::vector<BitchatMessage> MessageService::getMessageHistory(const std::string &channel) const
 {
     std::lock_guard<std::mutex> lock(historyMutex);
 
@@ -193,56 +192,56 @@ std::vector<BitchatMessage> MessageManager::getMessageHistory(const std::string 
     return {};
 }
 
-void MessageManager::clearMessageHistory()
+void MessageService::clearMessageHistory()
 {
     std::lock_guard<std::mutex> lock(historyMutex);
     messageHistory.clear();
 }
 
-void MessageManager::setNickname(const std::string &nick)
+void MessageService::setNickname(const std::string &nick)
 {
     nickname = nick;
 
     // Update network manager nickname for announce packets
-    if (networkManager)
+    if (networkService)
     {
-        networkManager->setNickname(nick);
+        networkService->setNickname(nick);
     }
 
     spdlog::info("Nickname changed to: {}", nickname);
 }
 
-std::string MessageManager::getNickname() const
+std::string MessageService::getNickname() const
 {
     return nickname;
 }
 
-void MessageManager::setMessageReceivedCallback(MessageReceivedCallback callback)
+void MessageService::setMessageReceivedCallback(MessageReceivedCallback callback)
 {
     messageReceivedCallback = callback;
 }
 
-void MessageManager::setChannelJoinedCallback(ChannelJoinedCallback callback)
+void MessageService::setChannelJoinedCallback(ChannelJoinedCallback callback)
 {
     channelJoinedCallback = callback;
 }
 
-void MessageManager::setChannelLeftCallback(ChannelLeftCallback callback)
+void MessageService::setChannelLeftCallback(ChannelLeftCallback callback)
 {
     channelLeftCallback = callback;
 }
 
-void MessageManager::processPacket(const BitchatPacket &packet)
+void MessageService::processPacket(const BitchatPacket &packet)
 {
     onPacketReceived(packet);
 }
 
-bool MessageManager::isReady() const
+bool MessageService::isReady() const
 {
-    return networkManager && networkManager->isReady();
+    return networkService && networkService->isReady();
 }
 
-void MessageManager::onPacketReceived(const BitchatPacket &packet)
+void MessageService::onPacketReceived(const BitchatPacket &packet)
 {
     switch (packet.getType())
     {
@@ -258,7 +257,7 @@ void MessageManager::onPacketReceived(const BitchatPacket &packet)
     }
 }
 
-void MessageManager::processMessagePacket(const BitchatPacket &packet)
+void MessageService::processMessagePacket(const BitchatPacket &packet)
 {
     try
     {
@@ -276,7 +275,7 @@ void MessageManager::processMessagePacket(const BitchatPacket &packet)
 
         // Ignore messages from ourselves to prevent duplication
         std::string senderID = StringHelper::toHex(packet.getSenderID());
-        std::string localPeerID = networkManager->getLocalPeerID();
+        std::string localPeerID = networkService->getLocalPeerID();
         spdlog::debug("Message sender ID: {}, Local peer ID: {}", senderID, localPeerID);
 
         if (senderID == localPeerID)
@@ -336,7 +335,7 @@ void MessageManager::processMessagePacket(const BitchatPacket &packet)
     }
 }
 
-void MessageManager::processChannelAnnouncePacket(const BitchatPacket &packet)
+void MessageService::processChannelAnnouncePacket(const BitchatPacket &packet)
 {
     try
     {
@@ -346,12 +345,12 @@ void MessageManager::processChannelAnnouncePacket(const BitchatPacket &packet)
         serializer.parseChannelAnnouncePayload(packet.getPayload(), channel, joining);
 
         std::string peerID = StringHelper::toHex(packet.getSenderID());
-        auto peerInfo = networkManager->getPeerInfo(peerID);
+        auto peerInfo = networkService->getPeerInfo(peerID);
 
         if (peerInfo)
         {
             peerInfo->setChannel(joining ? channel : "");
-            networkManager->updatePeerInfo(peerID, *peerInfo);
+            networkService->updatePeerInfo(peerID, *peerInfo);
         }
 
         spdlog::debug("Processed channel announce: {} {} channel {}", peerID, joining ? "joined" : "left", channel);
@@ -362,7 +361,7 @@ void MessageManager::processChannelAnnouncePacket(const BitchatPacket &packet)
     }
 }
 
-void MessageManager::addMessageToHistory(const BitchatMessage &message)
+void MessageService::addMessageToHistory(const BitchatMessage &message)
 {
     std::lock_guard<std::mutex> lock(historyMutex);
 
@@ -382,13 +381,13 @@ void MessageManager::addMessageToHistory(const BitchatMessage &message)
     }
 }
 
-bool MessageManager::wasMessageProcessed(const std::string &messageID)
+bool MessageService::wasMessageProcessed(const std::string &messageID)
 {
     std::lock_guard<std::mutex> lock(processedMutex);
     return processedMessages.find(messageID) != processedMessages.end();
 }
 
-void MessageManager::markMessageProcessed(const std::string &messageID)
+void MessageService::markMessageProcessed(const std::string &messageID)
 {
     std::lock_guard<std::mutex> lock(processedMutex);
     processedMessages.insert(messageID);
@@ -402,15 +401,15 @@ void MessageManager::markMessageProcessed(const std::string &messageID)
     }
 }
 
-BitchatPacket MessageManager::createMessagePacket(const BitchatMessage &message)
+BitchatPacket MessageService::createMessagePacket(const BitchatMessage &message)
 {
     PacketSerializer serializer;
     std::vector<uint8_t> payload = serializer.makeMessagePayload(message);
 
     // Compress payload if beneficial
-    if (compressionManager && compressionManager->shouldCompress(payload))
+    if (CompressionHelper::shouldCompress(payload))
     {
-        payload = compressionManager->compressData(payload);
+        payload = CompressionHelper::compressData(payload);
     }
 
     // Check if we should encrypt this message with Noise
@@ -449,9 +448,9 @@ BitchatPacket MessageManager::createMessagePacket(const BitchatMessage &message)
     }
 
     BitchatPacket packet(packetType, payload);
-    packet.setSenderID(StringHelper::stringToVector(networkManager->getLocalPeerID()));
+    packet.setSenderID(StringHelper::stringToVector(networkService->getLocalPeerID()));
     packet.setTimestamp(DateTimeHelper::getCurrentTimestamp());
-    packet.setCompressed(compressionManager && compressionManager->shouldCompress(payload));
+    packet.setCompressed(CompressionHelper::shouldCompress(payload));
 
     // Set recipient ID for channel messages (broadcast)
     if (!message.isPrivate())
@@ -462,9 +461,9 @@ BitchatPacket MessageManager::createMessagePacket(const BitchatMessage &message)
     }
 
     // Sign packet if crypto manager is available
-    if (cryptoManager)
+    if (cryptoService)
     {
-        std::vector<uint8_t> signature = cryptoManager->signData(payload);
+        std::vector<uint8_t> signature = cryptoService->signData(payload);
         packet.setSignature(signature);
         packet.setHasSignature(true);
     }
@@ -472,19 +471,19 @@ BitchatPacket MessageManager::createMessagePacket(const BitchatMessage &message)
     return packet;
 }
 
-BitchatPacket MessageManager::createAnnouncePacket()
+BitchatPacket MessageService::createAnnouncePacket()
 {
     PacketSerializer serializer;
     std::vector<uint8_t> payload = serializer.makeAnnouncePayload(nickname);
 
     BitchatPacket packet(PKT_TYPE_ANNOUNCE, payload);
-    packet.setSenderID(StringHelper::stringToVector(networkManager->getLocalPeerID()));
+    packet.setSenderID(StringHelper::stringToVector(networkService->getLocalPeerID()));
     packet.setTimestamp(DateTimeHelper::getCurrentTimestamp());
 
     return packet;
 }
 
-BitchatPacket MessageManager::createChannelAnnouncePacket(const std::string &channel, bool joining)
+BitchatPacket MessageService::createChannelAnnouncePacket(const std::string &channel, bool joining)
 {
     PacketSerializer serializer;
     std::vector<uint8_t> payload = serializer.makeChannelAnnouncePayload(channel, joining);
@@ -495,7 +494,7 @@ BitchatPacket MessageManager::createChannelAnnouncePacket(const std::string &cha
     return packet;
 }
 
-std::string MessageManager::generateMessageID() const
+std::string MessageService::generateMessageID() const
 {
     return StringHelper::uuidv4();
 }

@@ -91,12 +91,12 @@ struct PrivacySettings
     bool shareTrustNetworkHints = false;
 };
 
-// MARK: - Identity Manager
+// MARK: - Identity Service
 
-class IdentityManager
+class IdentityService
 {
 public:
-    static IdentityManager &getInstance();
+    static IdentityService &getInstance();
 
     // Identity Resolution
     IdentityHint resolveIdentity(const std::string &peerID, const std::string &claimedNickname);
@@ -137,10 +137,10 @@ public:
     bool saveIdentityCache();
 
 private:
-    IdentityManager() = default;
-    ~IdentityManager() = default;
-    IdentityManager(const IdentityManager &) = delete;
-    IdentityManager &operator=(const IdentityManager &) = delete;
+    IdentityService() = default;
+    ~IdentityService() = default;
+    IdentityService(const IdentityService &) = delete;
+    IdentityService &operator=(const IdentityService &) = delete;
 
     // In-memory state
     std::unordered_map<std::string, EphemeralIdentity> ephemeralSessions;

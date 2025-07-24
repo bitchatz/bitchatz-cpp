@@ -26,6 +26,7 @@ public:
     bool isReady() const override;
     std::string getLocalPeerID() const override;
     void setLocalPeerID(const std::string &peerID) override;
+    void setPeerConnectedCallback(PeerConnectedCallback callback) override;
     void setPeerDisconnectedCallback(PeerDisconnectedCallback callback) override;
     void setPacketReceivedCallback(PacketReceivedCallback callback) override;
     size_t getConnectedPeersCount() const override;
@@ -45,6 +46,7 @@ private:
     std::atomic<bool> stopThreads;
 
     PacketReceivedCallback packetReceivedCallback;
+    PeerConnectedCallback peerConnectedCallback;
     PeerDisconnectedCallback peerDisconnectedCallback;
 
     std::map<std::string, int> connectedSockets;

@@ -16,16 +16,16 @@ CleanupRunner::~CleanupRunner()
     stop();
 }
 
-void CleanupRunner::setNetworkManager(std::shared_ptr<NetworkManager> manager)
+void CleanupRunner::setNetworkService(std::shared_ptr<NetworkService> networkService)
 {
-    networkManager = manager;
+    this->networkService = networkService;
 }
 
 bool CleanupRunner::start()
 {
-    if (!networkManager)
+    if (!networkService)
     {
-        spdlog::error("CleanupRunner: Cannot start without NetworkManager");
+        spdlog::error("CleanupRunner: Cannot start without NetworkService");
         return false;
     }
 
@@ -72,9 +72,9 @@ void CleanupRunner::runnerLoop()
     {
         try
         {
-            if (networkManager)
+            if (networkService)
             {
-                networkManager->cleanupStalePeers(PEER_TIMEOUT);
+                networkService->cleanupStalePeers(PEER_TIMEOUT);
             }
 
             std::this_thread::sleep_for(std::chrono::seconds(CLEANUP_INTERVAL));

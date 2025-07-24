@@ -80,20 +80,20 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/src/bitchat/helpers/chat_helper.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/helpers/string_helper.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/helpers/datetime_helper.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/helpers/compression_helper.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/protocol/packet.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/protocol/message_padding.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/protocol/packet_serializer.cpp
-    ${CMAKE_SOURCE_DIR}/src/bitchat/compression/compression_manager.cpp
-    ${CMAKE_SOURCE_DIR}/src/bitchat/crypto/crypto_manager.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/core/bitchat_manager.cpp
-    ${CMAKE_SOURCE_DIR}/src/bitchat/core/network_manager.cpp
-    ${CMAKE_SOURCE_DIR}/src/bitchat/core/message_manager.cpp
-    ${CMAKE_SOURCE_DIR}/src/bitchat/core/identity_manager.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/runners/bluetooth_announce_runner.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/runners/cleanup_runner.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/noise/noise_protocol.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/noise/noise_session.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/identity/identity_models.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/services/message_service.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/services/network_service.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/services/crypto_service.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/services/identity_service.cpp
 )
 
 set(SOURCES

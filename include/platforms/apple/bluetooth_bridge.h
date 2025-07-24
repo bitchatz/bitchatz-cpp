@@ -35,6 +35,7 @@ private:
     std::shared_ptr<bitchat::PacketSerializer> serializer; // Handles packet serialization/deserialization
 
     // Callback function pointers for C++ interface
+    PeerConnectedCallback peerConnectedCallback;       // Called when a peer connects
     PeerDisconnectedCallback peerDisconnectedCallback; // Called when a peer disconnects
     PacketReceivedCallback packetReceivedCallback;     // Called when a packet is received
 
@@ -98,6 +99,12 @@ public:
      * @param peerID The peer ID to set
      */
     void setLocalPeerID(const std::string &peerID) override;
+
+    /**
+     * @brief Set callback for peer connection events
+     * @param callback Function to call when a peer connects
+     */
+    void setPeerConnectedCallback(PeerConnectedCallback callback) override;
 
     /**
      * @brief Set callback for peer disconnection events

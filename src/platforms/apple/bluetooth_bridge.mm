@@ -21,13 +21,22 @@ AppleBluetoothBridge::AppleBluetoothBridge()
     {
         // Set up callback bridges to translate Objective-C callbacks to C++
 
+        // Bridge for peer connection events
+        [impl setPeerConnectedCallback:^(NSString *uuid) {
+            if (peerConnectedCallback)
+            {
+                std::string cppUUID = [uuid UTF8String];
+                peerConnectedCallback(cppUUID);
+            }
+        }];
+
         // Bridge for peer disconnection events
-        [impl setPeerDisconnectedCallback:^(NSString *peerID) {
+        [impl setPeerDisconnectedCallback:^(NSString *uuid) {
             if (peerDisconnectedCallback)
             {
                 // Convert NSString to std::string for C++ callback
-                std::string cppPeerID = [peerID UTF8String];
-                peerDisconnectedCallback(cppPeerID);
+                std::string cppUUID = [uuid UTF8String];
+                peerDisconnectedCallback(cppUUID);
             }
         }];
 
@@ -159,6 +168,12 @@ void AppleBluetoothBridge::setLocalPeerID(const std::string &peerID)
 
     // Forward to Objective-C implementation
     [impl setLocalPeerID:nsPeerID];
+}
+
+void AppleBluetoothBridge::setPeerConnectedCallback(PeerConnectedCallback callback)
+{
+    // Store C++ callback function
+    peerConnectedCallback = callback;
 }
 
 void AppleBluetoothBridge::setPeerDisconnectedCallback(PeerDisconnectedCallback callback)

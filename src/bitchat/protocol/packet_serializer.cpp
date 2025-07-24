@@ -1,9 +1,9 @@
 #include "bitchat/protocol/packet_serializer.h"
-#include "bitchat/compression/compression_manager.h"
-#include "bitchat/crypto/crypto_manager.h"
+#include "bitchat/helpers/compression_helper.h"
 #include "bitchat/helpers/datetime_helper.h"
 #include "bitchat/helpers/string_helper.h"
 #include "bitchat/protocol/message_padding.h"
+#include "bitchat/services/crypto_service.h"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
@@ -16,16 +16,15 @@ std::vector<uint8_t> PacketSerializer::serializePacket(const BitchatPacket &pack
 {
     std::vector<uint8_t> data;
 
-    // Try to compress payload if beneficial
+    // Compress payload if beneficial
     std::vector<uint8_t> payload = packet.getPayload();
     uint16_t originalPayloadSize = 0;
     bool isCompressed = false;
 
-    CompressionManager compressionManager;
-
-    if (compressionManager.shouldCompress(packet.getPayload()))
+    if (CompressionHelper::shouldCompress(packet.getPayload()))
     {
-        std::vector<uint8_t> compressedPayload = compressionManager.compressData(packet.getPayload());
+        std::vector<uint8_t> compressedPayload = CompressionHelper::compressData(packet.getPayload());
+
         if (compressedPayload.size() < packet.getPayload().size())
         {
             originalPayloadSize = packet.getPayload().size();
@@ -169,8 +168,7 @@ BitchatPacket PacketSerializer::deserializePacket(const std::vector<uint8_t> &da
         offset += packet.getPayloadLength() - 2;
 
         // Decompress
-        CompressionManager compressionManager;
-        std::vector<uint8_t> payload = compressionManager.decompressData(compressedPayload, originalSize);
+        std::vector<uint8_t> payload = CompressionHelper::decompressData(compressedPayload, originalSize);
         packet.setPayload(payload);
     }
     else

@@ -25,6 +25,7 @@ LinuxBluetooth::LinuxBluetooth()
     , rfcommSocket(-1)
     , stopThreads(false)
     , packetReceivedCallback(nullptr)
+    , peerConnectedCallback(nullptr)
     , peerDisconnectedCallback(nullptr)
 {
     deviceID = hci_get_route(nullptr);
@@ -176,6 +177,11 @@ void LinuxBluetooth::setLocalPeerID(const std::string &peerID)
     localPeerID = peerID;
 }
 
+void LinuxBluetooth::setPeerConnectedCallback(PeerConnectedCallback callback)
+{
+    peerConnectedCallback = callback;
+}
+
 void LinuxBluetooth::setPeerDisconnectedCallback(PeerDisconnectedCallback callback)
 {
     peerDisconnectedCallback = callback;
@@ -245,6 +251,13 @@ void LinuxBluetooth::scanThreadFunc()
                 std::lock_guard<std::mutex> lock(socketsMutex);
                 connectedSockets[deviceID] = s;
                 spdlog::info("Connected to device: {}", deviceID);
+
+                // Notify about peer connection
+                if (peerConnectedCallback)
+                {
+                    peerConnectedCallback(deviceID);
+                }
+
                 std::thread(&LinuxBluetooth::readerThreadFunc, this, deviceID, s).detach();
             }
             else
@@ -317,6 +330,13 @@ void LinuxBluetooth::acceptThreadFunc()
         std::lock_guard<std::mutex> lock(socketsMutex);
         connectedSockets[deviceID] = client;
         spdlog::info("Accepted connection from device: {}", deviceID);
+
+        // Notify about peer connection
+        if (peerConnectedCallback)
+        {
+            peerConnectedCallback(deviceID);
+        }
+
         std::thread(&LinuxBluetooth::readerThreadFunc, this, deviceID, client).detach();
     }
 

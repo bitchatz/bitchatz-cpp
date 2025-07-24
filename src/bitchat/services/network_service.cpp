@@ -1,4 +1,4 @@
-#include "bitchat/core/network_manager.h"
+#include "bitchat/services/network_service.h"
 #include "bitchat/helpers/datetime_helper.h"
 #include "bitchat/helpers/protocol_helper.h"
 #include "bitchat/helpers/string_helper.h"
@@ -12,23 +12,23 @@
 namespace bitchat
 {
 
-NetworkManager::NetworkManager()
+NetworkService::NetworkService()
     : shouldExit(false)
 {
 }
 
-NetworkManager::~NetworkManager()
+NetworkService::~NetworkService()
 {
     stop();
 }
 
-bool NetworkManager::initialize(std::shared_ptr<BluetoothInterface> bluetooth)
+bool NetworkService::initialize(std::shared_ptr<BluetoothInterface> bluetooth)
 {
     bluetoothInterface = bluetooth;
 
     if (!bluetoothInterface)
     {
-        spdlog::error("NetworkManager: Bluetooth interface is null");
+        spdlog::error("NetworkService: Bluetooth interface is null");
         return false;
     }
 
@@ -40,8 +40,14 @@ bool NetworkManager::initialize(std::shared_ptr<BluetoothInterface> bluetooth)
     // clang-format on
 
     // clang-format off
-    bluetoothInterface->setPeerDisconnectedCallback([this](const std::string &peerID) {
-        onPeerDisconnected(peerID);
+    bluetoothInterface->setPeerConnectedCallback([this](const std::string &uuid) {
+        onPeerConnected(uuid);
+    });
+    // clang-format on
+
+    // clang-format off
+    bluetoothInterface->setPeerDisconnectedCallback([this](const std::string &uuid) {
+        onPeerDisconnected(uuid);
     });
     // clang-format on
 
@@ -51,16 +57,16 @@ bool NetworkManager::initialize(std::shared_ptr<BluetoothInterface> bluetooth)
         announceRunner->setBluetoothInterface(bluetoothInterface);
     }
 
-    spdlog::info("NetworkManager initialized");
+    spdlog::info("NetworkService initialized");
 
     return true;
 }
 
-void NetworkManager::setLocalPeerID(const std::string &peerID)
+void NetworkService::setLocalPeerID(const std::string &peerID)
 {
     if (!bluetoothInterface)
     {
-        spdlog::error("NetworkManager: Cannot set peer ID without Bluetooth interface");
+        spdlog::error("NetworkService: Cannot set peer ID without Bluetooth interface");
         return;
     }
 
@@ -75,23 +81,23 @@ void NetworkManager::setLocalPeerID(const std::string &peerID)
     }
 }
 
-bool NetworkManager::start()
+bool NetworkService::start()
 {
     if (!bluetoothInterface)
     {
-        spdlog::error("NetworkManager: Cannot start without Bluetooth interface");
+        spdlog::error("NetworkService: Cannot start without Bluetooth interface");
         return false;
     }
 
     if (!bluetoothInterface->initialize())
     {
-        spdlog::error("NetworkManager: Failed to initialize Bluetooth interface");
+        spdlog::error("NetworkService: Failed to initialize Bluetooth interface");
         return false;
     }
 
     if (!bluetoothInterface->start())
     {
-        spdlog::error("NetworkManager: Failed to start Bluetooth interface");
+        spdlog::error("NetworkService: Failed to start Bluetooth interface");
         return false;
     }
 
@@ -108,12 +114,12 @@ bool NetworkManager::start()
         cleanupRunner->start();
     }
 
-    spdlog::info("NetworkManager started");
+    spdlog::info("NetworkService started");
 
     return true;
 }
 
-void NetworkManager::stop()
+void NetworkService::stop()
 {
     shouldExit = true;
 
@@ -133,10 +139,10 @@ void NetworkManager::stop()
         bluetoothInterface->stop();
     }
 
-    spdlog::info("NetworkManager stopped");
+    spdlog::info("NetworkService stopped");
 }
 
-bool NetworkManager::sendPacket(const BitchatPacket &packet)
+bool NetworkService::sendPacket(const BitchatPacket &packet)
 {
     if (!bluetoothInterface || !isReady())
     {
@@ -146,7 +152,7 @@ bool NetworkManager::sendPacket(const BitchatPacket &packet)
     return bluetoothInterface->sendPacket(packet);
 }
 
-bool NetworkManager::sendPacketToPeer(const BitchatPacket &packet, const std::string &peerID)
+bool NetworkService::sendPacketToPeer(const BitchatPacket &packet, const std::string &peerID)
 {
     if (!bluetoothInterface || !isReady())
     {
@@ -156,28 +162,29 @@ bool NetworkManager::sendPacketToPeer(const BitchatPacket &packet, const std::st
     return bluetoothInterface->sendPacketToPeer(packet, peerID);
 }
 
-std::map<std::string, BitchatPeer> NetworkManager::getOnlinePeers() const
+std::map<std::string, BitchatPeer> NetworkService::getOnlinePeers() const
 {
     std::lock_guard<std::mutex> lock(peersMutex);
     return onlinePeers;
 }
 
-size_t NetworkManager::getConnectedPeersCount() const
+size_t NetworkService::getConnectedPeersCount() const
 {
-    if (!bluetoothInterface)
+    if (bluetoothInterface)
     {
-        return 0;
+        return bluetoothInterface->getConnectedPeersCount();
     }
-    return bluetoothInterface->getConnectedPeersCount();
+
+    return 0;
 }
 
-bool NetworkManager::isPeerOnline(const std::string &peerID) const
+bool NetworkService::isPeerOnline(const std::string &peerID) const
 {
     std::lock_guard<std::mutex> lock(peersMutex);
     return onlinePeers.find(peerID) != onlinePeers.end();
 }
 
-std::optional<BitchatPeer> NetworkManager::getPeerInfo(const std::string &peerID) const
+std::optional<BitchatPeer> NetworkService::getPeerInfo(const std::string &peerID) const
 {
     std::lock_guard<std::mutex> lock(peersMutex);
 
@@ -190,13 +197,13 @@ std::optional<BitchatPeer> NetworkManager::getPeerInfo(const std::string &peerID
     return std::nullopt;
 }
 
-void NetworkManager::updatePeerInfo(const std::string &peerID, const BitchatPeer &peer)
+void NetworkService::updatePeerInfo(const std::string &peerID, const BitchatPeer &peer)
 {
     std::lock_guard<std::mutex> lock(peersMutex);
     onlinePeers[peerID] = peer;
 }
 
-void NetworkManager::cleanupStalePeers(time_t timeout)
+void NetworkService::cleanupStalePeers(time_t timeout)
 {
     std::lock_guard<std::mutex> lock(peersMutex);
 
@@ -215,32 +222,32 @@ void NetworkManager::cleanupStalePeers(time_t timeout)
     }
 }
 
-void NetworkManager::setPacketReceivedCallback(PacketReceivedCallback callback)
+void NetworkService::setPacketReceivedCallback(PacketReceivedCallback callback)
 {
     packetReceivedCallback = callback;
 }
 
-void NetworkManager::setPeerConnectedCallback(PeerConnectedCallback callback)
+void NetworkService::setPeerConnectedCallback(PeerConnectedCallback callback)
 {
     peerConnectedCallback = callback;
 }
 
-void NetworkManager::setPeerDisconnectedCallback(PeerDisconnectedCallback callback)
+void NetworkService::setPeerDisconnectedCallback(PeerDisconnectedCallback callback)
 {
     peerDisconnectedCallback = callback;
 }
 
-std::string NetworkManager::getLocalPeerID() const
+std::string NetworkService::getLocalPeerID() const
 {
     return localPeerID;
 }
 
-bool NetworkManager::isReady() const
+bool NetworkService::isReady() const
 {
     return bluetoothInterface && bluetoothInterface->isReady();
 }
 
-void NetworkManager::setNickname(const std::string &nick)
+void NetworkService::setNickname(const std::string &nick)
 {
     nickname = nick;
 
@@ -251,54 +258,52 @@ void NetworkManager::setNickname(const std::string &nick)
     }
 }
 
-void NetworkManager::setAnnounceRunner(std::shared_ptr<BluetoothAnnounceRunner> runner)
+void NetworkService::setAnnounceRunner(std::shared_ptr<BluetoothAnnounceRunner> runner)
 {
     announceRunner = runner;
 }
 
-void NetworkManager::setCleanupRunner(std::shared_ptr<CleanupRunner> runner)
+void NetworkService::setCleanupRunner(std::shared_ptr<CleanupRunner> runner)
 {
     cleanupRunner = runner;
 }
 
-void NetworkManager::onPeerConnected(const std::string &peerID, const std::string &nickname)
+void NetworkService::onPeerConnected(const std::string &uuid)
 {
-    spdlog::info("Peer connected: {} ({})", peerID, nickname);
+    spdlog::info("Peer connected with UUID: {}", uuid);
 
     if (peerConnectedCallback)
     {
-        peerConnectedCallback(peerID, nickname);
+        peerConnectedCallback(uuid);
     }
 }
 
-void NetworkManager::onPeerDisconnected(const std::string &peerID)
+void NetworkService::onPeerDisconnected(const std::string &uuid)
 {
-    std::string nickname;
+    std::lock_guard<std::mutex> lock(peersMutex);
 
+    auto it = onlinePeers.find(uuid);
+
+    if (it != onlinePeers.end())
     {
-        std::lock_guard<std::mutex> lock(peersMutex);
-        auto it = onlinePeers.find(peerID);
-        if (it != onlinePeers.end())
+        std::string nickname = it->second.getNickname();
+        onlinePeers.erase(it);
+
+        spdlog::info("Peer disconnected with UUID: {} ({})", uuid, nickname);
+
+        if (peerDisconnectedCallback)
         {
-            nickname = it->second.getNickname();
-            onlinePeers.erase(it);
+            peerDisconnectedCallback(uuid, nickname);
         }
     }
-
-    spdlog::info("Peer disconnected: {} ({})", peerID, nickname);
-
-    if (peerDisconnectedCallback)
-    {
-        peerDisconnectedCallback(peerID, nickname);
-    }
 }
 
-void NetworkManager::onPacketReceived(const BitchatPacket &packet)
+void NetworkService::onPacketReceived(const BitchatPacket &packet)
 {
     processPacket(packet);
 }
 
-void NetworkManager::processPacket(const BitchatPacket &packet)
+void NetworkService::processPacket(const BitchatPacket &packet)
 {
     // Validate packet
     if (!packet.isValid())
@@ -377,7 +382,7 @@ void NetworkManager::processPacket(const BitchatPacket &packet)
     }
 }
 
-void NetworkManager::relayPacket(const BitchatPacket &packet)
+void NetworkService::relayPacket(const BitchatPacket &packet)
 {
     // Create relay packet with decremented TTL
     BitchatPacket relayPacket = packet;
@@ -396,13 +401,13 @@ void NetworkManager::relayPacket(const BitchatPacket &packet)
     }
 }
 
-bool NetworkManager::wasMessageProcessed(const std::string &messageID)
+bool NetworkService::wasMessageProcessed(const std::string &messageID)
 {
     std::lock_guard<std::mutex> lock(processedMutex);
     return processedMessages.find(messageID) != processedMessages.end();
 }
 
-void NetworkManager::markMessageProcessed(const std::string &messageID)
+void NetworkService::markMessageProcessed(const std::string &messageID)
 {
     std::lock_guard<std::mutex> lock(processedMutex);
     processedMessages.insert(messageID);
@@ -416,7 +421,7 @@ void NetworkManager::markMessageProcessed(const std::string &messageID)
     }
 }
 
-void NetworkManager::processAnnouncePacket(const BitchatPacket &packet)
+void NetworkService::processAnnouncePacket(const BitchatPacket &packet)
 {
     try
     {
@@ -448,7 +453,7 @@ void NetworkManager::processAnnouncePacket(const BitchatPacket &packet)
         }
 
         // Notify about new peer connection
-        onPeerConnected(peerID, nickname);
+        onPeerConnected(peerID);
 
         spdlog::debug("Processed announce from: {} ({})", peerID, nickname);
     }

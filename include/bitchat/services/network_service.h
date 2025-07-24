@@ -19,14 +19,14 @@ class BluetoothAnnounceRunner;
 class CleanupRunner;
 class BluetoothInterface;
 
-// NetworkManager: Manages network operations, peer discovery, and message routing
-class NetworkManager
+// NetworkService: Manages network operations, peer discovery, and message routing
+class NetworkService
 {
 public:
-    NetworkManager();
-    ~NetworkManager();
+    NetworkService();
+    ~NetworkService();
 
-    // Initialize the network manager
+    // Initialize the network service
     bool initialize(std::shared_ptr<BluetoothInterface> bluetooth);
 
     // Set local peer ID
@@ -64,7 +64,7 @@ public:
 
     // Set callbacks
     using PacketReceivedCallback = std::function<void(const BitchatPacket &)>;
-    using PeerConnectedCallback = std::function<void(const std::string &, const std::string &)>;
+    using PeerConnectedCallback = std::function<void(const std::string &)>;
     using PeerDisconnectedCallback = std::function<void(const std::string &, const std::string &)>;
 
     void setPacketReceivedCallback(PacketReceivedCallback callback);
@@ -111,8 +111,8 @@ private:
     PeerDisconnectedCallback peerDisconnectedCallback;
 
     // Internal methods
-    void onPeerConnected(const std::string &peerID, const std::string &nickname);
-    void onPeerDisconnected(const std::string &peerID);
+    void onPeerConnected(const std::string &uuid);
+    void onPeerDisconnected(const std::string &uuid);
     void onPacketReceived(const BitchatPacket &packet);
     void processPacket(const BitchatPacket &packet);
     void processAnnouncePacket(const BitchatPacket &packet);

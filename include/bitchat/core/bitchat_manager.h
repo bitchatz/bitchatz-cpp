@@ -1,12 +1,12 @@
 #pragma once
 
-#include "bitchat/compression/compression_manager.h"
-#include "bitchat/core/message_manager.h"
-#include "bitchat/core/network_manager.h"
-#include "bitchat/crypto/crypto_manager.h"
+#include "bitchat/helpers/compression_helper.h"
 #include "bitchat/noise/noise_session.h"
 #include "bitchat/platform/bluetooth_factory.h"
 #include "bitchat/protocol/packet.h"
+#include "bitchat/services/crypto_service.h"
+#include "bitchat/services/message_service.h"
+#include "bitchat/services/network_service.h"
 #include <memory>
 
 namespace bitchat
@@ -68,11 +68,10 @@ public:
     void setStatusCallback(StatusCallback callback);
 
 private:
-    // Core managers
-    std::shared_ptr<NetworkManager> networkManager;
-    std::shared_ptr<MessageManager> messageManager;
-    std::shared_ptr<CryptoManager> cryptoManager;
-    std::shared_ptr<CompressionManager> compressionManager;
+    // Core services
+    std::shared_ptr<NetworkService> networkService;
+    std::shared_ptr<MessageService> messageService;
+    std::shared_ptr<CryptoService> cryptoService;
     std::shared_ptr<noise::NoiseSessionManager> noiseSessionManager;
 
     // Runners
