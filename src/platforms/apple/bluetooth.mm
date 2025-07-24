@@ -729,7 +729,7 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
         // If no peer ID has been set yet, use a default name
         if (!localName || localName.length == 0)
         {
-            localName = @"Unknown";
+            localName = @"unknown";
         }
 
         // Set up advertisement data

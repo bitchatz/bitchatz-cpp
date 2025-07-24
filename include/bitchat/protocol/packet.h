@@ -43,7 +43,7 @@ constexpr uint8_t FLAG_IS_COMPRESSED = 0x04;
 // Default TTL
 constexpr uint8_t PKT_TTL = 7;
 
-// BitchatPacket: represents a protocol packet sent via Bluetooth
+// BitchatPacket: Represents a protocol packet sent via Bluetooth
 class BitchatPacket
 {
 public:
@@ -86,23 +86,35 @@ public:
     void setHasRecipient(bool has)
     {
         if (has)
+        {
             flags |= FLAG_HAS_RECIPIENT;
+        }
         else
+        {
             flags &= ~FLAG_HAS_RECIPIENT;
+        }
     }
     void setHasSignature(bool has)
     {
         if (has)
+        {
             flags |= FLAG_HAS_SIGNATURE;
+        }
         else
+        {
             flags &= ~FLAG_HAS_SIGNATURE;
+        }
     }
     void setCompressed(bool compressed)
     {
         if (compressed)
+        {
             flags |= FLAG_IS_COMPRESSED;
+        }
         else
+        {
             flags &= ~FLAG_IS_COMPRESSED;
+        }
     }
 
     // Validation
@@ -122,7 +134,7 @@ private:
     std::vector<uint8_t> signature;
 };
 
-// BitchatMessage: represents a chat message
+// BitchatMessage: Represents a chat message
 class BitchatMessage
 {
 public:
@@ -180,17 +192,17 @@ private:
     bool isEncryptedFlag = false;
 };
 
-// BitchatPeer: represents a peer in the network
+// BitchatPeer: Represents a peer in the network
 class BitchatPeer
 {
 public:
     BitchatPeer() = default;
-    BitchatPeer(const std::vector<uint8_t> &peerID, const std::string &nickname);
+    BitchatPeer(const std::string &peerID, const std::string &nickname);
 
     // Getters
     const std::string &getNickname() const { return nickname; }
     const std::string &getChannel() const { return channel; }
-    const std::vector<uint8_t> &getPeerID() const { return peerID; }
+    const std::string &getPeerID() const { return peerID; }
     time_t getLastSeen() const { return lastSeen; }
     int getRSSI() const { return RSSI; }
     bool hasAnnounced() const { return hasAnnouncedFlag; }
@@ -199,7 +211,7 @@ public:
     // Setters
     void setNickname(const std::string &n) { nickname = n; }
     void setChannel(const std::string &c) { channel = c; }
-    void setPeerID(const std::vector<uint8_t> &pid) { peerID = pid; }
+    void setPeerID(const std::string &pid) { peerID = pid; }
     void setLastSeen(time_t ls) { lastSeen = ls; }
     void setRSSI(int r) { RSSI = r; }
     void setHasAnnounced(bool announced) { hasAnnouncedFlag = announced; }
@@ -209,15 +221,16 @@ public:
     void updateLastSeen();
     bool isStale(time_t timeout = 180) const;
     std::string getDisplayName() const;
+    bool isPeerID(const std::string &pid) { return peerID == pid; }
 
 private:
+    std::string peerID;
+    std::string peripheralUUID;
     std::string nickname;
     std::string channel;
-    std::vector<uint8_t> peerID;
     time_t lastSeen = 0;
     int RSSI = -100;
     bool hasAnnouncedFlag = false;
-    std::string peripheralUUID;
 };
 
 } // namespace bitchat

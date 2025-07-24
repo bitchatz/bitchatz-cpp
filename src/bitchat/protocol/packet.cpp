@@ -148,10 +148,11 @@ std::string BitchatMessage::getDisplayContent() const
 }
 
 // BitchatPeer implementations
-BitchatPeer::BitchatPeer(const std::vector<uint8_t> &peerID, const std::string &nickname)
-    : nickname(nickname)
+BitchatPeer::BitchatPeer(const std::string &peerID, const std::string &nickname)
+    : peerID(peerID)
+    , peripheralUUID("")
+    , nickname(nickname)
     , channel("")
-    , peerID(peerID)
 {
     updateLastSeen();
 }
@@ -170,8 +171,9 @@ std::string BitchatPeer::getDisplayName() const
 {
     if (nickname.empty())
     {
-        return StringHelper::toHex(peerID);
+        return peerID;
     }
+
     return nickname;
 }
 

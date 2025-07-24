@@ -47,12 +47,12 @@ public:
     std::string getCurrentChannel() const;
     std::string getNickname() const;
     std::string getPeerID() const;
-    std::map<std::string, BitchatPeer> getOnlinePeers() const;
+    std::vector<BitchatPeer> getPeers() const;
 
     // Setters
     void setPeerID(const std::string &peerID);
     std::vector<BitchatMessage> getMessageHistory() const;
-    size_t getConnectedPeersCount() const;
+    size_t getPeersCount() const;
 
     // Status
     bool isReady() const;

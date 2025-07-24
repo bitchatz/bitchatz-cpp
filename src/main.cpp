@@ -47,15 +47,17 @@ void onStatusUpdate(const std::string &status)
 void showOnlinePeers()
 {
     if (!manager)
+    {
         return;
+    }
 
-    auto peers = manager->getOnlinePeers();
+    auto peers = manager->getPeers();
     ChatHelper::info("\nPeople online:");
 
     time_t now = time(nullptr);
     bool found = false;
 
-    for (const auto &[peerID, peer] : peers)
+    for (const auto &peer : peers)
     {
         // Show all peers that have been seen recently (within 3 minutes)
         if ((now - peer.getLastSeen()) < 180)
@@ -63,7 +65,7 @@ void showOnlinePeers()
             std::string peerInfo = "- " + peer.getNickname();
 
             // Check if this is us (by comparing peer ID)
-            if (peerID == manager->getPeerID())
+            if (peer.getPeerID() == manager->getPeerID())
             {
                 peerInfo += " (you)";
             }
@@ -72,11 +74,14 @@ void showOnlinePeers()
             {
                 peerInfo += " (channel: " + peer.getChannel() + ")";
             }
+
             if (peer.getRSSI() > -100)
             {
                 peerInfo += " (RSSI: " + std::to_string(peer.getRSSI()) + " dBm)";
             }
+
             ChatHelper::info(peerInfo);
+
             found = true;
         }
     }

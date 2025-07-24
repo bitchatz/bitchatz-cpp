@@ -6,7 +6,9 @@
 #include "bitchat/protocol/packet_serializer.h"
 #include "bitchat/runners/bluetooth_announce_runner.h"
 #include "bitchat/runners/cleanup_runner.h"
+#include <algorithm>
 #include <chrono>
+#include <ranges>
 #include <spdlog/spdlog.h>
 
 namespace bitchat
@@ -162,13 +164,13 @@ bool NetworkService::sendPacketToPeer(const BitchatPacket &packet, const std::st
     return bluetoothInterface->sendPacketToPeer(packet, peerID);
 }
 
-std::map<std::string, BitchatPeer> NetworkService::getOnlinePeers() const
+std::vector<BitchatPeer> NetworkService::getPeers() const
 {
     std::lock_guard<std::mutex> lock(peersMutex);
-    return onlinePeers;
+    return peers;
 }
 
-size_t NetworkService::getConnectedPeersCount() const
+size_t NetworkService::getPeersCount() const
 {
     if (bluetoothInterface)
     {
@@ -181,17 +183,29 @@ size_t NetworkService::getConnectedPeersCount() const
 bool NetworkService::isPeerOnline(const std::string &peerID) const
 {
     std::lock_guard<std::mutex> lock(peersMutex);
-    return onlinePeers.find(peerID) != onlinePeers.end();
+
+    // clang-format off
+    auto it = std::ranges::find(peers, peerID, [](const BitchatPeer& p) {
+        return p.getPeerID();
+    });
+    // clang-format on
+
+    return it != peers.end();
 }
 
 std::optional<BitchatPeer> NetworkService::getPeerInfo(const std::string &peerID) const
 {
     std::lock_guard<std::mutex> lock(peersMutex);
 
-    auto it = onlinePeers.find(peerID);
-    if (it != onlinePeers.end())
+    // clang-format off
+    auto it = std::ranges::find(peers, peerID, [](const BitchatPeer& p) {
+        return p.getPeerID();
+    });
+    // clang-format on
+
+    if (it != peers.end())
     {
-        return it->second;
+        return *it;
     }
 
     return std::nullopt;
@@ -200,26 +214,45 @@ std::optional<BitchatPeer> NetworkService::getPeerInfo(const std::string &peerID
 void NetworkService::updatePeerInfo(const std::string &peerID, const BitchatPeer &peer)
 {
     std::lock_guard<std::mutex> lock(peersMutex);
-    onlinePeers[peerID] = peer;
+
+    // clang-format off
+    auto it = std::ranges::find(peers, peerID, [](const BitchatPeer& p) {
+        return p.getPeerID();
+    });
+    // clang-format on
+
+    if (it != peers.end())
+    {
+        *it = peer;
+    }
+    else
+    {
+        peers.push_back(peer);
+    }
 }
 
 void NetworkService::cleanupStalePeers(time_t timeout)
 {
     std::lock_guard<std::mutex> lock(peersMutex);
 
-    auto it = onlinePeers.begin();
-    while (it != onlinePeers.end())
-    {
-        if (it->second.isStale(timeout))
+    // clang-format off
+    peers.erase(std::remove_if(peers.begin(), peers.end(), [timeout](const BitchatPeer &p) {
+        return p.isStale(timeout);
+    }), peers.end());
+    // clang-format on
+
+    // clang-format off
+    std::erase_if(peers, [&](const BitchatPeer& p) {
+        const bool isStale = p.isStale(timeout);
+
+        if (isStale)
         {
-            spdlog::debug("Removing stale peer: {}", it->first);
-            it = onlinePeers.erase(it);
+            spdlog::debug("Removing stale peer: {}", p.getPeerID());
         }
-        else
-        {
-            ++it;
-        }
-    }
+
+        return isStale;
+    });
+    // clang-format on
 }
 
 void NetworkService::setPacketReceivedCallback(PacketReceivedCallback callback)
@@ -282,18 +315,23 @@ void NetworkService::onPeerDisconnected(const std::string &uuid)
 {
     std::lock_guard<std::mutex> lock(peersMutex);
 
-    auto it = onlinePeers.find(uuid);
+    // clang-format off
+    auto peerIt = std::ranges::find(peers, uuid, [](const BitchatPeer &p) {
+        return p.getPeerID();
+    });
+    // clang-format on
 
-    if (it != onlinePeers.end())
+    if (peerIt != peers.end())
     {
-        std::string nickname = it->second.getNickname();
-        onlinePeers.erase(it);
+        std::string peerID = peerIt->getPeerID();
+        std::string nickname = peerIt->getNickname();
+        peers.erase(peerIt);
 
         spdlog::info("Peer disconnected with UUID: {} ({})", uuid, nickname);
 
         if (peerDisconnectedCallback)
         {
-            peerDisconnectedCallback(uuid, nickname);
+            peerDisconnectedCallback(peerID, nickname);
         }
     }
 }
@@ -392,13 +430,13 @@ void NetworkService::relayPacket(const BitchatPacket &packet)
     std::string senderID = StringHelper::toHex(packet.getSenderID());
 
     std::lock_guard<std::mutex> lock(peersMutex);
-    for (const auto &[peerID, peer] : onlinePeers)
+
+    // clang-format off
+    for (const auto &peer : peers | std::views::filter([&](const BitchatPeer &p) { return p.getPeerID() != senderID; }))
     {
-        if (peerID != senderID)
-        {
-            bluetoothInterface->sendPacketToPeer(relayPacket, peerID);
-        }
+        bluetoothInterface->sendPacketToPeer(relayPacket, peer.getPeerID());
     }
+    // clang-format on
 }
 
 bool NetworkService::wasMessageProcessed(const std::string &messageID)
@@ -435,11 +473,16 @@ void NetworkService::processAnnouncePacket(const BitchatPacket &packet)
             std::lock_guard<std::mutex> lock(peersMutex);
 
             // Check if peer is already in the list
-            auto it = onlinePeers.find(peerID);
-            if (it != onlinePeers.end())
+            // clang-format off
+            auto peerIt = std::ranges::find(peers, peerID, [](const BitchatPeer &p) {
+                return p.getPeerID();
+            });
+            // clang-format on
+
+            if (peerIt != peers.end())
             {
                 // Update existing peer's last seen time
-                it->second.updateLastSeen();
+                peerIt->updateLastSeen();
                 spdlog::debug("Updated existing peer: {} ({})", peerID, nickname);
 
                 // Don't notify about connection again
@@ -447,9 +490,9 @@ void NetworkService::processAnnouncePacket(const BitchatPacket &packet)
             }
 
             // Add new peer
-            BitchatPeer peer(packet.getSenderID(), nickname);
+            BitchatPeer peer(StringHelper::toHex(packet.getSenderID()), nickname);
             peer.updateLastSeen();
-            onlinePeers[peerID] = peer;
+            peers.push_back(peer);
         }
 
         // Notify about new peer connection

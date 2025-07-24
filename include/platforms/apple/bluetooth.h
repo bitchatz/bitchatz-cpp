@@ -22,6 +22,7 @@
 @property(nonatomic, strong) NSString *localPeerID;
 
 // Callback properties
+@property(nonatomic, copy) void (^peerConnectedCallback)(NSString *);
 @property(nonatomic, copy) void (^peerDisconnectedCallback)(NSString *);
 @property(nonatomic, copy) void (^packetReceivedCallback)(NSData *);
 

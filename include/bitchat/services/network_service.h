@@ -3,7 +3,6 @@
 #include "bitchat/protocol/packet.h"
 #include <atomic>
 #include <functional>
-#include <map>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -44,11 +43,11 @@ public:
     // Send a packet to a specific peer
     bool sendPacketToPeer(const BitchatPacket &packet, const std::string &peerID);
 
-    // Get online peers
-    std::map<std::string, BitchatPeer> getOnlinePeers() const;
+    // Get peers
+    std::vector<BitchatPeer> getPeers() const;
 
-    // Get connected peers count
-    size_t getConnectedPeersCount() const;
+    // Get peers count
+    size_t getPeersCount() const;
 
     // Check if a peer is online
     bool isPeerOnline(const std::string &peerID) const;
@@ -89,7 +88,7 @@ private:
     std::shared_ptr<BluetoothInterface> bluetoothInterface;
 
     // Network state
-    std::map<std::string, BitchatPeer> onlinePeers;
+    std::vector<BitchatPeer> peers;
     std::set<std::string> processedMessages;
     std::string localPeerID;
     std::string nickname;

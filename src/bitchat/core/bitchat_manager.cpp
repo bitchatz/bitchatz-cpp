@@ -337,13 +337,14 @@ void BitchatManager::setPeerID(const std::string &peerID)
     networkService->setLocalPeerID(peerID);
 }
 
-std::map<std::string, BitchatPeer> BitchatManager::getOnlinePeers() const
+std::vector<BitchatPeer> BitchatManager::getPeers() const
 {
     if (!networkService)
     {
         return {};
     }
-    return networkService->getOnlinePeers();
+
+    return networkService->getPeers();
 }
 
 std::vector<BitchatMessage> BitchatManager::getMessageHistory() const
@@ -355,13 +356,14 @@ std::vector<BitchatMessage> BitchatManager::getMessageHistory() const
     return messageService->getMessageHistory();
 }
 
-size_t BitchatManager::getConnectedPeersCount() const
+size_t BitchatManager::getPeersCount() const
 {
     if (!networkService)
     {
         return 0;
     }
-    return networkService->getConnectedPeersCount();
+
+    return networkService->getPeersCount();
 }
 
 bool BitchatManager::isReady() const
@@ -400,7 +402,7 @@ void BitchatManager::setupCallbacks()
 
     // Set up network manager callbacks
     // clang-format off
-    networkService->setPeerConnectedCallback([this](const std::string &uuid) {
+    networkService->setPeerConnectedCallback([]([[maybe_unused]] const std::string &uuid) {
         // Pass
     });
     // clang-format on
