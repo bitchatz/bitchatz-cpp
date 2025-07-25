@@ -22,26 +22,26 @@ AppleBluetoothBridge::AppleBluetoothBridge()
         // Set up callback bridges to translate Objective-C callbacks to C++
 
         // Bridge for peer connection events
-        [impl setPeerConnectedCallback:^(NSString *uuid) {
+        [impl setPeerConnectedCallback:^(NSString *peripheralID) {
             if (peerConnectedCallback)
             {
-                std::string cppUUID = [uuid UTF8String];
+                std::string cppUUID = [peripheralID UTF8String];
                 peerConnectedCallback(cppUUID);
             }
         }];
 
         // Bridge for peer disconnection events
-        [impl setPeerDisconnectedCallback:^(NSString *uuid) {
+        [impl setPeerDisconnectedCallback:^(NSString *peripheralID) {
             if (peerDisconnectedCallback)
             {
                 // Convert NSString to std::string for C++ callback
-                std::string cppUUID = [uuid UTF8String];
+                std::string cppUUID = [peripheralID UTF8String];
                 peerDisconnectedCallback(cppUUID);
             }
         }];
 
         // Bridge for packet reception events
-        [impl setPacketReceivedCallback:^(NSData *packetData) {
+        [impl setPacketReceivedCallback:^(NSData *packetData, NSString *peripheralID) {
             if (packetReceivedCallback)
             {
                 // Convert NSData to std::vector<uint8_t> for C++ processing
@@ -50,7 +50,11 @@ AppleBluetoothBridge::AppleBluetoothBridge()
 
                 // Deserialize the raw data into a BitchatPacket object
                 BitchatPacket packet = serializer->deserializePacket(data);
-                packetReceivedCallback(packet);
+
+                // Convert NSString to std::string for C++
+                std::string cppUUID = peripheralID ? [peripheralID UTF8String] : "";
+
+                packetReceivedCallback(packet, cppUUID);
             }
         }];
     }

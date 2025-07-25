@@ -206,7 +206,7 @@ public:
     time_t getLastSeen() const { return lastSeen; }
     int getRSSI() const { return RSSI; }
     bool hasAnnounced() const { return hasAnnouncedFlag; }
-    const std::string &getPeripheralUUID() const { return peripheralUUID; }
+    const std::string &getPeripheralID() const { return peripheralID; }
 
     // Setters
     void setNickname(const std::string &n) { nickname = n; }
@@ -215,7 +215,7 @@ public:
     void setLastSeen(time_t ls) { lastSeen = ls; }
     void setRSSI(int r) { RSSI = r; }
     void setHasAnnounced(bool announced) { hasAnnouncedFlag = announced; }
-    void setPeripheralUUID(const std::string &uuid) { peripheralUUID = uuid; }
+    void setPeripheralID(const std::string &peripheralID) { this->peripheralID = peripheralID; }
 
     // Utility methods
     void updateLastSeen();
@@ -225,7 +225,7 @@ public:
 
 private:
     std::string peerID;
-    std::string peripheralUUID;
+    std::string peripheralID;
     std::string nickname;
     std::string channel;
     time_t lastSeen = 0;

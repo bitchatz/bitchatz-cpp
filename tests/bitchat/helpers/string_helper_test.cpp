@@ -246,7 +246,7 @@ TEST_F(StringHelperTest, RandomPeerID_MultipleCalls_ReturnsDifferentIDs)
 
 TEST_F(StringHelperTest, Uuidv4_ReturnsValidUUID)
 {
-    std::string result = StringHelper::uuidv4();
+    std::string result = StringHelper::createUUID();
 
     // UUID v4 format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
     // where x is any hex digit and y is one of 8, 9, A, or B
@@ -275,9 +275,9 @@ TEST_F(StringHelperTest, Uuidv4_ReturnsValidUUID)
 
 TEST_F(StringHelperTest, Uuidv4_MultipleCalls_ReturnsDifferentUUIDs)
 {
-    std::string uuid1 = StringHelper::uuidv4();
-    std::string uuid2 = StringHelper::uuidv4();
-    std::string uuid3 = StringHelper::uuidv4();
+    std::string uuid1 = StringHelper::createUUID();
+    std::string uuid2 = StringHelper::createUUID();
+    std::string uuid3 = StringHelper::createUUID();
 
     // Should be different (very unlikely to be the same)
     EXPECT_NE(uuid1, uuid2);

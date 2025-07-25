@@ -128,7 +128,7 @@ const int MAX_PACKET_SIZE = 16384;
 namespace bitchat { }
 
 // Acronyms (UUID, ID, etc.): keep as is
-std::string peripheralUUID;
+std::string peripheralID;
 ```
 
 ### File Organization

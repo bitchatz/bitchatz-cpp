@@ -74,7 +74,7 @@ std::string StringHelper::randomPeerID()
     return ss.str();
 }
 
-std::string StringHelper::uuidv4()
+std::string StringHelper::createUUID()
 {
     return uuid::v4::UUID::New().String();
 }

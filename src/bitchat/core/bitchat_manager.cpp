@@ -402,7 +402,7 @@ void BitchatManager::setupCallbacks()
 
     // Set up network manager callbacks
     // clang-format off
-    networkService->setPeerConnectedCallback([]([[maybe_unused]] const std::string &uuid) {
+    networkService->setPeerConnectedCallback([]([[maybe_unused]] const std::string &peripheralID) {
         // Pass
     });
     // clang-format on
@@ -415,13 +415,13 @@ void BitchatManager::setupCallbacks()
 
     // Process all packets from NetworkService
     // clang-format off
-    networkService->setPacketReceivedCallback([this](const BitchatPacket &packet) {
+    networkService->setPacketReceivedCallback([this](const BitchatPacket &packet, [[maybe_unused]] const std::string &peripheralID) {
         switch (packet.getType())
         {
         case PKT_TYPE_MESSAGE:
             // Forward to MessageService for normal messages
             spdlog::debug("Received message packet from {}", StringHelper::toHex(packet.getSenderID()));
-            messageService->processPacket(packet);
+            messageService->processPacket(packet, peripheralID);
             break;
         case PKT_TYPE_NOISE_HANDSHAKE_INIT:
         case PKT_TYPE_NOISE_HANDSHAKE_RESP:

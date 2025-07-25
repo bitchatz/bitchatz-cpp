@@ -33,8 +33,8 @@ bool MessageService::initialize(std::shared_ptr<NetworkService> network, std::sh
 
     // Set up network callbacks
     // clang-format off
-    networkService->setPacketReceivedCallback([this](const BitchatPacket &packet) {
-        onPacketReceived(packet);
+    networkService->setPacketReceivedCallback([this](const BitchatPacket &packet, const std::string &peripheralID) {
+        onPacketReceived(packet, peripheralID);
     });
     // clang-format on
 
@@ -231,9 +231,9 @@ void MessageService::setChannelLeftCallback(ChannelLeftCallback callback)
     channelLeftCallback = callback;
 }
 
-void MessageService::processPacket(const BitchatPacket &packet)
+void MessageService::processPacket(const BitchatPacket &packet, const std::string &peripheralID)
 {
-    onPacketReceived(packet);
+    onPacketReceived(packet, peripheralID);
 }
 
 bool MessageService::isReady() const
@@ -241,7 +241,7 @@ bool MessageService::isReady() const
     return networkService && networkService->isReady();
 }
 
-void MessageService::onPacketReceived(const BitchatPacket &packet)
+void MessageService::onPacketReceived(const BitchatPacket &packet, [[maybe_unused]] const std::string &peripheralID)
 {
     switch (packet.getType())
     {
@@ -496,7 +496,7 @@ BitchatPacket MessageService::createChannelAnnouncePacket(const std::string &cha
 
 std::string MessageService::generateMessageID() const
 {
-    return StringHelper::uuidv4();
+    return StringHelper::createUUID();
 }
 
 } // namespace bitchat

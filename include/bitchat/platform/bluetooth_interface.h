@@ -15,7 +15,7 @@ class BitchatMessage;
 // Callback types for Bluetooth transport events
 using PeerConnectedCallback = std::function<void(const std::string &peripheralID)>;
 using PeerDisconnectedCallback = std::function<void(const std::string &peripheralID)>;
-using PacketReceivedCallback = std::function<void(const BitchatPacket &packet)>;
+using PacketReceivedCallback = std::function<void(const BitchatPacket &packet, const std::string &peripheralID)>;
 
 // Abstract Bluetooth interface that platforms must implement
 // This interface handles only BLE transport, all business logic is in BitchatManager

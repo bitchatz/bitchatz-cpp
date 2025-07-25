@@ -122,7 +122,7 @@ BitchatMessage::BitchatMessage(const std::string &sender, const std::string &con
     , channel(channel)
 {
     timestamp = DateTimeHelper::getCurrentTimestamp();
-    id = StringHelper::uuidv4();
+    id = StringHelper::createUUID();
 }
 
 void BitchatMessage::addMention(const std::string &mention)
@@ -150,7 +150,7 @@ std::string BitchatMessage::getDisplayContent() const
 // BitchatPeer implementations
 BitchatPeer::BitchatPeer(const std::string &peerID, const std::string &nickname)
     : peerID(peerID)
-    , peripheralUUID("")
+    , peripheralID("")
     , nickname(nickname)
     , channel("")
 {

@@ -12,9 +12,9 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
 @implementation AppleBluetooth
 {
     // Instance variables for callback properties
-    void (^peerConnectedCallback)(NSString *);    // Callback when a peer connects
-    void (^peerDisconnectedCallback)(NSString *); // Callback when a peer disconnects
-    void (^packetReceivedCallback)(NSData *);     // Callback when a packet is received
+    void (^peerConnectedCallback)(NSString *);            // Callback when a peer connects
+    void (^peerDisconnectedCallback)(NSString *);         // Callback when a peer disconnects
+    void (^packetReceivedCallback)(NSData *, NSString *); // Callback when a packet is received
 }
 
 // ============================================================================
@@ -63,7 +63,7 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
  * @brief Getter for packet received callback
  * @return The stored callback block
  */
-- (void (^)(NSData *))packetReceivedCallback
+- (void (^)(NSData *, NSString *))packetReceivedCallback
 {
     return packetReceivedCallback;
 }
@@ -72,7 +72,7 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
  * @brief Setter for packet received callback
  * @param callback The callback block to store
  */
-- (void)setPacketReceivedCallback:(void (^)(NSData *))callback
+- (void)setPacketReceivedCallback:(void (^)(NSData *, NSString *))callback
 {
     // Copy to ensure block survives
     packetReceivedCallback = [callback copy];
@@ -501,7 +501,7 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
             // Forward the raw packet data to C++ bridge for processing
             if (self.packetReceivedCallback)
             {
-                self.packetReceivedCallback(request.value);
+                self.packetReceivedCallback(request.value, nil);
             }
         }
 
@@ -648,7 +648,8 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
     // Forward the raw packet data to C++ bridge for processing
     if (self.packetReceivedCallback)
     {
-        self.packetReceivedCallback(data);
+        NSString *peripheralID = peripheral.identifier.UUIDString;
+        self.packetReceivedCallback(data, peripheralID);
     }
 }
 

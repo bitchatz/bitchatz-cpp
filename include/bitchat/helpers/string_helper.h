@@ -23,7 +23,7 @@ public:
     static std::string randomPeerID();
 
     // UUID utilities
-    static std::string uuidv4();
+    static std::string createUUID();
 
     // Nickname utilities
     static std::string randomNickname();

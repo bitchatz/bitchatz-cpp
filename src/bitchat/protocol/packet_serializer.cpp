@@ -245,7 +245,7 @@ std::vector<uint8_t> PacketSerializer::makeMessagePayload(const BitchatMessage &
     writeUint64(data, message.getTimestamp());
 
     // Message ID (variable length, max 255 bytes)
-    std::string id = message.getId().empty() ? StringHelper::uuidv4() : message.getId();
+    std::string id = message.getId().empty() ? StringHelper::createUUID() : message.getId();
     writeUint8(data, static_cast<uint8_t>(std::min(static_cast<size_t>(255), id.size())));
     data.insert(data.end(), id.begin(), id.begin() + std::min(static_cast<size_t>(255), id.size()));
 

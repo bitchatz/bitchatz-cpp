@@ -73,7 +73,7 @@ public:
     void setChannelLeftCallback(ChannelLeftCallback callback);
 
     // Process incoming packet
-    void processPacket(const BitchatPacket &packet);
+    void processPacket(const BitchatPacket &packet, const std::string &peripheralID);
 
     // Check if service is ready
     bool isReady() const;
@@ -100,7 +100,7 @@ private:
     ChannelLeftCallback channelLeftCallback;
 
     // Internal methods
-    void onPacketReceived(const BitchatPacket &packet);
+    void onPacketReceived(const BitchatPacket &packet, const std::string &peripheralID);
     void processMessagePacket(const BitchatPacket &packet);
     void processChannelAnnouncePacket(const BitchatPacket &packet);
     void addMessageToHistory(const BitchatMessage &message);

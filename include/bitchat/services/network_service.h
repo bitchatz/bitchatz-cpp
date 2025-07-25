@@ -62,7 +62,7 @@ public:
     void cleanupStalePeers(time_t timeout = 180);
 
     // Set callbacks
-    using PacketReceivedCallback = std::function<void(const BitchatPacket &)>;
+    using PacketReceivedCallback = std::function<void(const BitchatPacket &, const std::string &)>;
     using PeerConnectedCallback = std::function<void(const std::string &)>;
     using PeerDisconnectedCallback = std::function<void(const std::string &, const std::string &)>;
 
@@ -110,11 +110,11 @@ private:
     PeerDisconnectedCallback peerDisconnectedCallback;
 
     // Internal methods
-    void onPeerConnected(const std::string &uuid);
-    void onPeerDisconnected(const std::string &uuid);
-    void onPacketReceived(const BitchatPacket &packet);
-    void processPacket(const BitchatPacket &packet);
-    void processAnnouncePacket(const BitchatPacket &packet);
+    void onPeerConnected(const std::string &peripheralID);
+    void onPeerDisconnected(const std::string &peripheralID);
+    void onPacketReceived(const BitchatPacket &packet, const std::string &peripheralID);
+    void processPacket(const BitchatPacket &packet, const std::string &peripheralID);
+    void processAnnouncePacket(const BitchatPacket &packet, const std::string &peripheralID);
     void relayPacket(const BitchatPacket &packet);
     bool wasMessageProcessed(const std::string &messageID);
     void markMessageProcessed(const std::string &messageID);

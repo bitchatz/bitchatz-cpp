@@ -407,7 +407,7 @@ void LinuxBluetooth::readerThreadFunc(const std::string &deviceID, int socket)
 
                 if (packetReceivedCallback)
                 {
-                    packetReceivedCallback(packet);
+                    packetReceivedCallback(packet, "");
                     spdlog::debug("Received packet from device: {}", deviceID);
                 }
 

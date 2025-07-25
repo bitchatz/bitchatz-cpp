@@ -36,20 +36,20 @@ bool NetworkService::initialize(std::shared_ptr<BluetoothInterface> bluetooth)
 
     // Set up Bluetooth callbacks
     // clang-format off
-    bluetoothInterface->setPacketReceivedCallback([this](const BitchatPacket &packet) {
-        onPacketReceived(packet);
+    bluetoothInterface->setPacketReceivedCallback([this](const BitchatPacket &packet, const std::string &peripheralID) {
+        onPacketReceived(packet, peripheralID);
     });
     // clang-format on
 
     // clang-format off
-    bluetoothInterface->setPeerConnectedCallback([this](const std::string &uuid) {
-        onPeerConnected(uuid);
+    bluetoothInterface->setPeerConnectedCallback([this](const std::string &peripheralID) {
+        onPeerConnected(peripheralID);
     });
     // clang-format on
 
     // clang-format off
-    bluetoothInterface->setPeerDisconnectedCallback([this](const std::string &uuid) {
-        onPeerDisconnected(uuid);
+    bluetoothInterface->setPeerDisconnectedCallback([this](const std::string &peripheralID) {
+        onPeerDisconnected(peripheralID);
     });
     // clang-format on
 
@@ -301,22 +301,22 @@ void NetworkService::setCleanupRunner(std::shared_ptr<CleanupRunner> runner)
     cleanupRunner = runner;
 }
 
-void NetworkService::onPeerConnected(const std::string &uuid)
+void NetworkService::onPeerConnected(const std::string &peripheralID)
 {
-    spdlog::info("Peer connected with UUID: {}", uuid);
+    spdlog::info("Peer connected with UUID: {}", peripheralID);
 
     if (peerConnectedCallback)
     {
-        peerConnectedCallback(uuid);
+        peerConnectedCallback(peripheralID);
     }
 }
 
-void NetworkService::onPeerDisconnected(const std::string &uuid)
+void NetworkService::onPeerDisconnected(const std::string &peripheralID)
 {
     std::lock_guard<std::mutex> lock(peersMutex);
 
     // clang-format off
-    auto peerIt = std::ranges::find(peers, uuid, [](const BitchatPeer &p) {
+    auto peerIt = std::ranges::find(peers, peripheralID, [](const BitchatPeer &p) {
         return p.getPeerID();
     });
     // clang-format on
@@ -327,7 +327,7 @@ void NetworkService::onPeerDisconnected(const std::string &uuid)
         std::string nickname = peerIt->getNickname();
         peers.erase(peerIt);
 
-        spdlog::info("Peer disconnected with UUID: {} ({})", uuid, nickname);
+        spdlog::info("Peer disconnected with UUID: {} ({})", peripheralID, nickname);
 
         if (peerDisconnectedCallback)
         {
@@ -336,12 +336,12 @@ void NetworkService::onPeerDisconnected(const std::string &uuid)
     }
 }
 
-void NetworkService::onPacketReceived(const BitchatPacket &packet)
+void NetworkService::onPacketReceived(const BitchatPacket &packet, const std::string &peripheralID)
 {
-    processPacket(packet);
+    processPacket(packet, peripheralID);
 }
 
-void NetworkService::processPacket(const BitchatPacket &packet)
+void NetworkService::processPacket(const BitchatPacket &packet, const std::string &peripheralID)
 {
     // Validate packet
     if (!packet.isValid())
@@ -364,48 +364,48 @@ void NetworkService::processPacket(const BitchatPacket &packet)
     switch (packet.getType())
     {
     case PKT_TYPE_ANNOUNCE:
-        processAnnouncePacket(packet);
+        processAnnouncePacket(packet, peripheralID);
         break;
     case PKT_TYPE_MESSAGE:
         spdlog::debug("Received MESSAGE packet from {}", StringHelper::toHex(packet.getSenderID()));
         if (packetReceivedCallback)
         {
-            packetReceivedCallback(packet);
+            packetReceivedCallback(packet, peripheralID);
         }
         break;
     case PKT_TYPE_LEAVE:
         spdlog::debug("Received LEAVE packet from {}", StringHelper::toHex(packet.getSenderID()));
         if (packetReceivedCallback)
         {
-            packetReceivedCallback(packet);
+            packetReceivedCallback(packet, peripheralID);
         }
         break;
     case PKT_TYPE_NOISE_HANDSHAKE_INIT:
         spdlog::info("Received NOISE_HANDSHAKE_INIT from {} (payload size: {})", StringHelper::toHex(packet.getSenderID()), packet.getPayload().size());
         if (packetReceivedCallback)
         {
-            packetReceivedCallback(packet);
+            packetReceivedCallback(packet, peripheralID);
         }
         break;
     case PKT_TYPE_NOISE_HANDSHAKE_RESP:
         spdlog::info("Received NOISE_HANDSHAKE_RESP from {}", StringHelper::toHex(packet.getSenderID()));
         if (packetReceivedCallback)
         {
-            packetReceivedCallback(packet);
+            packetReceivedCallback(packet, peripheralID);
         }
         break;
     case PKT_TYPE_NOISE_ENCRYPTED:
         spdlog::info("Received NOISE_ENCRYPTED from {}", StringHelper::toHex(packet.getSenderID()));
         if (packetReceivedCallback)
         {
-            packetReceivedCallback(packet);
+            packetReceivedCallback(packet, peripheralID);
         }
         break;
     case PKT_TYPE_NOISE_IDENTITY_ANNOUNCE:
         spdlog::info("Received NOISE_IDENTITY_ANNOUNCE from {}", StringHelper::toHex(packet.getSenderID()));
         if (packetReceivedCallback)
         {
-            packetReceivedCallback(packet);
+            packetReceivedCallback(packet, peripheralID);
         }
         break;
     default:
@@ -459,7 +459,7 @@ void NetworkService::markMessageProcessed(const std::string &messageID)
     }
 }
 
-void NetworkService::processAnnouncePacket(const BitchatPacket &packet)
+void NetworkService::processAnnouncePacket(const BitchatPacket &packet, const std::string &peripheralID)
 {
     try
     {
@@ -481,8 +481,15 @@ void NetworkService::processAnnouncePacket(const BitchatPacket &packet)
 
             if (peerIt != peers.end())
             {
-                // Update existing peer's last seen time
+                // Update last seen time
                 peerIt->updateLastSeen();
+
+                // Update peripheral UUID
+                if (!peripheralID.empty())
+                {
+                    peerIt->setPeripheralID(peripheralID);
+                }
+
                 spdlog::debug("Updated existing peer: {} ({})", peerID, nickname);
 
                 // Don't notify about connection again
@@ -492,6 +499,8 @@ void NetworkService::processAnnouncePacket(const BitchatPacket &packet)
             // Add new peer
             BitchatPeer peer(StringHelper::toHex(packet.getSenderID()), nickname);
             peer.updateLastSeen();
+            peer.setPeripheralID(peripheralID);
+
             peers.push_back(peer);
         }
 
