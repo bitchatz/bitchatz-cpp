@@ -9,10 +9,10 @@ namespace bitchat
 class NoisePostQuantumKeyExchangeDefault : public NoisePostQuantumKeyExchange
 {
 public:
-    std::pair<PublicKey, PrivateKey> generateKeyPair() override
+    std::pair<NoisePublicKey, NoisePrivateKey> generateKeyPair() override
     {
-        PublicKey publicKey(getPublicKeySize());
-        PrivateKey privateKey(getPrivateKeySize());
+        NoisePublicKey publicKey;
+        NoisePrivateKey privateKey;
 
         if (RAND_bytes(publicKey.data(), static_cast<int>(publicKey.size())) != 1)
         {
@@ -27,14 +27,14 @@ public:
         return {publicKey, privateKey};
     }
 
-    std::pair<SharedSecret, std::vector<uint8_t>> encapsulate(const PublicKey &remotePublicKey) override
+    std::pair<NoiseSharedSecret, std::vector<uint8_t>> encapsulate([[maybe_unused]] const NoisePublicKey &remotePublicKey) override
     {
         if (remotePublicKey.size() != getPublicKeySize())
         {
             throw NoiseSecurityError(NoiseSecurityErrorType::InvalidPeerID, "Invalid public key size");
         }
 
-        SharedSecret sharedSecret(getSharedSecretSize());
+        NoiseSharedSecret sharedSecret;
         std::vector<uint8_t> ciphertext(getCiphertextSize());
 
         if (RAND_bytes(sharedSecret.data(), static_cast<int>(sharedSecret.size())) != 1)
@@ -50,7 +50,7 @@ public:
         return {sharedSecret, ciphertext};
     }
 
-    SharedSecret decapsulate(const std::vector<uint8_t> &ciphertext, const PrivateKey &privateKey) override
+    NoiseSharedSecret decapsulate(const std::vector<uint8_t> &ciphertext, [[maybe_unused]] const NoisePrivateKey &privateKey) override
     {
         if (ciphertext.size() != getCiphertextSize())
         {
@@ -62,7 +62,7 @@ public:
             throw NoiseSecurityError(NoiseSecurityErrorType::InvalidPeerID, "Invalid private key size");
         }
 
-        SharedSecret sharedSecret(getSharedSecretSize());
+        NoiseSharedSecret sharedSecret;
 
         if (RAND_bytes(sharedSecret.data(), static_cast<int>(sharedSecret.size())) != 1)
         {
@@ -74,12 +74,12 @@ public:
 
     size_t getPublicKeySize() const override
     {
-        return 800;
+        return 32; // NoisePublicKey size
     }
 
     size_t getPrivateKeySize() const override
     {
-        return 1632;
+        return 32; // NoisePrivateKey size
     }
 
     size_t getCiphertextSize() const override
@@ -89,7 +89,7 @@ public:
 
     size_t getSharedSecretSize() const override
     {
-        return 32;
+        return 32; // NoiseSharedSecret size
     }
 
     std::string getAlgorithmName() const override

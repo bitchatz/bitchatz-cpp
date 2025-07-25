@@ -10,20 +10,16 @@ namespace bitchat
 class NoiseHybridKeyExchange
 {
 public:
-    using PublicKey = std::vector<uint8_t>;
-    using PrivateKey = std::vector<uint8_t>;
-    using SharedSecret = std::vector<uint8_t>;
-
     explicit NoiseHybridKeyExchange(std::shared_ptr<NoisePostQuantumKeyExchange> pqKex);
 
     // Generate hybrid key pair (classical + post-quantum)
-    std::pair<PublicKey, PrivateKey> generateKeyPair();
+    std::pair<NoisePublicKey, NoisePrivateKey> generateKeyPair();
 
     // Perform hybrid key exchange
-    std::pair<SharedSecret, std::vector<uint8_t>> encapsulate(const PublicKey &remotePublicKey);
+    std::pair<NoiseSharedSecret, std::vector<uint8_t>> encapsulate(const NoisePublicKey &remotePublicKey);
 
     // Decapsulate hybrid shared secret
-    SharedSecret decapsulate(const std::vector<uint8_t> &ciphertext, const PrivateKey &privateKey);
+    NoiseSharedSecret decapsulate(const std::vector<uint8_t> &ciphertext, const NoisePrivateKey &privateKey);
 
     // Get combined key sizes
     size_t getPublicKeySize() const;
@@ -35,7 +31,7 @@ public:
     std::string getAlgorithmName() const;
 
 private:
-    std::shared_ptr<NoisePostQuantumKeyExchange> pqKex_;
+    std::shared_ptr<NoisePostQuantumKeyExchange> pqKex;
 
     // Classical key sizes (Curve25519)
     static constexpr size_t classicalPublicKeySize = 32;

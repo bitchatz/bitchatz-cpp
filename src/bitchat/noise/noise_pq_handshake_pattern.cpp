@@ -4,13 +4,18 @@ namespace bitchat
 {
 
 NoisePQHandshakePattern::NoisePQHandshakePattern(NoisePQHandshakePatternType type)
-    : type_(type)
+    : type(type)
 {
 }
 
-std::string NoisePQHandshakePattern::getName() const
+NoisePQHandshakePatternType NoisePQHandshakePattern::getType() const
 {
-    switch (type_)
+    return type;
+}
+
+std::string NoisePQHandshakePattern::getTypeString() const
+{
+    switch (type)
     {
     case NoisePQHandshakePatternType::XX:
         return "XX";
@@ -29,14 +34,9 @@ std::string NoisePQHandshakePattern::getName() const
     }
 }
 
-NoisePQHandshakePatternType NoisePQHandshakePattern::getType() const
-{
-    return type_;
-}
-
 bool NoisePQHandshakePattern::isPostQuantum() const
 {
-    switch (type_)
+    switch (type)
     {
     case NoisePQHandshakePatternType::XX_PQ:
     case NoisePQHandshakePatternType::IK_PQ:
@@ -49,7 +49,7 @@ bool NoisePQHandshakePattern::isPostQuantum() const
 
 size_t NoisePQHandshakePattern::getMessageCount() const
 {
-    switch (type_)
+    switch (type)
     {
     case NoisePQHandshakePatternType::XX:
     case NoisePQHandshakePatternType::XX_PQ:
@@ -59,36 +59,15 @@ size_t NoisePQHandshakePattern::getMessageCount() const
         return 2;
     case NoisePQHandshakePatternType::XXfallback:
     case NoisePQHandshakePatternType::XXfallback_PQ:
-        return 2;
+        return 1;
     default:
         return 0;
     }
 }
 
-std::string NoisePQHandshakePattern::getDescription() const
-{
-    switch (type_)
-    {
-    case NoisePQHandshakePatternType::XX:
-        return "Three-message handshake with mutual authentication";
-    case NoisePQHandshakePatternType::XX_PQ:
-        return "Three-message handshake with mutual authentication and post-quantum security";
-    case NoisePQHandshakePatternType::IK:
-        return "Two-message handshake with pre-shared static keys";
-    case NoisePQHandshakePatternType::IK_PQ:
-        return "Two-message handshake with pre-shared static keys and post-quantum security";
-    case NoisePQHandshakePatternType::XXfallback:
-        return "Two-message fallback handshake";
-    case NoisePQHandshakePatternType::XXfallback_PQ:
-        return "Two-message fallback handshake with post-quantum security";
-    default:
-        return "Unknown pattern";
-    }
-}
-
 std::string NoisePQHandshakePattern::getPatternString() const
 {
-    switch (type_)
+    switch (type)
     {
     case NoisePQHandshakePatternType::XX:
         return "Noise_XX_25519_ChaChaPoly_SHA256";
@@ -107,26 +86,18 @@ std::string NoisePQHandshakePattern::getPatternString() const
     }
 }
 
-std::string NoisePQHandshakePattern::getPQPatternString() const
+std::string NoisePQHandshakePattern::getPostQuantumPatternString() const
 {
-    if (isPostQuantum())
+    switch (type)
     {
-        return getPatternString();
-    }
-    else
-    {
-        // Convert to PQ pattern
-        switch (type_)
-        {
-        case NoisePQHandshakePatternType::XX:
-            return "Noise_XX_PQ_25519_ChaChaPoly_SHA256";
-        case NoisePQHandshakePatternType::IK:
-            return "Noise_IK_PQ_25519_ChaChaPoly_SHA256";
-        case NoisePQHandshakePatternType::XXfallback:
-            return "Noise_XXfallback_PQ_25519_ChaChaPoly_SHA256";
-        default:
-            return getPatternString();
-        }
+    case NoisePQHandshakePatternType::XX_PQ:
+        return "Noise_XX_PQ_25519_ChaChaPoly_SHA256";
+    case NoisePQHandshakePatternType::IK_PQ:
+        return "Noise_IK_PQ_25519_ChaChaPoly_SHA256";
+    case NoisePQHandshakePatternType::XXfallback_PQ:
+        return "Noise_XXfallback_PQ_25519_ChaChaPoly_SHA256";
+    default:
+        return "Noise_XX_25519_ChaChaPoly_SHA256"; // Fallback to classical
     }
 }
 

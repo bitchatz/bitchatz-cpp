@@ -13,8 +13,8 @@ const std::vector<std::pair<std::string, std::string>> NoiseProtocolMigration::v
     {"Noise_XXfallback_25519_ChaChaPoly_SHA256", "Noise_XXfallback_PQ_25519_ChaChaPoly_SHA256"}};
 
 NoiseProtocolMigration::NoiseProtocolMigration(NoiseMigrationStrategy strategy)
-    : strategy_(strategy)
-    , pqSupported_(true) // Assume PQ is supported by default
+    : strategy(strategy)
+    , pqSupported(false)
 {
 }
 
@@ -31,17 +31,79 @@ bool NoiseProtocolMigration::isMigrationNeeded(const std::string &currentPattern
 
 NoiseMigrationStrategy NoiseProtocolMigration::getStrategy() const
 {
-    return strategy_;
+    return strategy;
 }
 
 void NoiseProtocolMigration::setStrategy(NoiseMigrationStrategy strategy)
 {
-    strategy_ = strategy;
+    this->strategy = strategy;
 }
 
 bool NoiseProtocolMigration::isPostQuantumSupported() const
 {
-    return pqSupported_;
+    return pqSupported;
+}
+
+void NoiseProtocolMigration::setPostQuantumSupported(bool supported)
+{
+    pqSupported = supported;
+}
+
+bool NoiseProtocolMigration::shouldMigrate([[maybe_unused]] const std::string &peerID) const
+{
+    // Implementation would check if migration is needed for this peer
+    return false;
+}
+
+std::string NoiseProtocolMigration::getMigrationPattern([[maybe_unused]] const std::string &peerID) const
+{
+    // Implementation would return the appropriate migration pattern
+    return "Noise_XX_25519_ChaChaPoly_SHA256";
+}
+
+bool NoiseProtocolMigration::canMigrate([[maybe_unused]] const std::string &peerID) const
+{
+    // Implementation would check if migration is possible
+    return false;
+}
+
+bool NoiseProtocolMigration::isMigrationInProgress([[maybe_unused]] const std::string &peerID) const
+{
+    // Implementation would check migration state
+    return false;
+}
+
+void NoiseProtocolMigration::startMigration([[maybe_unused]] const std::string &peerID)
+{
+    // Implementation would start migration process
+}
+
+void NoiseProtocolMigration::completeMigration([[maybe_unused]] const std::string &peerID)
+{
+    // Implementation would complete migration process
+}
+
+void NoiseProtocolMigration::abortMigration([[maybe_unused]] const std::string &peerID)
+{
+    // Implementation would abort migration process
+}
+
+size_t NoiseProtocolMigration::getMigrationCount() const
+{
+    // Implementation would return total migration count
+    return 0;
+}
+
+size_t NoiseProtocolMigration::getSuccessfulMigrations() const
+{
+    // Implementation would return successful migration count
+    return 0;
+}
+
+size_t NoiseProtocolMigration::getFailedMigrations() const
+{
+    // Implementation would return failed migration count
+    return 0;
 }
 
 std::string NoiseProtocolMigration::getRecommendedPattern(const std::string &currentPattern, bool pqSupported) const
@@ -57,7 +119,7 @@ std::string NoiseProtocolMigration::getRecommendedPattern(const std::string &cur
     }
 
     // If PQ is supported, recommend PQ patterns based on strategy
-    switch (strategy_)
+    switch (strategy)
     {
     case NoiseMigrationStrategy::Immediate:
         if (currentPattern.find("_PQ_") == std::string::npos)
@@ -74,7 +136,7 @@ std::string NoiseProtocolMigration::getRecommendedPattern(const std::string &cur
         }
         break;
 
-    case NoiseMigrationStrategy::Opportunistic:
+    case NoiseMigrationStrategy::Gradual:
         // Only migrate if both parties support PQ
         if (currentPattern.find("_PQ_") == std::string::npos)
         {
@@ -89,13 +151,13 @@ std::string NoiseProtocolMigration::getRecommendedPattern(const std::string &cur
         }
         break;
 
-    case NoiseMigrationStrategy::Gradual:
-        // Implement gradual migration logic
-        break;
-
     case NoiseMigrationStrategy::Fallback:
         // Always use fallback patterns
         return getFallbackPattern(currentPattern);
+
+    case NoiseMigrationStrategy::None:
+        // No migration
+        break;
     }
 
     return currentPattern;
