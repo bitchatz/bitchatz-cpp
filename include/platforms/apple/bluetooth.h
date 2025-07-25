@@ -19,7 +19,6 @@
 @property(nonatomic, assign) BOOL ready;
 @property(nonatomic, strong) NSLock *lock;
 @property(nonatomic, strong) dispatch_queue_t bleQueue;
-@property(nonatomic, strong) NSString *localPeerID;
 
 // Callback properties
 @property(nonatomic, copy) void (^peerConnectedCallback)(NSString *);
@@ -39,8 +38,6 @@
 
 // State
 - (BOOL)isReady;
-- (NSString *)getLocalPeerID;
-- (void)setLocalPeerID:(NSString *)peerID;
 - (NSUInteger)getConnectedPeersCount;
 
 // Callback setters

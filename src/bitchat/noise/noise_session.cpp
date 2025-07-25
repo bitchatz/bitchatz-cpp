@@ -8,7 +8,7 @@ namespace bitchat
 namespace noise
 {
 
-// MARK: - NoiseSession Implementation
+// NoiseSession Implementation
 
 class NoiseSessionImpl : public NoiseSession
 {
@@ -1525,7 +1525,7 @@ private:
     }
 };
 
-// MARK: - NoiseSessionManager Implementation
+// NoiseSessionManager Implementation
 
 NoiseSessionManager::NoiseSessionManager(const PrivateKey &localStaticKey)
     : localStaticKey(localStaticKey)

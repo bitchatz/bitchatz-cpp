@@ -16,7 +16,7 @@ namespace bitchat
 namespace noise
 {
 
-// MARK: - NoiseSession Interface
+// NoiseSession Interface
 
 class NoiseSession
 {
@@ -43,7 +43,7 @@ public:
     virtual std::optional<std::vector<uint8_t>> processHandshakeMessage(const std::vector<uint8_t> &message) = 0;
 };
 
-// MARK: - NoiseSessionManager Interface
+// NoiseSessionManager Interface
 
 class NoiseSessionManager
 {

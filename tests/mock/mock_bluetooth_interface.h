@@ -21,8 +21,6 @@ public:
     MOCK_METHOD(bool, sendPacket, (const BitchatPacket &packet), (override));
     MOCK_METHOD(bool, sendPacketToPeer, (const BitchatPacket &packet, const std::string &peerID), (override));
     MOCK_METHOD(bool, isReady, (), (const, override));
-    MOCK_METHOD(std::string, getLocalPeerID, (), (const, override));
-    MOCK_METHOD(void, setLocalPeerID, (const std::string &peerID), (override));
     MOCK_METHOD(void, setPeerConnectedCallback, (PeerConnectedCallback callback), (override));
     MOCK_METHOD(void, setPeerDisconnectedCallback, (PeerDisconnectedCallback callback), (override));
     MOCK_METHOD(void, setPacketReceivedCallback, (PacketReceivedCallback callback), (override));

@@ -12,13 +12,13 @@ namespace bitchat
 namespace identity
 {
 
-// MARK: - Identity Types
+// Identity Types
 
 using IdentityFingerprint = std::array<uint8_t, 32>;
 using IdentityPublicKey = std::array<uint8_t, 32>;
 using IdentityPrivateKey = std::array<uint8_t, 32>;
 
-// MARK: - Identity Model
+// Identity Model
 
 struct Identity
 {
@@ -35,7 +35,7 @@ struct Identity
     static Identity fromJson(const nlohmann::json &json);
 };
 
-// MARK: - Identity State
+// Identity State
 
 enum class IdentityState
 {
@@ -56,7 +56,7 @@ struct IdentityStateInfo
     static IdentityStateInfo fromJson(const nlohmann::json &json);
 };
 
-// MARK: - Identity Backup
+// Identity Backup
 
 struct IdentityBackup
 {
@@ -71,7 +71,7 @@ struct IdentityBackup
     bool verifyChecksum() const;
 };
 
-// MARK: - Identity Recovery
+// Identity Recovery
 
 struct IdentityRecoveryData
 {
@@ -86,7 +86,7 @@ struct IdentityRecoveryData
     std::vector<std::string> generateRecoveryWords() const;
 };
 
-// MARK: - Identity Verification
+// Identity Verification
 
 struct IdentityVerification
 {
@@ -100,7 +100,7 @@ struct IdentityVerification
     bool isExpired() const;
 };
 
-// MARK: - Identity Metadata
+// Identity Metadata
 
 struct IdentityMetadata
 {
@@ -115,7 +115,7 @@ struct IdentityMetadata
     static IdentityMetadata fromJson(const nlohmann::json &json);
 };
 
-// MARK: - Identity Permissions
+// Identity Permissions
 
 enum class IdentityPermission
 {
@@ -140,7 +140,7 @@ struct IdentityAccessControl
     bool isExpired() const;
 };
 
-// MARK: - Identity Events
+// Identity Events
 
 enum class IdentityEventType
 {
@@ -169,7 +169,7 @@ struct IdentityEvent
     static IdentityEvent fromJson(const nlohmann::json &json);
 };
 
-// MARK: - Utility Functions
+// Utility Functions
 
 std::string generateIdentityID();
 IdentityFingerprint generateFingerprint(const IdentityPublicKey &publicKey);
@@ -179,7 +179,7 @@ std::string generateRecoveryPhrase();
 std::vector<std::string> generateRecoveryWords();
 std::string computeChecksum(const std::vector<uint8_t> &data);
 
-// MARK: - JSON Serialization Helpers
+// JSON Serialization Helpers
 
 namespace json_utils
 {

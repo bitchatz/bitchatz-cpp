@@ -16,7 +16,7 @@ IdentityService &IdentityService::getInstance()
     return instance;
 }
 
-// MARK: - Identity Resolution
+// Identity Resolution
 
 IdentityHint IdentityService::resolveIdentity(const std::string &peerID [[maybe_unused]], const std::string &claimedNickname)
 {
@@ -40,7 +40,7 @@ IdentityHint IdentityService::resolveIdentity(const std::string &peerID [[maybe_
     return IdentityHint::UNKNOWN;
 }
 
-// MARK: - Social Identity Management
+// Social Identity Management
 
 std::shared_ptr<SocialIdentity> IdentityService::getSocialIdentity(const std::string &fingerprint)
 {
@@ -106,7 +106,7 @@ void IdentityService::updateSocialIdentity(const SocialIdentity &identity)
     saveIdentityCache();
 }
 
-// MARK: - Favorites Management
+// Favorites Management
 
 std::vector<std::string> IdentityService::getFavorites()
 {
@@ -159,7 +159,7 @@ bool IdentityService::isFavorite(const std::string &fingerprint)
     return (it != cache.socialIdentities.end()) ? it->second.isFavorite : false;
 }
 
-// MARK: - Blocked Users Management
+// Blocked Users Management
 
 bool IdentityService::isBlocked(const std::string &fingerprint)
 {
@@ -200,7 +200,7 @@ void IdentityService::setBlocked(const std::string &fingerprint, bool isBlocked)
     saveIdentityCache();
 }
 
-// MARK: - Ephemeral Session Management
+// Ephemeral Session Management
 
 void IdentityService::registerEphemeralSession(const std::string &peerID, HandshakeState handshakeState)
 {
@@ -244,7 +244,7 @@ HandshakeState IdentityService::getHandshakeState(const std::string &peerID)
     return (it != ephemeralSessions.end()) ? it->second.handshakeState : HandshakeState::NONE;
 }
 
-// MARK: - Pending Actions
+// Pending Actions
 
 void IdentityService::setPendingAction(const std::string &peerID, const PendingActions &action)
 {
@@ -303,7 +303,7 @@ void IdentityService::applyPendingActions(const std::string &peerID, const std::
     saveIdentityCache();
 }
 
-// MARK: - Verification
+// Verification
 
 void IdentityService::setVerified(const std::string &fingerprint, bool verified)
 {
@@ -340,7 +340,7 @@ bool IdentityService::isVerified(const std::string &fingerprint)
     return std::find(cache.verifiedFingerprints.begin(), cache.verifiedFingerprints.end(), fingerprint) != cache.verifiedFingerprints.end();
 }
 
-// MARK: - Cleanup
+// Cleanup
 
 void IdentityService::clearAllIdentityData()
 {
@@ -361,7 +361,7 @@ void IdentityService::removeEphemeralSession(const std::string &peerID)
     pendingActions.erase(peerID);
 }
 
-// MARK: - Persistence
+// Persistence
 
 bool IdentityService::loadIdentityCache()
 {
@@ -377,7 +377,7 @@ bool IdentityService::saveIdentityCache()
     return true;
 }
 
-// MARK: - Helper Methods
+// Helper Methods
 
 std::string IdentityService::generateFingerprint(const std::vector<uint8_t> &publicKey)
 {

@@ -1,4 +1,5 @@
 #include "bitchat/runners/bluetooth_announce_runner.h"
+#include "bitchat/core/bitchat_data.h"
 #include "bitchat/helpers/datetime_helper.h"
 #include "bitchat/helpers/string_helper.h"
 #include "bitchat/protocol/packet_serializer.h"
@@ -22,16 +23,6 @@ BluetoothAnnounceRunner::~BluetoothAnnounceRunner()
 void BluetoothAnnounceRunner::setBluetoothInterface(std::shared_ptr<BluetoothInterface> bluetooth)
 {
     bluetoothInterface = bluetooth;
-}
-
-void BluetoothAnnounceRunner::setLocalPeerID(const std::string &peerID)
-{
-    localPeerID = peerID;
-}
-
-void BluetoothAnnounceRunner::setNickname(const std::string &nick)
-{
-    nickname = nick;
 }
 
 bool BluetoothAnnounceRunner::start()
@@ -86,6 +77,10 @@ void BluetoothAnnounceRunner::runnerLoop()
     {
         try
         {
+            // Get data from BitchatData
+            std::string nickname = BitchatData::shared()->getNickname();
+            std::string localPeerID = BitchatData::shared()->getPeerID();
+
             // Create announce packet with nickname
             std::vector<uint8_t> payload = serializer.makeAnnouncePayload(nickname);
 

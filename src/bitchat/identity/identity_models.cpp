@@ -12,7 +12,7 @@ namespace bitchat
 namespace identity
 {
 
-// MARK: - Identity Model Implementation
+// Identity Model Implementation
 
 nlohmann::json Identity::toJson() const
 {
@@ -39,7 +39,7 @@ Identity Identity::fromJson(const nlohmann::json &json)
     return identity;
 }
 
-// MARK: - Identity State Implementation
+// Identity State Implementation
 
 nlohmann::json IdentityStateInfo::toJson() const
 {
@@ -58,7 +58,7 @@ IdentityStateInfo IdentityStateInfo::fromJson(const nlohmann::json &json)
     return info;
 }
 
-// MARK: - Identity Backup Implementation
+// Identity Backup Implementation
 
 nlohmann::json IdentityBackup::toJson() const
 {
@@ -112,7 +112,7 @@ bool IdentityBackup::verifyChecksum() const
     return checksum == computeChecksum();
 }
 
-// MARK: - Identity Recovery Implementation
+// Identity Recovery Implementation
 
 nlohmann::json IdentityRecoveryData::toJson() const
 {
@@ -143,7 +143,7 @@ std::vector<std::string> IdentityRecoveryData::generateRecoveryWords() const
     return recoveryWords;
 }
 
-// MARK: - Identity Verification Implementation
+// Identity Verification Implementation
 
 nlohmann::json IdentityVerification::toJson() const
 {
@@ -169,7 +169,7 @@ bool IdentityVerification::isExpired() const
     return std::chrono::system_clock::now() > expiresAt;
 }
 
-// MARK: - Identity Metadata Implementation
+// Identity Metadata Implementation
 
 nlohmann::json IdentityMetadata::toJson() const
 {
@@ -194,7 +194,7 @@ IdentityMetadata IdentityMetadata::fromJson(const nlohmann::json &json)
     return metadata;
 }
 
-// MARK: - Identity Access Control Implementation
+// Identity Access Control Implementation
 
 nlohmann::json IdentityAccessControl::toJson() const
 {
@@ -249,7 +249,7 @@ bool IdentityAccessControl::isExpired() const
     return std::chrono::system_clock::now() > *expiresAt;
 }
 
-// MARK: - Identity Event Implementation
+// Identity Event Implementation
 
 nlohmann::json IdentityEvent::toJson() const
 {
@@ -272,7 +272,7 @@ IdentityEvent IdentityEvent::fromJson(const nlohmann::json &json)
     return event;
 }
 
-// MARK: - Utility Functions
+// Utility Functions
 
 std::string generateIdentityID()
 {
@@ -392,7 +392,7 @@ std::vector<uint8_t> sha256(const std::vector<uint8_t> &data)
     return hash;
 }
 
-// MARK: - JSON Serialization Helpers
+// JSON Serialization Helpers
 
 namespace json_utils
 {

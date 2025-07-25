@@ -167,16 +167,6 @@ bool LinuxBluetooth::isReady() const
     return deviceID >= 0 && hciSocket >= 0;
 }
 
-std::string LinuxBluetooth::getLocalPeerID() const
-{
-    return localPeerID;
-}
-
-void LinuxBluetooth::setLocalPeerID(const std::string &peerID)
-{
-    localPeerID = peerID;
-}
-
 void LinuxBluetooth::setPeerConnectedCallback(PeerConnectedCallback callback)
 {
     peerConnectedCallback = callback;

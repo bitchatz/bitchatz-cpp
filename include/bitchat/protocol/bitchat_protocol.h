@@ -11,7 +11,7 @@ namespace bitchat
 namespace protocol
 {
 
-// MARK: - Protocol Constants
+// Protocol Constants
 
 struct BitchatProtocolConstants
 {
@@ -25,7 +25,7 @@ struct BitchatProtocolConstants
     static constexpr std::chrono::seconds peerTimeout{300}; // 5 minutes
 };
 
-// MARK: - Message Types
+// Message Types
 
 enum class BitchatMessageType : uint8_t
 {
@@ -40,7 +40,7 @@ enum class BitchatMessageType : uint8_t
     Error = 0x09
 };
 
-// MARK: - Error Codes
+// Error Codes
 
 enum class BitchatErrorCode : uint16_t
 {
@@ -59,7 +59,7 @@ enum class BitchatErrorCode : uint16_t
     InvalidChannelName = 0x000C
 };
 
-// MARK: - Base Message
+// Base Message
 
 struct BitchatMessage
 {
@@ -75,7 +75,7 @@ struct BitchatMessage
     virtual ~BitchatMessage() = default;
 };
 
-// MARK: - Handshake Message
+// Handshake Message
 
 struct BitchatHandshakeMessage : public BitchatMessage
 {
@@ -88,7 +88,7 @@ struct BitchatHandshakeMessage : public BitchatMessage
     void fromJson(const nlohmann::json &json) override;
 };
 
-// MARK: - Handshake Response Message
+// Handshake Response Message
 
 struct BitchatHandshakeResponseMessage : public BitchatMessage
 {
@@ -102,7 +102,7 @@ struct BitchatHandshakeResponseMessage : public BitchatMessage
     void fromJson(const nlohmann::json &json) override;
 };
 
-// MARK: - Chat Message
+// Chat Message
 
 struct BitchatChatMessage : public BitchatMessage
 {
@@ -116,7 +116,7 @@ struct BitchatChatMessage : public BitchatMessage
     void fromJson(const nlohmann::json &json) override;
 };
 
-// MARK: - Channel Join Message
+// Channel Join Message
 
 struct BitchatChannelJoinMessage : public BitchatMessage
 {
@@ -128,7 +128,7 @@ struct BitchatChannelJoinMessage : public BitchatMessage
     void fromJson(const nlohmann::json &json) override;
 };
 
-// MARK: - Channel Leave Message
+// Channel Leave Message
 
 struct BitchatChannelLeaveMessage : public BitchatMessage
 {
@@ -139,7 +139,7 @@ struct BitchatChannelLeaveMessage : public BitchatMessage
     void fromJson(const nlohmann::json &json) override;
 };
 
-// MARK: - Peer Info Message
+// Peer Info Message
 
 struct BitchatPeerInfoMessage : public BitchatMessage
 {
@@ -153,7 +153,7 @@ struct BitchatPeerInfoMessage : public BitchatMessage
     void fromJson(const nlohmann::json &json) override;
 };
 
-// MARK: - Channel Key Share Message
+// Channel Key Share Message
 
 struct BitchatChannelKeyShareMessage : public BitchatMessage
 {
@@ -165,7 +165,7 @@ struct BitchatChannelKeyShareMessage : public BitchatMessage
     void fromJson(const nlohmann::json &json) override;
 };
 
-// MARK: - Keep Alive Message
+// Keep Alive Message
 
 struct BitchatKeepAliveMessage : public BitchatMessage
 {
@@ -176,7 +176,7 @@ struct BitchatKeepAliveMessage : public BitchatMessage
     void fromJson(const nlohmann::json &json) override;
 };
 
-// MARK: - Error Message
+// Error Message
 
 struct BitchatErrorMessage : public BitchatMessage
 {
@@ -188,7 +188,7 @@ struct BitchatErrorMessage : public BitchatMessage
     void fromJson(const nlohmann::json &json) override;
 };
 
-// MARK: - Message Factory
+// Message Factory
 
 class BitchatMessageFactory
 {
@@ -201,7 +201,7 @@ private:
     static std::shared_ptr<BitchatMessage> createMessageFromJson(const nlohmann::json &json);
 };
 
-// MARK: - Protocol Validator
+// Protocol Validator
 
 class BitchatProtocolValidator
 {
@@ -218,7 +218,7 @@ private:
     static bool validateTimestamp(const std::chrono::system_clock::time_point &timestamp);
 };
 
-// MARK: - Protocol Utils
+// Protocol Utils
 
 namespace protocol_utils
 {

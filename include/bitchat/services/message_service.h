@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bitchat/core/bitchat_data.h"
 #include "bitchat/protocol/packet.h"
 #include <functional>
 #include <map>
@@ -45,24 +46,6 @@ public:
     // Leave current channel
     void leaveChannel();
 
-    // Get current channel
-    std::string getCurrentChannel() const;
-
-    // Get message history for current channel
-    std::vector<BitchatMessage> getMessageHistory() const;
-
-    // Get message history for a specific channel
-    std::vector<BitchatMessage> getMessageHistory(const std::string &channel) const;
-
-    // Clear message history
-    void clearMessageHistory();
-
-    // Set nickname
-    void setNickname(const std::string &nickname);
-
-    // Get nickname
-    std::string getNickname() const;
-
     // Set callbacks
     using MessageReceivedCallback = std::function<void(const BitchatMessage &)>;
     using ChannelJoinedCallback = std::function<void(const std::string &)>;
@@ -84,16 +67,6 @@ private:
     std::shared_ptr<CryptoService> cryptoService;
     std::shared_ptr<noise::NoiseSessionManager> noiseSessionManager;
 
-    // State
-    std::string nickname;
-    std::string currentChannel;
-    std::map<std::string, std::vector<BitchatMessage>> messageHistory;
-    std::set<std::string> processedMessages;
-
-    // Mutexes
-    mutable std::mutex historyMutex;
-    mutable std::mutex processedMutex;
-
     // Callbacks
     MessageReceivedCallback messageReceivedCallback;
     ChannelJoinedCallback channelJoinedCallback;
@@ -103,9 +76,6 @@ private:
     void onPacketReceived(const BitchatPacket &packet, const std::string &peripheralID);
     void processMessagePacket(const BitchatPacket &packet);
     void processChannelAnnouncePacket(const BitchatPacket &packet);
-    void addMessageToHistory(const BitchatMessage &message);
-    bool wasMessageProcessed(const std::string &messageID);
-    void markMessageProcessed(const std::string &messageID);
     BitchatPacket createMessagePacket(const BitchatMessage &message);
     BitchatPacket createAnnouncePacket();
     BitchatPacket createChannelAnnouncePacket(const std::string &channel, bool joining);

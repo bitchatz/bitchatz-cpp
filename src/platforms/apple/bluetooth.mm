@@ -97,7 +97,6 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
         self.ready = NO;                                                                 // Not ready until managers are powered on
         self.lock = [[NSLock alloc] init];                                               // Thread safety lock
         self.bleQueue = dispatch_queue_create("com.bitchat.ble", DISPATCH_QUEUE_SERIAL); // Serial queue for BLE operations
-        self.localPeerID = nil;                                                          // Initialize peer ID to nil
 
         // Initialize managers on main queue (required for Core Bluetooth)
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -287,34 +286,6 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
 - (BOOL)isReady
 {
     return self.ready;
-}
-
-/**
- * @brief Get the local device's peer identifier
- *
- * Returns the peer ID
- * This ID is used to identify this device to other peers.
- *
- * @return The local peer ID as a string
- */
-- (NSString *)getLocalPeerID
-{
-    return self.localPeerID ? self.localPeerID : @"";
-}
-
-/**
- * @brief Set the local device's peer identifier
- *
- * Sets the peer ID that will be used to identify this device to other peers.
- *
- * @param peerID The peer ID to set
- */
-- (void)setLocalPeerID:(NSString *)peerID
-{
-    if (peerID && peerID.length > 0)
-    {
-        _localPeerID = [peerID copy];
-    }
 }
 
 /**
@@ -724,14 +695,8 @@ static NSString *const CHARACTERISTIC_UUID = @(bitchat::constants::BLE_CHARACTER
 {
     if (self.peripheralManager.state == CBManagerStatePoweredOn)
     {
-        // Use peer ID as local name, but only if it's been set
-        NSString *localName = [self getLocalPeerID];
-
-        // If no peer ID has been set yet, use a default name
-        if (!localName || localName.length == 0)
-        {
-            localName = @"unknown";
-        }
+        // Use a default name for advertising
+        NSString *localName = @"bitchat";
 
         // Set up advertisement data
         NSDictionary *advertisementData = @{

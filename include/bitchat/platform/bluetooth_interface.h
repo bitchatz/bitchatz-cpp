@@ -42,12 +42,6 @@ public:
     // Check if Bluetooth is ready
     virtual bool isReady() const = 0;
 
-    // Get local peer ID
-    virtual std::string getLocalPeerID() const = 0;
-
-    // Set local peer ID
-    virtual void setLocalPeerID(const std::string &peerID) = 0;
-
     // Set callbacks
     virtual void setPeerConnectedCallback(PeerConnectedCallback callback) = 0;
     virtual void setPeerDisconnectedCallback(PeerDisconnectedCallback callback) = 0;

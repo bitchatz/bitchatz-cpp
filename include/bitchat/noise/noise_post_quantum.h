@@ -11,7 +11,7 @@ namespace bitchat
 namespace noise
 {
 
-// MARK: - Post-Quantum Cryptography Framework
+// Post-Quantum Cryptography Framework
 
 /// Framework for integrating post-quantum algorithms with Noise Protocol
 /// Currently a placeholder until PQ libraries are available in C++
@@ -35,7 +35,7 @@ public:
     static constexpr size_t sharedSecretSize = 0;
 };
 
-// MARK: - Hybrid Key Exchange
+// Hybrid Key Exchange
 
 /// Combines classical (Curve25519) with post-quantum algorithms
 class HybridNoiseKeyExchange
@@ -71,23 +71,23 @@ public:
         SymmetricKey combinedSecret() const;
     };
 
-    // MARK: - Key Generation
+    // Key Generation
 
     static std::pair<HybridPublicKey, HybridPrivateKey> generateKeyPair(Algorithm algorithm);
 
-    // MARK: - Key Agreement
+    // Key Agreement
 
     static HybridSharedSecret performKeyAgreement(const HybridPrivateKey &localPrivate,
                                                   const HybridPublicKey &remotePublic,
                                                   Algorithm algorithm);
 
-    // MARK: - Utility
+    // Utility
 
     static std::string algorithmName(Algorithm algorithm);
     static bool isPostQuantum(Algorithm algorithm);
 };
 
-// MARK: - Modified Noise Pattern for PQ
+// Modified Noise Pattern for PQ
 
 /// Extended Noise handshake pattern for post-quantum
 /// Based on Noise PQ patterns: https://github.com/noiseprotocol/noise_pq_spec
@@ -110,7 +110,7 @@ struct NoisePQHandshakePattern
     // post-quantum key encapsulation material
 };
 
-// MARK: - Migration Support
+// Migration Support
 
 /// Helps transition from classical to post-quantum crypto
 class NoiseProtocolMigration
@@ -139,7 +139,7 @@ public:
     static MigrationConfig getMigrationConfig();
 };
 
-// MARK: - Future Implementation Notes
+// Future Implementation Notes
 
 /*
  Post-Quantum Integration Plan:
@@ -163,7 +163,7 @@ public:
  - Full deployment: 2027+
  */
 
-// MARK: - Testing Support
+// Testing Support
 
 #ifdef DEBUG
 /// Mock PQ implementation for testing

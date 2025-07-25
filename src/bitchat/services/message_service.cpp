@@ -14,9 +14,8 @@ namespace bitchat
 {
 
 MessageService::MessageService()
-    : currentChannel("")
 {
-    nickname = StringHelper::randomNickname();
+    // Pass
 }
 
 bool MessageService::initialize(std::shared_ptr<NetworkService> network, std::shared_ptr<CryptoService> crypto, std::shared_ptr<noise::NoiseSessionManager> noise)
@@ -51,10 +50,11 @@ bool MessageService::sendMessage(const std::string &content, const std::string &
         return false;
     }
 
-    std::string targetChannel = channel.empty() ? currentChannel : channel;
+    std::string targetChannel = channel.empty() ? BitchatData::shared()->getCurrentChannel() : channel;
+    std::string senderNickname = BitchatData::shared()->getNickname();
 
     // Create message
-    BitchatMessage message(nickname, content, targetChannel);
+    BitchatMessage message(senderNickname, content, targetChannel);
     message.setId(generateMessageID());
 
     // Create and send packet
@@ -64,7 +64,15 @@ bool MessageService::sendMessage(const std::string &content, const std::string &
     if (success)
     {
         // Add to our own history
-        addMessageToHistory(message);
+        std::string channel = message.getChannel();
+
+        if (channel.empty() && message.isPrivate())
+        {
+            channel = "private";
+        }
+
+        BitchatData::shared()->addMessageToHistory(message, channel);
+
         spdlog::debug("Message sent: {}", content);
     }
     else
@@ -83,8 +91,10 @@ bool MessageService::sendPrivateMessage(const std::string &content, const std::s
         return false;
     }
 
+    std::string senderNickname = BitchatData::shared()->getNickname();
+
     // Create private message
-    BitchatMessage message(nickname, content, "");
+    BitchatMessage message(senderNickname, content, "");
     message.setId(generateMessageID());
     message.setPrivate(true);
     message.setRecipientNickname(recipientNickname);
@@ -114,36 +124,43 @@ void MessageService::joinChannel(const std::string &channel)
     }
 
     // Leave current channel if any
+    std::string currentChannel = BitchatData::shared()->getCurrentChannel();
+
     if (!currentChannel.empty())
     {
         leaveChannel();
     }
 
     // Ensure channel starts with #
-    std::string channelTag = channel;
-    if (channelTag[0] != '#')
+    std::string newChannel;
+    if (channel[0] != '#')
     {
-        currentChannel = "#" + channel;
+        newChannel = "#" + channel;
     }
     else
     {
-        currentChannel = channel;
+        newChannel = channel;
     }
 
+    // Set the new channel in data
+    BitchatData::shared()->setCurrentChannel(newChannel);
+
     // Send channel announce packet
-    BitchatPacket packet = createChannelAnnouncePacket(currentChannel, true);
+    BitchatPacket packet = createChannelAnnouncePacket(newChannel, true);
     networkService->sendPacket(packet);
 
     if (channelJoinedCallback)
     {
-        channelJoinedCallback(currentChannel);
+        channelJoinedCallback(newChannel);
     }
 
-    spdlog::info("Joined channel: {}", currentChannel);
+    spdlog::info("Joined channel: {}", newChannel);
 }
 
 void MessageService::leaveChannel()
 {
+    std::string currentChannel = BitchatData::shared()->getCurrentChannel();
+
     if (currentChannel.empty())
     {
         return;
@@ -154,7 +171,7 @@ void MessageService::leaveChannel()
     networkService->sendPacket(packet);
 
     std::string oldChannel = currentChannel;
-    currentChannel.clear();
+    BitchatData::shared()->setCurrentChannel("");
 
     if (channelLeftCallback)
     {
@@ -162,58 +179,6 @@ void MessageService::leaveChannel()
     }
 
     spdlog::info("Left channel: {}", oldChannel);
-}
-
-std::string MessageService::getCurrentChannel() const
-{
-    return currentChannel;
-}
-
-std::vector<BitchatMessage> MessageService::getMessageHistory() const
-{
-    if (currentChannel.empty())
-    {
-        return getMessageHistory("");
-    }
-
-    return getMessageHistory(currentChannel);
-}
-
-std::vector<BitchatMessage> MessageService::getMessageHistory(const std::string &channel) const
-{
-    std::lock_guard<std::mutex> lock(historyMutex);
-
-    auto it = messageHistory.find(channel);
-    if (it != messageHistory.end())
-    {
-        return it->second;
-    }
-
-    return {};
-}
-
-void MessageService::clearMessageHistory()
-{
-    std::lock_guard<std::mutex> lock(historyMutex);
-    messageHistory.clear();
-}
-
-void MessageService::setNickname(const std::string &nick)
-{
-    nickname = nick;
-
-    // Update network manager nickname for announce packets
-    if (networkService)
-    {
-        networkService->setNickname(nick);
-    }
-
-    spdlog::info("Nickname changed to: {}", nickname);
-}
-
-std::string MessageService::getNickname() const
-{
-    return nickname;
 }
 
 void MessageService::setMessageReceivedCallback(MessageReceivedCallback callback)
@@ -267,7 +232,7 @@ void MessageService::processMessagePacket(const BitchatPacket &packet)
         spdlog::debug("Processing message packet - ID: {}, Sender: {}, Content: {}, Channel: {}, Private: {}", message.getId(), message.getSender(), message.getContent(), message.getChannel(), message.isPrivate());
 
         // Check if we've already processed this message
-        if (wasMessageProcessed(message.getId()))
+        if (BitchatData::shared()->wasMessageProcessed(message.getId()))
         {
             spdlog::debug("Message already processed, skipping: {}", message.getId());
             return;
@@ -275,7 +240,7 @@ void MessageService::processMessagePacket(const BitchatPacket &packet)
 
         // Ignore messages from ourselves to prevent duplication
         std::string senderID = StringHelper::toHex(packet.getSenderID());
-        std::string localPeerID = networkService->getLocalPeerID();
+        std::string localPeerID = BitchatData::shared()->getPeerID();
         spdlog::debug("Message sender ID: {}, Local peer ID: {}", senderID, localPeerID);
 
         if (senderID == localPeerID)
@@ -284,10 +249,12 @@ void MessageService::processMessagePacket(const BitchatPacket &packet)
             return;
         }
 
-        markMessageProcessed(message.getId());
+        BitchatData::shared()->markMessageProcessed(message.getId());
 
         // Add to history if it's for our current channel, default chat (empty channel), or a private message
         bool shouldAddToHistory = false;
+
+        std::string currentChannel = BitchatData::shared()->getCurrentChannel();
 
         if (message.getChannel() == currentChannel)
         {
@@ -300,19 +267,30 @@ void MessageService::processMessagePacket(const BitchatPacket &packet)
             spdlog::debug("Message is for default chat (empty channel)");
             shouldAddToHistory = true;
         }
-        else if (message.isPrivate() && message.getRecipientNickname() == nickname)
+        else if (message.isPrivate() && message.getRecipientNickname() == BitchatData::shared()->getNickname())
         {
+            std::string nickname = BitchatData::shared()->getNickname();
             spdlog::debug("Message is private for us: {}", nickname);
             shouldAddToHistory = true;
         }
         else
         {
+            std::string nickname = BitchatData::shared()->getNickname();
+            std::string currentChannel = BitchatData::shared()->getCurrentChannel();
             spdlog::debug("Message not for us - Channel: {} (current: {}), Private: {}, Recipient: {} (our nick: {})", message.getChannel(), currentChannel, message.isPrivate(), message.getRecipientNickname(), nickname);
         }
 
         if (shouldAddToHistory)
         {
-            addMessageToHistory(message);
+            std::string channel = message.getChannel();
+
+            if (channel.empty() && message.isPrivate())
+            {
+                channel = "private";
+            }
+
+            BitchatData::shared()->addMessageToHistory(message, channel);
+
             spdlog::debug("Added message to history");
         }
 
@@ -345,12 +323,13 @@ void MessageService::processChannelAnnouncePacket(const BitchatPacket &packet)
         serializer.parseChannelAnnouncePayload(packet.getPayload(), channel, joining);
 
         std::string peerID = StringHelper::toHex(packet.getSenderID());
-        auto peerInfo = networkService->getPeerInfo(peerID);
+        auto peerInfo = BitchatData::shared()->getPeerInfo(peerID);
 
         if (peerInfo)
         {
-            peerInfo->setChannel(joining ? channel : "");
-            networkService->updatePeerInfo(peerID, *peerInfo);
+            BitchatPeer updatedPeer = *peerInfo;
+            updatedPeer.setChannel(joining ? channel : "");
+            BitchatData::shared()->updatePeer(updatedPeer);
         }
 
         spdlog::debug("Processed channel announce: {} {} channel {}", peerID, joining ? "joined" : "left", channel);
@@ -358,46 +337,6 @@ void MessageService::processChannelAnnouncePacket(const BitchatPacket &packet)
     catch (const std::exception &e)
     {
         spdlog::error("Error processing channel announce packet: {}", e.what());
-    }
-}
-
-void MessageService::addMessageToHistory(const BitchatMessage &message)
-{
-    std::lock_guard<std::mutex> lock(historyMutex);
-
-    std::string channel = message.getChannel();
-
-    if (channel.empty() && message.isPrivate())
-    {
-        channel = "private";
-    }
-
-    messageHistory[channel].push_back(message);
-
-    // Keep history size limited
-    if (messageHistory[channel].size() > MAX_HISTORY_SIZE)
-    {
-        messageHistory[channel].erase(messageHistory[channel].begin());
-    }
-}
-
-bool MessageService::wasMessageProcessed(const std::string &messageID)
-{
-    std::lock_guard<std::mutex> lock(processedMutex);
-    return processedMessages.find(messageID) != processedMessages.end();
-}
-
-void MessageService::markMessageProcessed(const std::string &messageID)
-{
-    std::lock_guard<std::mutex> lock(processedMutex);
-    processedMessages.insert(messageID);
-
-    // Keep processed messages size limited
-    if (processedMessages.size() > MAX_PROCESSED_MESSAGES)
-    {
-        auto it = processedMessages.begin();
-        std::advance(it, processedMessages.size() - MAX_PROCESSED_MESSAGES);
-        processedMessages.erase(processedMessages.begin(), it);
     }
 }
 
@@ -448,7 +387,7 @@ BitchatPacket MessageService::createMessagePacket(const BitchatMessage &message)
     }
 
     BitchatPacket packet(packetType, payload);
-    packet.setSenderID(StringHelper::stringToVector(networkService->getLocalPeerID()));
+    packet.setSenderID(StringHelper::stringToVector(BitchatData::shared()->getPeerID()));
     packet.setTimestamp(DateTimeHelper::getCurrentTimestamp());
     packet.setCompressed(CompressionHelper::shouldCompress(payload));
 
@@ -474,10 +413,11 @@ BitchatPacket MessageService::createMessagePacket(const BitchatMessage &message)
 BitchatPacket MessageService::createAnnouncePacket()
 {
     PacketSerializer serializer;
+    std::string nickname = BitchatData::shared()->getNickname();
     std::vector<uint8_t> payload = serializer.makeAnnouncePayload(nickname);
 
     BitchatPacket packet(PKT_TYPE_ANNOUNCE, payload);
-    packet.setSenderID(StringHelper::stringToVector(networkService->getLocalPeerID()));
+    packet.setSenderID(StringHelper::stringToVector(BitchatData::shared()->getPeerID()));
     packet.setTimestamp(DateTimeHelper::getCurrentTimestamp());
 
     return packet;

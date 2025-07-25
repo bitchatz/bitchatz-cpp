@@ -14,7 +14,7 @@ namespace bitchat
 namespace noise
 {
 
-// MARK: - Basic Types
+// Basic Types
 
 // 32-byte symmetric key
 using SymmetricKey = std::array<uint8_t, 32>;
@@ -28,7 +28,7 @@ using PrivateKey = std::array<uint8_t, 32>;
 // 32-byte shared secret
 using SharedSecret = std::array<uint8_t, 32>;
 
-// MARK: - Session Types
+// Session Types
 
 enum class NoiseRole
 {
@@ -36,7 +36,7 @@ enum class NoiseRole
     Responder
 };
 
-// MARK: - Security Constants
+// Security Constants
 
 struct NoiseSecurityConstants
 {
@@ -67,7 +67,7 @@ struct NoiseSecurityConstants
     static constexpr size_t maxGlobalMessagesPerSecond = 500;
 };
 
-// MARK: - Security Errors
+// Security Errors
 
 enum class NoiseSecurityError
 {
@@ -80,7 +80,7 @@ enum class NoiseSecurityError
     HandshakeTimeout
 };
 
-// MARK: - Utility Functions
+// Utility Functions
 
 // SHA-256 hash function
 std::vector<uint8_t> sha256(const std::vector<uint8_t> &data);

@@ -17,7 +17,6 @@ TEST_F(BitchatManagerFixture, Initialize)
     EXPECT_CALL(*mockInterface, setPacketReceivedCallback(::NotNull())).Times(1);
     EXPECT_CALL(*mockInterface, setPeerConnectedCallback(::NotNull())).Times(1);
     EXPECT_CALL(*mockInterface, setPeerDisconnectedCallback(::NotNull())).Times(1);
-    EXPECT_CALL(*mockInterface, setLocalPeerID(::_)).Times(1);
     EXPECT_CALL(*mockInterface, initialize()).WillOnce(::testing::Return(true));
     EXPECT_CALL(*mockInterface, start()).WillOnce(::testing::Return(true));
 

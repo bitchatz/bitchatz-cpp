@@ -23,12 +23,6 @@ public:
     // Set the Bluetooth interface
     void setBluetoothInterface(std::shared_ptr<BluetoothInterface> bluetooth);
 
-    // Set the local peer ID
-    void setLocalPeerID(const std::string &peerID);
-
-    // Set the nickname for announce packets
-    void setNickname(const std::string &nickname);
-
     // Start the announce loop
     bool start();
 
@@ -41,10 +35,6 @@ public:
 private:
     // Bluetooth interface
     std::shared_ptr<BluetoothInterface> bluetoothInterface;
-
-    // Network state
-    std::string localPeerID;
-    std::string nickname;
 
     // Threading
     std::atomic<bool> shouldExit;

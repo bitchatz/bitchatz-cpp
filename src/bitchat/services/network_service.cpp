@@ -1,4 +1,5 @@
 #include "bitchat/services/network_service.h"
+#include "bitchat/core/bitchat_data.h"
 #include "bitchat/helpers/datetime_helper.h"
 #include "bitchat/helpers/protocol_helper.h"
 #include "bitchat/helpers/string_helper.h"
@@ -62,25 +63,6 @@ bool NetworkService::initialize(std::shared_ptr<BluetoothInterface> bluetooth)
     spdlog::info("NetworkService initialized");
 
     return true;
-}
-
-void NetworkService::setLocalPeerID(const std::string &peerID)
-{
-    if (!bluetoothInterface)
-    {
-        spdlog::error("NetworkService: Cannot set peer ID without Bluetooth interface");
-        return;
-    }
-
-    // Set the local peer ID in the Bluetooth interface
-    bluetoothInterface->setLocalPeerID(peerID);
-    localPeerID = peerID;
-
-    // Set the peer ID in the announce runner
-    if (announceRunner)
-    {
-        announceRunner->setLocalPeerID(peerID);
-    }
 }
 
 bool NetworkService::start()
@@ -164,97 +146,6 @@ bool NetworkService::sendPacketToPeer(const BitchatPacket &packet, const std::st
     return bluetoothInterface->sendPacketToPeer(packet, peerID);
 }
 
-std::vector<BitchatPeer> NetworkService::getPeers() const
-{
-    std::lock_guard<std::mutex> lock(peersMutex);
-    return peers;
-}
-
-size_t NetworkService::getPeersCount() const
-{
-    if (bluetoothInterface)
-    {
-        return bluetoothInterface->getConnectedPeersCount();
-    }
-
-    return 0;
-}
-
-bool NetworkService::isPeerOnline(const std::string &peerID) const
-{
-    std::lock_guard<std::mutex> lock(peersMutex);
-
-    // clang-format off
-    auto it = std::ranges::find(peers, peerID, [](const BitchatPeer& p) {
-        return p.getPeerID();
-    });
-    // clang-format on
-
-    return it != peers.end();
-}
-
-std::optional<BitchatPeer> NetworkService::getPeerInfo(const std::string &peerID) const
-{
-    std::lock_guard<std::mutex> lock(peersMutex);
-
-    // clang-format off
-    auto it = std::ranges::find(peers, peerID, [](const BitchatPeer& p) {
-        return p.getPeerID();
-    });
-    // clang-format on
-
-    if (it != peers.end())
-    {
-        return *it;
-    }
-
-    return std::nullopt;
-}
-
-void NetworkService::updatePeerInfo(const std::string &peerID, const BitchatPeer &peer)
-{
-    std::lock_guard<std::mutex> lock(peersMutex);
-
-    // clang-format off
-    auto it = std::ranges::find(peers, peerID, [](const BitchatPeer& p) {
-        return p.getPeerID();
-    });
-    // clang-format on
-
-    if (it != peers.end())
-    {
-        *it = peer;
-    }
-    else
-    {
-        peers.push_back(peer);
-    }
-}
-
-void NetworkService::cleanupStalePeers(time_t timeout)
-{
-    std::lock_guard<std::mutex> lock(peersMutex);
-
-    // clang-format off
-    peers.erase(std::remove_if(peers.begin(), peers.end(), [timeout](const BitchatPeer &p) {
-        return p.isStale(timeout);
-    }), peers.end());
-    // clang-format on
-
-    // clang-format off
-    std::erase_if(peers, [&](const BitchatPeer& p) {
-        const bool isStale = p.isStale(timeout);
-
-        if (isStale)
-        {
-            spdlog::debug("Removing stale peer: {}", p.getPeerID());
-        }
-
-        return isStale;
-    });
-    // clang-format on
-}
-
 void NetworkService::setPacketReceivedCallback(PacketReceivedCallback callback)
 {
     packetReceivedCallback = callback;
@@ -270,25 +161,9 @@ void NetworkService::setPeerDisconnectedCallback(PeerDisconnectedCallback callba
     peerDisconnectedCallback = callback;
 }
 
-std::string NetworkService::getLocalPeerID() const
-{
-    return localPeerID;
-}
-
 bool NetworkService::isReady() const
 {
     return bluetoothInterface && bluetoothInterface->isReady();
-}
-
-void NetworkService::setNickname(const std::string &nick)
-{
-    nickname = nick;
-
-    // Set the nickname in the announce runner
-    if (announceRunner)
-    {
-        announceRunner->setNickname(nick);
-    }
 }
 
 void NetworkService::setAnnounceRunner(std::shared_ptr<BluetoothAnnounceRunner> runner)
@@ -313,25 +188,22 @@ void NetworkService::onPeerConnected(const std::string &peripheralID)
 
 void NetworkService::onPeerDisconnected(const std::string &peripheralID)
 {
-    std::lock_guard<std::mutex> lock(peersMutex);
-
-    // clang-format off
-    auto peerIt = std::ranges::find(peers, peripheralID, [](const BitchatPeer &p) {
-        return p.getPeerID();
-    });
-    // clang-format on
-
-    if (peerIt != peers.end())
+    auto peers = BitchatData::shared()->getPeers();
+    for (const auto &peer : peers)
     {
-        std::string peerID = peerIt->getPeerID();
-        std::string nickname = peerIt->getNickname();
-        peers.erase(peerIt);
-
-        spdlog::info("Peer disconnected with UUID: {} ({})", peripheralID, nickname);
-
-        if (peerDisconnectedCallback)
+        if (peer.getPeripheralID() == peripheralID)
         {
-            peerDisconnectedCallback(peerID, nickname);
+            std::string peerID = peer.getPeerID();
+            std::string nickname = peer.getNickname();
+            BitchatData::shared()->removePeer(peerID);
+
+            spdlog::info("Peer disconnected with UUID: {} ({})", peripheralID, nickname);
+
+            if (peerDisconnectedCallback)
+            {
+                peerDisconnectedCallback(peerID, nickname);
+            }
+            break;
         }
     }
 }
@@ -353,12 +225,12 @@ void NetworkService::processPacket(const BitchatPacket &packet, const std::strin
     // Check if we've already processed this message
     std::string messageID = StringHelper::toHex(packet.getSenderID()) + "_" + std::to_string(packet.getTimestamp());
 
-    if (wasMessageProcessed(messageID))
+    if (BitchatData::shared()->wasMessageProcessed(messageID))
     {
         return;
     }
 
-    markMessageProcessed(messageID);
+    BitchatData::shared()->markMessageProcessed(messageID);
 
     // Process based on packet type
     switch (packet.getType())
@@ -429,33 +301,13 @@ void NetworkService::relayPacket(const BitchatPacket &packet)
     // Send to all connected peers except sender
     std::string senderID = StringHelper::toHex(packet.getSenderID());
 
-    std::lock_guard<std::mutex> lock(peersMutex);
-
-    // clang-format off
-    for (const auto &peer : peers | std::views::filter([&](const BitchatPeer &p) { return p.getPeerID() != senderID; }))
+    auto peers = BitchatData::shared()->getPeers();
+    for (const auto &peer : peers)
     {
-        bluetoothInterface->sendPacketToPeer(relayPacket, peer.getPeerID());
-    }
-    // clang-format on
-}
-
-bool NetworkService::wasMessageProcessed(const std::string &messageID)
-{
-    std::lock_guard<std::mutex> lock(processedMutex);
-    return processedMessages.find(messageID) != processedMessages.end();
-}
-
-void NetworkService::markMessageProcessed(const std::string &messageID)
-{
-    std::lock_guard<std::mutex> lock(processedMutex);
-    processedMessages.insert(messageID);
-
-    // Keep only last 1000 processed messages
-    if (processedMessages.size() > 1000)
-    {
-        auto it = processedMessages.begin();
-        std::advance(it, processedMessages.size() - 1000);
-        processedMessages.erase(processedMessages.begin(), it);
+        if (peer.getPeerID() != senderID)
+        {
+            bluetoothInterface->sendPacketToPeer(relayPacket, peer.getPeerID());
+        }
     }
 }
 
@@ -469,39 +321,32 @@ void NetworkService::processAnnouncePacket(const BitchatPacket &packet, const st
 
         std::string peerID = StringHelper::toHex(packet.getSenderID());
 
+        // Check if peer is already in the list
+        auto existingPeer = BitchatData::shared()->getPeerInfo(peerID);
+        if (existingPeer)
         {
-            std::lock_guard<std::mutex> lock(peersMutex);
+            // Update existing peer
+            BitchatPeer updatedPeer = *existingPeer;
+            updatedPeer.updateLastSeen();
 
-            // Check if peer is already in the list
-            // clang-format off
-            auto peerIt = std::ranges::find(peers, peerID, [](const BitchatPeer &p) {
-                return p.getPeerID();
-            });
-            // clang-format on
-
-            if (peerIt != peers.end())
+            if (!peripheralID.empty())
             {
-                // Update last seen time
-                peerIt->updateLastSeen();
-
-                // Update peripheral UUID
-                if (!peripheralID.empty())
-                {
-                    peerIt->setPeripheralID(peripheralID);
-                }
-
-                spdlog::debug("Updated existing peer: {} ({})", peerID, nickname);
-
-                // Don't notify about connection again
-                return;
+                updatedPeer.setPeripheralID(peripheralID);
             }
 
+            BitchatData::shared()->updatePeer(updatedPeer);
+
+            spdlog::debug("Updated existing peer: {} ({})", peerID, nickname);
+
+            return;
+        }
+        else
+        {
             // Add new peer
             BitchatPeer peer(StringHelper::toHex(packet.getSenderID()), nickname);
             peer.updateLastSeen();
             peer.setPeripheralID(peripheralID);
-
-            peers.push_back(peer);
+            BitchatData::shared()->addPeer(peer);
         }
 
         // Notify about new peer connection

@@ -7,7 +7,7 @@
 namespace bitchat
 {
 
-// MARK: - Privacy-preserving padding utilities
+// Privacy-preserving padding utilities
 
 struct MessagePadding
 {

@@ -18,15 +18,7 @@ std::shared_ptr<bitchat::BitchatManager> manager;
 void onMessageReceived(const BitchatMessage &message)
 {
     spdlog::debug("onMessageReceived callback called - Sender: {}, Content: {}, Channel: {}", message.getSender(), message.getContent(), message.getChannel());
-
-    // Format timestamp
-    time_t timestamp = message.getTimestamp() / 1000;
-    char timebuf[10];
-    std::tm *tinfo = std::localtime(&timestamp);
-    std::strftime(timebuf, sizeof(timebuf), "%H:%M", tinfo);
-
-    // Display message using ChatHelper
-    ChatHelper::show("[{}] {}: {}", timebuf, message.getSender(), message.getContent());
+    ChatHelper::show("{} {}: {}", ChatHelper::getChatPrefix(), message.getSender(), message.getContent());
 }
 
 void onPeerJoined(const std::string & /*peerID*/, const std::string &nickname)
@@ -51,7 +43,7 @@ void showOnlinePeers()
         return;
     }
 
-    auto peers = manager->getPeers();
+    auto peers = BitchatData::shared()->getPeers();
     ChatHelper::info("\nPeople online:");
 
     time_t now = time(nullptr);
@@ -65,7 +57,7 @@ void showOnlinePeers()
             std::string peerInfo = "- " + peer.getNickname();
 
             // Check if this is us (by comparing peer ID)
-            if (peer.getPeerID() == manager->getPeerID())
+            if (peer.getPeerID() == BitchatData::shared()->getPeerID())
             {
                 peerInfo += " (you)";
             }
@@ -99,7 +91,7 @@ void showStatus()
         return;
     }
 
-    std::string currentChannel = manager->getCurrentChannel();
+    std::string currentChannel = BitchatData::shared()->getCurrentChannel();
     if (currentChannel.empty())
     {
         ChatHelper::info("Current channel: main (default chat)");
@@ -187,8 +179,8 @@ int main()
     ChatHelper::initialize();
 
     ChatHelper::info("=== Bitchat Terminal Client ===");
-    ChatHelper::info("Peer ID: {}", manager->getPeerID());
-    ChatHelper::info("Nickname: {}", manager->getNickname());
+    ChatHelper::info("Peer ID: {}", BitchatData::shared()->getPeerID());
+    ChatHelper::info("Nickname: {}", BitchatData::shared()->getNickname());
     ChatHelper::info("Connected! Type /help for commands.");
 
     // Main command loop
@@ -219,7 +211,7 @@ int main()
             else if (line.rfind("/nick ", 0) == 0)
             {
                 std::string nickname = line.substr(6);
-                manager->setNickname(nickname);
+                manager->changeNickname(nickname);
                 ChatHelper::success("Nickname changed to: {}", nickname);
             }
             else if (line == "/w")
@@ -247,11 +239,7 @@ int main()
                 // Send message
                 if (manager->sendMessage(line))
                 {
-                    time_t now = time(nullptr);
-                    char timebuf[10];
-                    std::tm *tinfo = std::localtime(&now);
-                    std::strftime(timebuf, sizeof(timebuf), "%H:%M", tinfo);
-                    ChatHelper::show("[{}] You: {}", timebuf, line);
+                    ChatHelper::show("{} You: {}", ChatHelper::getChatPrefix(), line);
                 }
                 else
                 {

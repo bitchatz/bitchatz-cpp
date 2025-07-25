@@ -63,6 +63,8 @@ public:
         chatLogger->info(fmt::format(fmt::runtime(format), std::forward<Args>(args)...));
     }
 
+    static std::string getChatPrefix();
+
 private:
     static std::shared_ptr<spdlog::logger> chatLogger;
     static bool initialized;

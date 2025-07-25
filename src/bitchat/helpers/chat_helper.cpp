@@ -43,4 +43,13 @@ void ChatHelper::shutdown()
     }
 }
 
+std::string ChatHelper::getChatPrefix()
+{
+    time_t now = time(nullptr);
+    char timebuf[10];
+    std::tm *tinfo = std::localtime(&now);
+    std::strftime(timebuf, sizeof(timebuf), "%H:%M", tinfo);
+    return fmt::format("[{}]", timebuf);
+}
+
 } // namespace bitchat

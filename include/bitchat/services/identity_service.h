@@ -11,7 +11,7 @@
 namespace bitchat
 {
 
-// MARK: - Identity Models
+// Identity Models
 
 enum class TrustLevel
 {
@@ -91,7 +91,7 @@ struct PrivacySettings
     bool shareTrustNetworkHints = false;
 };
 
-// MARK: - Identity Service
+// Identity Service
 
 class IdentityService
 {

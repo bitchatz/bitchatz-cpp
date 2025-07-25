@@ -85,6 +85,7 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/src/bitchat/protocol/message_padding.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/protocol/packet_serializer.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/core/bitchat_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/core/bitchat_data.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/runners/bluetooth_announce_runner.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/runners/cleanup_runner.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/noise/noise_protocol.cpp

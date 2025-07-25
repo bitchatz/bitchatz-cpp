@@ -11,7 +11,7 @@ namespace bitchat
 namespace protocol
 {
 
-// MARK: - Binary Protocol Constants
+// Binary Protocol Constants
 
 struct BinaryProtocolConstants
 {
@@ -22,7 +22,7 @@ struct BinaryProtocolConstants
     static constexpr size_t maxMessageSize = 65527; // maxPacketSize - headerSize
 };
 
-// MARK: - Binary Packet Header
+// Binary Packet Header
 
 struct BinaryPacketHeader
 {
@@ -38,12 +38,12 @@ struct BinaryPacketHeader
     static BinaryPacketHeader deserialize(const std::vector<uint8_t> &data);
 };
 
-// MARK: - Binary Protocol
+// Binary Protocol
 
 class BinaryProtocol
 {
 public:
-    // MARK: - Serialization
+    // Serialization
 
     /// Serialize a message to binary format
     static std::vector<uint8_t> serializeMessage(const BitchatMessage &message);
@@ -105,7 +105,7 @@ public:
     /// Deserialize error message
     static std::shared_ptr<BitchatErrorMessage> deserializeErrorMessage(const std::vector<uint8_t> &data);
 
-    // MARK: - Validation
+    // Validation
 
     /// Validate binary packet
     static bool validatePacket(const std::vector<uint8_t> &data);
@@ -119,7 +119,7 @@ public:
     /// Validate checksum
     static bool validateChecksum(const BinaryPacketHeader &header, const std::vector<uint8_t> &payload);
 
-    // MARK: - Utility
+    // Utility
 
     /// Get message type from binary data
     static BitchatMessageType getMessageType(const std::vector<uint8_t> &data);
@@ -131,7 +131,7 @@ public:
     static std::vector<uint8_t> createErrorPacket(BitchatErrorCode errorCode, const std::string &errorMessage);
 
 private:
-    // MARK: - Internal Serialization Helpers
+    // Internal Serialization Helpers
 
     static std::vector<uint8_t> serializeString(const std::string &str);
     static std::string deserializeString(const std::vector<uint8_t> &data, size_t &offset);
@@ -154,13 +154,13 @@ private:
     static std::vector<uint8_t> serializeBool(bool value);
     static bool deserializeBool(const std::vector<uint8_t> &data, size_t &offset);
 
-    // MARK: - Checksum
+    // Checksum
 
     static uint16_t computeChecksum(const std::vector<uint8_t> &data);
     static uint16_t computeFletcher16(const std::vector<uint8_t> &data);
 };
 
-// MARK: - Binary Protocol Parser
+// Binary Protocol Parser
 
 class BinaryProtocolParser
 {
@@ -187,7 +187,7 @@ private:
     size_t getNextMessageSize() const;
 };
 
-// MARK: - Binary Protocol Builder
+// Binary Protocol Builder
 
 class BinaryProtocolBuilder
 {

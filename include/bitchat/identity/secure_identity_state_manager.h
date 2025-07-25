@@ -14,7 +14,7 @@ namespace bitchat
 namespace identity
 {
 
-// MARK: - Secure Identity State Manager
+// Secure Identity State Manager
 
 class SecureIdentityStateManager
 {
@@ -65,13 +65,13 @@ public:
     explicit SecureIdentityStateManager(const std::string &dataDirectory = "data");
     ~SecureIdentityStateManager();
 
-    // MARK: - Initialization
+    // Initialization
 
     bool initialize();
     bool loadFromStorage();
     bool saveToStorage();
 
-    // MARK: - Identity Management
+    // Identity Management
 
     /// Create a new identity
     std::optional<Identity> createIdentity(const std::string &nickname);
@@ -100,7 +100,7 @@ public:
     /// Deactivate identity
     bool deactivateIdentity(const std::string &identityId);
 
-    // MARK: - State Management
+    // State Management
 
     /// Get current state
     IdentityStateInfo getStateInfo() const;
@@ -111,7 +111,7 @@ public:
     /// Check if initialized
     bool isInitialized() const;
 
-    // MARK: - Recovery Management
+    // Recovery Management
 
     /// Generate recovery data
     std::optional<IdentityRecoveryData> generateRecoveryData();
@@ -125,7 +125,7 @@ public:
     /// Validate recovery phrase
     bool validateRecoveryPhrase(const std::string &recoveryPhrase);
 
-    // MARK: - Verification Management
+    // Verification Management
 
     /// Request verification
     std::optional<IdentityVerification> requestVerification(const std::string &identityId);
@@ -139,7 +139,7 @@ public:
     /// Check if verified
     bool isVerified(const std::string &identityId) const;
 
-    // MARK: - Metadata Management
+    // Metadata Management
 
     /// Set metadata
     bool setMetadata(const IdentityMetadata &metadata);
@@ -150,7 +150,7 @@ public:
     /// Update metadata
     bool updateMetadata(const std::string &identityId, const std::unordered_map<std::string, std::string> &fields);
 
-    // MARK: - Access Control
+    // Access Control
 
     /// Grant permissions
     bool grantPermissions(const std::string &identityId, const std::vector<IdentityPermission> &permissions,
@@ -165,7 +165,7 @@ public:
     /// Get access control
     std::optional<IdentityAccessControl> getAccessControl(const std::string &identityId) const;
 
-    // MARK: - Event Management
+    // Event Management
 
     /// Add event
     void addEvent(IdentityEventType type, const std::string &identityId,
@@ -178,7 +178,7 @@ public:
     /// Clear old events
     void clearOldEvents(const std::chrono::system_clock::time_point &before);
 
-    // MARK: - Backup and Restore
+    // Backup and Restore
 
     /// Create backup
     std::optional<IdentityBackup> createBackup() const;
@@ -192,7 +192,7 @@ public:
     /// Import backup from file
     bool importBackup(const std::string &filePath);
 
-    // MARK: - Callbacks
+    // Callbacks
 
     void setOnIdentityCreated(std::function<void(const Identity &)> callback);
     void setOnIdentityUpdated(std::function<void(const Identity &)> callback);

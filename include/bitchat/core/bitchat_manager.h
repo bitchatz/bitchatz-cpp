@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bitchat/core/bitchat_data.h"
 #include "bitchat/helpers/compression_helper.h"
 #include "bitchat/noise/noise_session.h"
 #include "bitchat/platform/bluetooth_factory.h"
@@ -40,19 +41,8 @@ public:
     void joinChannel(const std::string &channel);
     void leaveChannel();
 
-    // User operations
-    void setNickname(const std::string &nickname);
-
-    // Getters
-    std::string getCurrentChannel() const;
-    std::string getNickname() const;
-    std::string getPeerID() const;
-    std::vector<BitchatPeer> getPeers() const;
-
-    // Setters
-    void setPeerID(const std::string &peerID);
-    std::vector<BitchatMessage> getMessageHistory() const;
-    size_t getPeersCount() const;
+    // Nickname operations
+    void changeNickname(const std::string &nickname);
 
     // Status
     bool isReady() const;
@@ -80,10 +70,6 @@ private:
 
     // Bluetooth interface
     std::shared_ptr<BluetoothInterface> bluetoothInterface;
-
-    // State
-    bool initialized = false;
-    bool started = false;
 
     // Callbacks
     MessageCallback messageCallback;

@@ -24,8 +24,7 @@ public:
     bool sendPacket(const BitchatPacket &packet) override;
     bool sendPacketToPeer(const BitchatPacket &packet, const std::string &peerID) override;
     bool isReady() const override;
-    std::string getLocalPeerID() const override;
-    void setLocalPeerID(const std::string &peerID) override;
+
     void setPeerConnectedCallback(PeerConnectedCallback callback) override;
     void setPeerDisconnectedCallback(PeerDisconnectedCallback callback) override;
     void setPacketReceivedCallback(PacketReceivedCallback callback) override;
@@ -39,7 +38,6 @@ private:
     int deviceID;
     int hciSocket;
     int rfcommSocket;
-    std::string localPeerID;
 
     std::thread scanThread;
     std::thread acceptThread;

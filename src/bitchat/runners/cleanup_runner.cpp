@@ -1,4 +1,5 @@
 #include "bitchat/runners/cleanup_runner.h"
+#include "bitchat/core/bitchat_data.h"
 #include <chrono>
 #include <spdlog/spdlog.h>
 
@@ -72,10 +73,7 @@ void CleanupRunner::runnerLoop()
     {
         try
         {
-            if (networkService)
-            {
-                networkService->cleanupStalePeers(PEER_TIMEOUT);
-            }
+            BitchatData::shared()->cleanupStalePeers();
 
             std::this_thread::sleep_for(std::chrono::seconds(CLEANUP_INTERVAL));
         }
