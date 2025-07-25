@@ -1,12 +1,13 @@
 #include "bitchat/services/message_service.h"
+#include "bitchat/core/constants.h"
 #include "bitchat/helpers/compression_helper.h"
 #include "bitchat/helpers/datetime_helper.h"
 #include "bitchat/helpers/protocol_helper.h"
 #include "bitchat/helpers/string_helper.h"
-#include "bitchat/noise/noise_session.h"
 #include "bitchat/protocol/packet_serializer.h"
 #include "bitchat/services/crypto_service.h"
 #include "bitchat/services/network_service.h"
+#include "bitchat/services/noise_service.h"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
@@ -18,17 +19,11 @@ MessageService::MessageService()
     // Pass
 }
 
-bool MessageService::initialize(std::shared_ptr<NetworkService> network, std::shared_ptr<CryptoService> crypto, std::shared_ptr<noise::NoiseSessionManager> noise)
+bool MessageService::initialize(std::shared_ptr<NetworkService> networkService, std::shared_ptr<CryptoService> cryptoService, std::shared_ptr<NoiseService> noiseService)
 {
-    networkService = network;
-    cryptoService = crypto;
-    noiseSessionManager = noise;
-
-    if (!networkService || !cryptoService)
-    {
-        spdlog::error("MessageService: Invalid dependencies provided");
-        return false;
-    }
+    this->networkService = networkService;
+    this->cryptoService = cryptoService;
+    this->noiseService = noiseService;
 
     // Set up network callbacks
     // clang-format off
@@ -354,10 +349,10 @@ BitchatPacket MessageService::createMessagePacket(const BitchatMessage &message)
     // Check if we should encrypt this message with Noise
     uint8_t packetType = PKT_TYPE_MESSAGE;
 
-    if (noiseSessionManager && !message.isPrivate())
+    if (noiseService && !message.isPrivate())
     {
         // For channel messages, check if we have any established sessions
-        auto establishedSessionIDs = noiseSessionManager->getEstablishedSessionIDs();
+        auto establishedSessionIDs = noiseService->getEstablishedSessionIDs();
         if (!establishedSessionIDs.empty())
         {
             // Use the first established session for encryption
@@ -365,7 +360,7 @@ BitchatPacket MessageService::createMessagePacket(const BitchatMessage &message)
 
             try
             {
-                auto encryptedPayload = noiseSessionManager->encrypt(payload, firstPeerId);
+                auto encryptedPayload = noiseService->encrypt(payload, firstPeerId);
 
                 // Use encrypted packet type
                 packetType = PKT_TYPE_NOISE_ENCRYPTED;

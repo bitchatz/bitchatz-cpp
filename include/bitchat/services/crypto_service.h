@@ -1,45 +1,35 @@
 #pragma once
 
-#include <map>
-#include <memory>
 #include <mutex>
-#include <openssl/evp.h>
 #include <string>
 #include <vector>
 
 namespace bitchat
 {
 
-// CryptoService: Handles encryption, signatures, and key management
 class CryptoService
 {
 public:
     CryptoService();
     ~CryptoService();
 
-    // Initialize crypto subsystem
     bool initialize();
-
-    // Cleanup crypto resources
     void cleanup();
-
-    // Generate or load signing key pair
     bool generateOrLoadKeyPair(const std::string &keyFile);
-
-    // Sign data with private key
+    std::vector<uint8_t> generateRandomBytes(size_t length);
+    std::vector<uint8_t> sha256(const std::vector<uint8_t> &data);
+    std::vector<uint8_t> sha256(const std::string &data);
     std::vector<uint8_t> signData(const std::vector<uint8_t> &data);
-
-    // Get Curve25519 private key for Noise Protocol
     std::vector<uint8_t> getCurve25519PrivateKey() const;
 
 private:
-    EVP_PKEY *signingPrivateKey;
     mutable std::mutex cryptoMutex;
+    void *signingPrivateKey; // EVP_PKEY*
 
-    // Helper functions
-    EVP_PKEY *loadPrivateKey(const std::string &filename);
-    void savePrivateKey(EVP_PKEY *pkey, const std::string &filename);
-    std::vector<uint8_t> getPublicKeyBytes(EVP_PKEY *pkey) const;
+    // Private helper methods
+    void *loadPrivateKey(const std::string &filename);
+    void savePrivateKey(void *pkey, const std::string &filename);
+    std::vector<uint8_t> getPublicKeyBytes(void *pkey) const;
 };
 
 } // namespace bitchat

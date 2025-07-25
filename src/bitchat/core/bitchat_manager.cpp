@@ -13,22 +13,47 @@
 namespace bitchat
 {
 
+std::shared_ptr<BitchatManager> BitchatManager::instance = nullptr;
+
+std::shared_ptr<BitchatManager> BitchatManager::shared()
+{
+    if (!instance)
+    {
+        instance = std::make_shared<BitchatManager>();
+    }
+    return instance;
+}
+
 BitchatManager::BitchatManager()
 {
+    spdlog::debug("BitchatManager constructor called");
 }
 
 BitchatManager::~BitchatManager()
 {
+    spdlog::debug("BitchatManager destructor called");
     stop();
 }
 
-bool BitchatManager::initialize(std::shared_ptr<BluetoothAnnounceRunner> announceRunner, std::shared_ptr<CleanupRunner> cleanupRunner)
+bool BitchatManager::initialize(
+    std::shared_ptr<NetworkService> networkService,
+    std::shared_ptr<MessageService> messageService,
+    std::shared_ptr<CryptoService> cryptoService,
+    std::shared_ptr<NoiseService> noiseService,
+    std::shared_ptr<BluetoothAnnounceRunner> announceRunner,
+    std::shared_ptr<CleanupRunner> cleanupRunner)
 {
     if (BitchatData::shared()->isInitialized())
     {
         spdlog::warn("BitchatManager already initialized");
         return true;
     }
+
+    // Store services
+    this->networkService = networkService;
+    this->messageService = messageService;
+    this->cryptoService = cryptoService;
+    this->noiseService = noiseService;
 
     // Store runners
     this->announceRunner = announceRunner;
@@ -52,11 +77,6 @@ bool BitchatManager::initialize(std::shared_ptr<BluetoothAnnounceRunner> announc
             return false;
         }
 
-        // Create services
-        networkService = std::make_shared<NetworkService>();
-        messageService = std::make_shared<MessageService>();
-        cryptoService = std::make_shared<CryptoService>();
-
         // Set runners in NetworkService before initialization
         if (announceRunner)
         {
@@ -68,7 +88,7 @@ bool BitchatManager::initialize(std::shared_ptr<BluetoothAnnounceRunner> announc
             networkService->setCleanupRunner(cleanupRunner);
         }
 
-        // Initialize managers
+        // Initialize services
         if (!networkService->initialize(bluetoothInterface))
         {
             spdlog::error("Failed to initialize NetworkService");
@@ -88,80 +108,7 @@ bool BitchatManager::initialize(std::shared_ptr<BluetoothAnnounceRunner> announc
             return false;
         }
 
-        // Initialize Noise Session Manager with Curve25519 key
-        try
-        {
-            std::vector<uint8_t> noiseKey = cryptoService->getCurve25519PrivateKey();
-
-            if (noiseKey.size() != 32)
-            {
-                spdlog::error("Invalid Curve25519 key size for Noise");
-                return false;
-            }
-
-            // Debug: Log key information
-            spdlog::info("=== NOISE KEY DEBUG ===");
-            spdlog::info("Private key size: {} bytes", noiseKey.size());
-
-            // Convert to hex for logging
-            std::string privKeyHex;
-
-            for (size_t i = 0; i < std::min(size_t(16), noiseKey.size()); ++i)
-            {
-                char hex[3];
-                snprintf(hex, sizeof(hex), "%02x", noiseKey[i]);
-                privKeyHex += hex;
-            }
-
-            spdlog::info("Private key (first 16 bytes): {}", privKeyHex);
-
-            // Calculate public key from private key using OpenSSL
-            std::vector<uint8_t> pubKey(32);
-
-            EVP_PKEY *pkey = EVP_PKEY_new_raw_private_key(EVP_PKEY_X25519, nullptr, noiseKey.data(), noiseKey.size());
-
-            if (pkey)
-            {
-                size_t pubKeyLen = pubKey.size();
-                if (EVP_PKEY_get_raw_public_key(pkey, pubKey.data(), &pubKeyLen) == 1)
-                {
-                    std::string pubKeyHex;
-                    for (size_t i = 0; i < std::min(size_t(16), pubKey.size()); ++i)
-                    {
-                        char hex[3];
-                        snprintf(hex, sizeof(hex), "%02x", pubKey[i]);
-                        pubKeyHex += hex;
-                    }
-                    spdlog::info("Public key (first 16 bytes): {}", pubKeyHex);
-                }
-                else
-                {
-                    spdlog::error("Failed to extract public key from private key");
-                }
-
-                EVP_PKEY_free(pkey);
-            }
-            else
-            {
-                spdlog::error("Failed to create EVP_PKEY from private key");
-            }
-
-            spdlog::info("Local PeerID: '{}' (size: {})", BitchatData::shared()->getPeerID(), BitchatData::shared()->getPeerID().size());
-            spdlog::info("=== END NOISE KEY DEBUG ===");
-
-            noise::PrivateKey privateKey;
-            std::copy(noiseKey.begin(), noiseKey.end(), privateKey.begin());
-            spdlog::debug("Noise private key size: {}", privateKey.size());
-            noiseSessionManager = std::make_shared<noise::NoiseSessionManager>(privateKey);
-            spdlog::info("Noise Session Manager initialized");
-        }
-        catch (const std::exception &e)
-        {
-            spdlog::error("Failed to initialize Noise Session Manager: {}", e.what());
-            return false;
-        }
-
-        if (!messageService->initialize(networkService, cryptoService, noiseSessionManager))
+        if (!messageService->initialize(networkService, cryptoService, noiseService))
         {
             spdlog::error("Failed to initialize MessageService");
             return false;
@@ -393,9 +340,9 @@ void BitchatManager::onStatusUpdate(const std::string &status)
 
 void BitchatManager::processNoisePacket(const BitchatPacket &packet)
 {
-    if (!noiseSessionManager)
+    if (!noiseService)
     {
-        spdlog::warn("Noise Session Manager not available");
+        spdlog::warn("Noise Service not available");
         return;
     }
 
@@ -421,13 +368,13 @@ void BitchatManager::processNoisePacket(const BitchatPacket &packet)
             try
             {
                 // Check if session is already established
-                if (noiseSessionManager->hasEstablishedSession(peerID))
+                if (noiseService->hasEstablishedSession(peerID))
                 {
                     spdlog::debug("Ignoring handshake init from {} - session already established", peerID);
                     break;
                 }
 
-                auto response = noiseSessionManager->handleIncomingHandshake(peerID, packet.getPayload(), BitchatData::shared()->getPeerID());
+                auto response = noiseService->handleIncomingHandshake(peerID, packet.getPayload(), BitchatData::shared()->getPeerID());
                 if (response.has_value() && !response->empty())
                 {
                     spdlog::info("=== SENDING NOISE_HANDSHAKE_RESP ===");
@@ -467,7 +414,7 @@ void BitchatManager::processNoisePacket(const BitchatPacket &packet)
             try
             {
                 // Check if session is already established
-                if (noiseSessionManager->hasEstablishedSession(peerID))
+                if (noiseService->hasEstablishedSession(peerID))
                 {
                     spdlog::debug("Ignoring handshake response from {} - session already established", peerID);
                     break;
@@ -487,7 +434,7 @@ void BitchatManager::processNoisePacket(const BitchatPacket &packet)
                 }
                 spdlog::info("Payload (first 32 bytes): {}", payloadHex);
 
-                auto response = noiseSessionManager->handleIncomingHandshake(peerID, packet.getPayload(), BitchatData::shared()->getPeerID());
+                auto response = noiseService->handleIncomingHandshake(peerID, packet.getPayload(), BitchatData::shared()->getPeerID());
                 spdlog::info("handleIncomingHandshake returned response: has_value={}, empty={}, size={}",
                              response.has_value(), response.has_value() ? response->empty() : true,
                              response.has_value() ? response->size() : 0);
@@ -562,7 +509,7 @@ void BitchatManager::processNoisePacket(const BitchatPacket &packet)
             spdlog::info("Received Noise encrypted message from {}", peerID);
             try
             {
-                auto decrypted = noiseSessionManager->decrypt(packet.getPayload(), peerID);
+                auto decrypted = noiseService->decrypt(packet.getPayload(), peerID);
                 // Process decrypted message
                 spdlog::info("Decrypted message from {}: {}", peerID, std::string(decrypted.begin(), decrypted.end()));
             }
@@ -588,7 +535,7 @@ void BitchatManager::processNoisePacket(const BitchatPacket &packet)
                     try
                     {
                         // Get handshake data and send
-                        auto handshakeData = noiseSessionManager->initiateHandshake(peerID);
+                        auto handshakeData = noiseService->initiateHandshake(peerID);
                         if (!handshakeData.empty())
                         {
                             spdlog::info("=== SENDING NOISE HANDSHAKE INIT ===");
@@ -635,9 +582,9 @@ void BitchatManager::processNoisePacket(const BitchatPacket &packet)
 
 void BitchatManager::sendNoiseIdentityAnnounce()
 {
-    if (!noiseSessionManager || !cryptoService)
+    if (!noiseService || !cryptoService)
     {
-        spdlog::warn("Cannot send Noise identity announce - managers not available");
+        spdlog::warn("Cannot send Noise identity announce - services not available");
         return;
     }
 
@@ -658,6 +605,26 @@ void BitchatManager::sendNoiseIdentityAnnounce()
     {
         spdlog::error("Failed to send Noise identity announce: {}", e.what());
     }
+}
+
+std::shared_ptr<NetworkService> BitchatManager::getNetworkService() const
+{
+    return networkService;
+}
+
+std::shared_ptr<MessageService> BitchatManager::getMessageService() const
+{
+    return messageService;
+}
+
+std::shared_ptr<CryptoService> BitchatManager::getCryptoService() const
+{
+    return cryptoService;
+}
+
+std::shared_ptr<NoiseService> BitchatManager::getNoiseService() const
+{
+    return noiseService;
 }
 
 } // namespace bitchat

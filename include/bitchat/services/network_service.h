@@ -80,9 +80,6 @@ private:
     void processPacket(const BitchatPacket &packet, const std::string &peripheralID);
     void processAnnouncePacket(const BitchatPacket &packet, const std::string &peripheralID);
     void relayPacket(const BitchatPacket &packet);
-
-    // Constants
-    static constexpr int PEER_TIMEOUT = 180; // seconds
 };
 
 } // namespace bitchat

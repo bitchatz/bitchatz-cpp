@@ -76,25 +76,32 @@ set(COMMON_LIBRARIES
 
 # Source files
 set(COMMON_SOURCES
-    ${CMAKE_SOURCE_DIR}/src/bitchat/helpers/protocol_helper.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/core/bitchat_data.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/core/bitchat_manager.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/helpers/chat_helper.cpp
-    ${CMAKE_SOURCE_DIR}/src/bitchat/helpers/string_helper.cpp
-    ${CMAKE_SOURCE_DIR}/src/bitchat/helpers/datetime_helper.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/helpers/compression_helper.cpp
-    ${CMAKE_SOURCE_DIR}/src/bitchat/protocol/packet.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/helpers/datetime_helper.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/helpers/noise_helper.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/helpers/protocol_helper.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/helpers/string_helper.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/identity/identity_models.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/noise/noise_hybrid_key_exchange.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/noise/noise_post_quantum_key_exchange.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/noise/noise_protocol.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/noise/noise_protocol_migration.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/noise/noise_pq_handshake_pattern.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/noise/noise_security_error.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/noise/noise_session_default.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/protocol/message_padding.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/protocol/packet_serializer.cpp
-    ${CMAKE_SOURCE_DIR}/src/bitchat/core/bitchat_manager.cpp
-    ${CMAKE_SOURCE_DIR}/src/bitchat/core/bitchat_data.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/protocol/packet.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/runners/bluetooth_announce_runner.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/runners/cleanup_runner.cpp
-    ${CMAKE_SOURCE_DIR}/src/bitchat/noise/noise_protocol.cpp
-    ${CMAKE_SOURCE_DIR}/src/bitchat/noise/noise_session.cpp
-    ${CMAKE_SOURCE_DIR}/src/bitchat/identity/identity_models.cpp
-    ${CMAKE_SOURCE_DIR}/src/bitchat/services/message_service.cpp
-    ${CMAKE_SOURCE_DIR}/src/bitchat/services/network_service.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/services/crypto_service.cpp
     ${CMAKE_SOURCE_DIR}/src/bitchat/services/identity_service.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/services/message_service.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/services/network_service.cpp
+    ${CMAKE_SOURCE_DIR}/src/bitchat/services/noise_service.cpp
 )
 
 set(SOURCES

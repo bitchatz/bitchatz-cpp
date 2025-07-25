@@ -1,5 +1,6 @@
 #include "bitchat/services/network_service.h"
 #include "bitchat/core/bitchat_data.h"
+#include "bitchat/core/constants.h"
 #include "bitchat/helpers/datetime_helper.h"
 #include "bitchat/helpers/protocol_helper.h"
 #include "bitchat/helpers/string_helper.h"

@@ -125,11 +125,6 @@ private:
     mutable std::mutex stateMutex;
     std::atomic<bool> initialized{false};
     std::atomic<bool> started{false};
-
-    // Constants
-    static constexpr size_t MAX_HISTORY_SIZE = 1000;
-    static constexpr size_t MAX_PROCESSED_MESSAGES = 1000;
-    static constexpr int PEER_TIMEOUT = 180; // seconds
 };
 
 } // namespace bitchat

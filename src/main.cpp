@@ -2,6 +2,10 @@
 #include "bitchat/helpers/chat_helper.h"
 #include "bitchat/runners/bluetooth_announce_runner.h"
 #include "bitchat/runners/cleanup_runner.h"
+#include "bitchat/services/crypto_service.h"
+#include "bitchat/services/message_service.h"
+#include "bitchat/services/network_service.h"
+#include "bitchat/services/noise_service.h"
 #include <chrono>
 #include <iostream>
 #include <spdlog/sinks/rotating_file_sink.h>
@@ -10,9 +14,6 @@
 #include <thread>
 
 using namespace bitchat;
-
-// Global manager instance
-std::shared_ptr<bitchat::BitchatManager> manager;
 
 // Callback functions for UI updates
 void onMessageReceived(const BitchatMessage &message)
@@ -38,11 +39,6 @@ void onStatusUpdate(const std::string &status)
 
 void showOnlinePeers()
 {
-    if (!manager)
-    {
-        return;
-    }
-
     auto peers = BitchatData::shared()->getPeers();
     ChatHelper::info("\nPeople online:");
 
@@ -86,20 +82,18 @@ void showOnlinePeers()
 
 void showStatus()
 {
-    if (!manager)
-    {
-        return;
-    }
-
     std::string currentChannel = BitchatData::shared()->getCurrentChannel();
+
     if (currentChannel.empty())
     {
-        ChatHelper::info("Current channel: main (default chat)");
+        ChatHelper::info("Status: Not in any channel");
     }
     else
     {
-        ChatHelper::info("Current channel: {}", currentChannel);
+        ChatHelper::info("Status: In channel '{}'", currentChannel);
     }
+
+    ChatHelper::info("Ready: {}", BitchatData::shared()->isReady() ? "Yes" : "No");
 }
 
 void showHelp()
@@ -146,30 +140,34 @@ int main()
     spdlog::set_default_logger(logger);
     spdlog::set_pattern("[%H:%M:%S] %v");
 
-    spdlog::info("=== Bitchat Terminal Client ===");
+    // Create services
+    auto networkService = std::make_shared<bitchat::NetworkService>();
+    auto messageService = std::make_shared<bitchat::MessageService>();
+    auto cryptoService = std::make_shared<bitchat::CryptoService>();
+    auto noiseService = std::make_shared<bitchat::NoiseService>();
 
     // Create runners
     auto bluetoothAnnounceRunner = std::make_shared<bitchat::BluetoothAnnounceRunner>();
     auto cleanupRunner = std::make_shared<bitchat::CleanupRunner>();
 
     // Create and initialize manager
-    manager = std::make_shared<bitchat::BitchatManager>();
+    auto manager = BitchatManager::shared();
 
     // Set callbacks
-    manager->setMessageCallback(onMessageReceived);
-    manager->setPeerJoinedCallback(onPeerJoined);
-    manager->setPeerLeftCallback(onPeerLeft);
-    manager->setStatusCallback(onStatusUpdate);
+    BitchatManager::shared()->setMessageCallback(onMessageReceived);
+    BitchatManager::shared()->setPeerJoinedCallback(onPeerJoined);
+    BitchatManager::shared()->setPeerLeftCallback(onPeerLeft);
+    BitchatManager::shared()->setStatusCallback(onStatusUpdate);
 
-    // Initialize with runners
-    if (!manager->initialize(bluetoothAnnounceRunner, cleanupRunner))
+    // Initialize with services and runners
+    if (!BitchatManager::shared()->initialize(networkService, messageService, cryptoService, noiseService, bluetoothAnnounceRunner, cleanupRunner))
     {
         spdlog::error("Failed to initialize BitchatManager");
         return 1;
     }
 
     // Start
-    if (!manager->start())
+    if (!BitchatManager::shared()->start())
     {
         spdlog::error("Failed to start BitchatManager");
         return 1;
@@ -200,18 +198,18 @@ int main()
             else if (line.rfind("/j ", 0) == 0)
             {
                 std::string channel = line.substr(3);
-                manager->joinChannel(channel);
+                BitchatManager::shared()->joinChannel(channel);
                 ChatHelper::success("Joined channel: {}", channel);
             }
             else if (line == "/j")
             {
-                manager->joinChannel("");
+                BitchatManager::shared()->joinChannel("");
                 ChatHelper::success("Joined main chat");
             }
             else if (line.rfind("/nick ", 0) == 0)
             {
                 std::string nickname = line.substr(6);
-                manager->changeNickname(nickname);
+                BitchatManager::shared()->changeNickname(nickname);
                 ChatHelper::success("Nickname changed to: {}", nickname);
             }
             else if (line == "/w")
@@ -237,7 +235,7 @@ int main()
             else
             {
                 // Send message
-                if (manager->sendMessage(line))
+                if (BitchatManager::shared()->sendMessage(line))
                 {
                     ChatHelper::show("{} You: {}", ChatHelper::getChatPrefix(), line);
                 }
@@ -253,8 +251,7 @@ int main()
     }
 
     // Cleanup
-    manager->stop();
-    manager.reset();
+    BitchatManager::shared()->stop();
 
     ChatHelper::shutdown();
 

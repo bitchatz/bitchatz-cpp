@@ -1,5 +1,6 @@
 #include "bitchat/runners/cleanup_runner.h"
 #include "bitchat/core/bitchat_data.h"
+#include "bitchat/core/constants.h"
 #include <chrono>
 #include <spdlog/spdlog.h>
 

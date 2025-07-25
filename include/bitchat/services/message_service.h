@@ -16,13 +16,7 @@ namespace bitchat
 // Forward declarations
 class NetworkService;
 class CryptoService;
-class CompressionHelper;
-
-namespace noise
-{
-// Forward declarations
-class NoiseSessionManager;
-} // namespace noise
+class NoiseService;
 
 // MessageService: Manages chat messages, history, and message processing
 class MessageService
@@ -32,7 +26,7 @@ public:
     ~MessageService() = default;
 
     // Initialize the message service
-    bool initialize(std::shared_ptr<NetworkService> networkService, std::shared_ptr<CryptoService> cryptoService, std::shared_ptr<noise::NoiseSessionManager> noiseSessionManager);
+    bool initialize(std::shared_ptr<NetworkService> networkService, std::shared_ptr<CryptoService> cryptoService, std::shared_ptr<NoiseService> noiseService);
 
     // Send a message to a channel
     bool sendMessage(const std::string &content, const std::string &channel = "");
@@ -65,7 +59,7 @@ private:
     // Dependencies
     std::shared_ptr<NetworkService> networkService;
     std::shared_ptr<CryptoService> cryptoService;
-    std::shared_ptr<noise::NoiseSessionManager> noiseSessionManager;
+    std::shared_ptr<NoiseService> noiseService;
 
     // Callbacks
     MessageReceivedCallback messageReceivedCallback;
@@ -80,10 +74,6 @@ private:
     BitchatPacket createAnnouncePacket();
     BitchatPacket createChannelAnnouncePacket(const std::string &channel, bool joining);
     std::string generateMessageID() const;
-
-    // Constants
-    static constexpr size_t MAX_HISTORY_SIZE = 1000;
-    static constexpr size_t MAX_PROCESSED_MESSAGES = 1000;
 };
 
 } // namespace bitchat

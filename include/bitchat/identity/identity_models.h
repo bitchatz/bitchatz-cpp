@@ -9,8 +9,6 @@
 
 namespace bitchat
 {
-namespace identity
-{
 
 // Identity Types
 
@@ -178,6 +176,16 @@ IdentityFingerprint fingerprintFromString(const std::string &fingerprintStr);
 std::string generateRecoveryPhrase();
 std::vector<std::string> generateRecoveryWords();
 std::string computeChecksum(const std::vector<uint8_t> &data);
+std::vector<uint8_t> sha256(const std::vector<uint8_t> &data);
+
+// Identity Data Class
+class IdentityData
+{
+public:
+    IdentityData();
+    std::string generatePeerID();
+    std::vector<uint8_t> generateIdentityHash(const std::string &peerID, const std::string &channelName);
+};
 
 // JSON Serialization Helpers
 
@@ -189,5 +197,4 @@ std::string arrayToString(const std::array<uint8_t, 32> &arr);
 std::array<uint8_t, 32> arrayFromString(const std::string &str);
 } // namespace json_utils
 
-} // namespace identity
 } // namespace bitchat

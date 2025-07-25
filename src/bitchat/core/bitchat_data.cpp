@@ -159,7 +159,7 @@ bool BitchatData::isPeerOnline(const std::string &peerID) const
 
     if (it != peers.end())
     {
-        return !it->isStale(PEER_TIMEOUT);
+        return !it->isStale(constants::PEER_TIMEOUT_SECONDS);
     }
 
     return false;
@@ -195,7 +195,7 @@ void BitchatData::addMessageToHistory(const BitchatMessage &message, const std::
     messageHistory[targetChannel].push_back(message);
 
     // Limit history size
-    if (messageHistory[targetChannel].size() > MAX_HISTORY_SIZE)
+    if (messageHistory[targetChannel].size() > constants::MAX_HISTORY_SIZE)
     {
         messageHistory[targetChannel].erase(messageHistory[targetChannel].begin());
     }
@@ -252,7 +252,7 @@ void BitchatData::markMessageProcessed(const std::string &messageID)
     processedMessages.insert(messageID);
 
     // Limit processed messages size
-    if (processedMessages.size() > MAX_PROCESSED_MESSAGES)
+    if (processedMessages.size() > constants::MAX_PROCESSED_MESSAGES)
     {
         // Remove oldest entries (simple approach: clear and rebuild)
         // In a more sophisticated implementation, you might want to use a queue
@@ -309,7 +309,7 @@ void BitchatData::cleanupStalePeers()
 
     // clang-format off
     peers.erase(std::remove_if(peers.begin(), peers.end(), [](const BitchatPeer &peer) {
-        return peer.isStale(PEER_TIMEOUT);
+        return peer.isStale(constants::PEER_TIMEOUT_SECONDS);
     }), peers.end());
     // clang-format on
 }

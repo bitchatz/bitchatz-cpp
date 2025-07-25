@@ -2,12 +2,12 @@
 
 #include "bitchat/core/bitchat_data.h"
 #include "bitchat/helpers/compression_helper.h"
-#include "bitchat/noise/noise_session.h"
 #include "bitchat/platform/bluetooth_factory.h"
 #include "bitchat/protocol/packet.h"
 #include "bitchat/services/crypto_service.h"
 #include "bitchat/services/message_service.h"
 #include "bitchat/services/network_service.h"
+#include "bitchat/services/noise_service.h"
 #include <memory>
 
 namespace bitchat
@@ -21,11 +21,24 @@ class CleanupRunner;
 class BitchatManager
 {
 public:
+    // Singleton access
+    static std::shared_ptr<BitchatManager> shared();
+
     BitchatManager();
     ~BitchatManager();
 
+    // Copy constructor and assignment operator disabled for thread safety
+    BitchatManager(const BitchatManager &) = delete;
+    BitchatManager &operator=(const BitchatManager &) = delete;
+
     // Initialize the manager
-    bool initialize(std::shared_ptr<BluetoothAnnounceRunner> announceRunner = nullptr, std::shared_ptr<CleanupRunner> cleanupRunner = nullptr);
+    bool initialize(
+        std::shared_ptr<NetworkService> networkService,
+        std::shared_ptr<MessageService> messageService,
+        std::shared_ptr<CryptoService> cryptoService,
+        std::shared_ptr<NoiseService> noiseService,
+        std::shared_ptr<BluetoothAnnounceRunner> announceRunner,
+        std::shared_ptr<CleanupRunner> cleanupRunner);
 
     // Start the manager
     bool start();
@@ -47,6 +60,12 @@ public:
     // Status
     bool isReady() const;
 
+    // Service getters
+    std::shared_ptr<NetworkService> getNetworkService() const;
+    std::shared_ptr<MessageService> getMessageService() const;
+    std::shared_ptr<CryptoService> getCryptoService() const;
+    std::shared_ptr<NoiseService> getNoiseService() const;
+
     // Set callbacks for UI updates
     using MessageCallback = std::function<void(const BitchatMessage &)>;
     using PeerCallback = std::function<void(const std::string &, const std::string &)>;
@@ -58,11 +77,14 @@ public:
     void setStatusCallback(StatusCallback callback);
 
 private:
+    // Static instance
+    static std::shared_ptr<BitchatManager> instance;
+
     // Core services
     std::shared_ptr<NetworkService> networkService;
     std::shared_ptr<MessageService> messageService;
     std::shared_ptr<CryptoService> cryptoService;
-    std::shared_ptr<noise::NoiseSessionManager> noiseSessionManager;
+    std::shared_ptr<NoiseService> noiseService;
 
     // Runners
     std::shared_ptr<BluetoothAnnounceRunner> announceRunner;

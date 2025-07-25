@@ -44,7 +44,6 @@ private:
 
     // Constants
     static constexpr int CLEANUP_INTERVAL = 30; // seconds
-    static constexpr int PEER_TIMEOUT = 180;    // seconds
 };
 
 } // namespace bitchat
