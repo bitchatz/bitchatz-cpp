@@ -24,7 +24,10 @@ class NoiseService
 {
 public:
     NoiseService();
-    ~NoiseService() = default;
+    ~NoiseService();
+
+    // Cleanup method
+    void cleanup();
 
     // Session management
     std::shared_ptr<NoiseSession> createSession(const std::string &peerID, NoiseRole role);
