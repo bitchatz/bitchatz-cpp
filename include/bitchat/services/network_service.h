@@ -27,7 +27,7 @@ public:
     ~NetworkService();
 
     // Initialize the network service
-    bool initialize(std::shared_ptr<BluetoothInterface> bluetooth);
+    bool initialize(std::shared_ptr<BluetoothInterface> bluetoothInterface, std::shared_ptr<BluetoothAnnounceRunner> announceRunner, std::shared_ptr<CleanupRunner> cleanupRunner);
 
     // Start network operations
     bool start();
@@ -52,10 +52,6 @@ public:
 
     // Check if network is ready
     bool isReady() const;
-
-    // Set runner instances
-    void setAnnounceRunner(std::shared_ptr<BluetoothAnnounceRunner> runner);
-    void setCleanupRunner(std::shared_ptr<CleanupRunner> runner);
 
 private:
     // Bluetooth interface

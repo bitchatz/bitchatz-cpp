@@ -13,6 +13,7 @@ BluetoothAnnounceRunner::BluetoothAnnounceRunner()
     : shouldExit(false)
     , running(false)
 {
+    // Pass
 }
 
 BluetoothAnnounceRunner::~BluetoothAnnounceRunner()

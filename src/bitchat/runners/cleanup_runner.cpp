@@ -11,6 +11,7 @@ CleanupRunner::CleanupRunner()
     : shouldExit(false)
     , running(false)
 {
+    // Pass
 }
 
 CleanupRunner::~CleanupRunner()
@@ -18,9 +19,13 @@ CleanupRunner::~CleanupRunner()
     stop();
 }
 
-void CleanupRunner::setNetworkService(std::shared_ptr<NetworkService> networkService)
+bool CleanupRunner::initialize(std::shared_ptr<NetworkService> networkService)
 {
     this->networkService = networkService;
+
+    spdlog::info("CleanupRunner initialized");
+
+    return true;
 }
 
 bool CleanupRunner::start()

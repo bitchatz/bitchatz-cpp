@@ -77,19 +77,8 @@ bool BitchatManager::initialize(
             return false;
         }
 
-        // Set runners in NetworkService before initialization
-        if (announceRunner)
-        {
-            networkService->setAnnounceRunner(announceRunner);
-        }
-
-        if (cleanupRunner)
-        {
-            networkService->setCleanupRunner(cleanupRunner);
-        }
-
         // Initialize services
-        if (!networkService->initialize(bluetoothInterface))
+        if (!networkService->initialize(bluetoothInterface, announceRunner, cleanupRunner))
         {
             spdlog::error("Failed to initialize NetworkService");
             return false;
@@ -123,6 +112,7 @@ bool BitchatManager::initialize(
         // Set initialization state
         BitchatData::shared()->setInitialized(true);
         spdlog::info("BitchatManager initialized successfully");
+
         return true;
     }
     catch (const std::exception &e)

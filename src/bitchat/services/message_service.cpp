@@ -21,6 +21,7 @@ MessageService::MessageService()
 
 bool MessageService::initialize(std::shared_ptr<NetworkService> networkService, std::shared_ptr<CryptoService> cryptoService, std::shared_ptr<NoiseService> noiseService)
 {
+    // Set services
     this->networkService = networkService;
     this->cryptoService = cryptoService;
     this->noiseService = noiseService;

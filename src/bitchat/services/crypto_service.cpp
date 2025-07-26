@@ -13,6 +13,7 @@ namespace bitchat
 CryptoService::CryptoService()
     : signingPrivateKey(nullptr)
 {
+    // Pass
 }
 
 CryptoService::~CryptoService()
@@ -24,6 +25,7 @@ bool CryptoService::initialize()
 {
     OpenSSL_add_all_algorithms();
     ERR_load_crypto_strings();
+
     return true;
 }
 

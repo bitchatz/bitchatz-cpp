@@ -26,15 +26,20 @@ NetworkService::~NetworkService()
     stop();
 }
 
-bool NetworkService::initialize(std::shared_ptr<BluetoothInterface> bluetooth)
+bool NetworkService::initialize(std::shared_ptr<BluetoothInterface> bluetoothInterface, std::shared_ptr<BluetoothAnnounceRunner> announceRunner, std::shared_ptr<CleanupRunner> cleanupRunner)
 {
-    bluetoothInterface = bluetooth;
+    // Set Bluetooth interface
+    this->bluetoothInterface = bluetoothInterface;
 
     if (!bluetoothInterface)
     {
         spdlog::error("NetworkService: Bluetooth interface is null");
         return false;
     }
+
+    // Set runners
+    this->announceRunner = announceRunner;
+    this->cleanupRunner = cleanupRunner;
 
     // Set up Bluetooth callbacks
     // clang-format off
@@ -165,16 +170,6 @@ void NetworkService::setPeerDisconnectedCallback(PeerDisconnectedCallback callba
 bool NetworkService::isReady() const
 {
     return bluetoothInterface && bluetoothInterface->isReady();
-}
-
-void NetworkService::setAnnounceRunner(std::shared_ptr<BluetoothAnnounceRunner> runner)
-{
-    announceRunner = runner;
-}
-
-void NetworkService::setCleanupRunner(std::shared_ptr<CleanupRunner> runner)
-{
-    cleanupRunner = runner;
 }
 
 void NetworkService::onPeerConnected(const std::string &peripheralID)

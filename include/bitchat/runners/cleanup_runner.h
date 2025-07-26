@@ -18,8 +18,8 @@ public:
     CleanupRunner();
     ~CleanupRunner();
 
-    // Set the network service
-    void setNetworkService(std::shared_ptr<NetworkService> networkService);
+    // Initialize the cleanup runner
+    bool initialize(std::shared_ptr<NetworkService> networkService);
 
     // Start the cleanup loop
     bool start();
