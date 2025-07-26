@@ -7,7 +7,6 @@
 #include "bitchat/services/message_service.h"
 #include "bitchat/services/network_service.h"
 #include "bitchat/services/noise_service.h"
-#include "bitchat/ui/console_ui.h"
 #include <chrono>
 #include <ctime>
 #include <iostream>
@@ -15,6 +14,14 @@
 #include <spdlog/spdlog.h>
 #include <string>
 #include <thread>
+
+// clang-format off
+#ifdef BITCHAT_GUI_CONSOLE
+    #include "bitchat/ui/console_ui.h"
+#elif defined(BITCHAT_GUI_DUMMY)
+    #include "bitchat/ui/dummy_ui.h"
+#endif
+// clang-format on
 
 using namespace bitchat;
 
@@ -48,14 +55,22 @@ int main()
     auto bluetoothAnnounceRunner = std::make_shared<bitchat::BluetoothAnnounceRunner>();
     auto cleanupRunner = std::make_shared<bitchat::CleanupRunner>();
 
+    // clang-format off
     // Create UI
-    auto consoleUserInterface = std::make_shared<bitchat::ConsoleUserInterface>();
+    #ifdef BITCHAT_GUI_CONSOLE
+        auto userInterface = std::make_shared<bitchat::ConsoleUserInterface>();
+    #elif defined(BITCHAT_GUI_DUMMY)
+        auto userInterface = std::make_shared<bitchat::DummyUserInterface>();
+    #else
+        #error "No valid BITCHAT_GUI macro defined"
+    #endif
+    // clang-format on
 
     // Create and initialize manager
     auto manager = std::make_shared<BitchatManager>();
 
     // Initialize manager
-    if (!manager->initialize(consoleUserInterface, bluetoothNetworkInterface, networkService, messageService, cryptoService, noiseService, bluetoothAnnounceRunner, cleanupRunner))
+    if (!manager->initialize(userInterface, bluetoothNetworkInterface, networkService, messageService, cryptoService, noiseService, bluetoothAnnounceRunner, cleanupRunner))
     {
         spdlog::error("Failed to initialize BitchatManager");
         return EXIT_FAILURE;

@@ -8,8 +8,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Testing option
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
-option(ENABLE_TESTS "Build tests" OFF)
-option(BUILD_EXECUTABLE "Build the main executable" ON)
+option(ENABLE_TESTS "Enable Tests" OFF)
+option(BUILD_EXECUTABLE "Build The Main Executable" ON)
+
+# UI type option
+set(BITCHAT_GUI "CONSOLE" CACHE STRING "UI Type: CONSOLE or DUMMY")
+set_property(CACHE BITCHAT_GUI PROPERTY STRINGS "CONSOLE" "DUMMY")
 
 if(ENABLE_TESTS)
     enable_testing()
@@ -139,6 +143,9 @@ if(BUILD_EXECUTABLE)
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/vendor
     )
+
+    # Add UI macro
+    target_compile_definitions(bitchat PRIVATE BITCHAT_GUI_${BITCHAT_GUI})
 
     # Link libraries
     target_link_libraries(bitchat ${COMMON_LIBRARIES})
