@@ -1,5 +1,4 @@
 #include "bitchat/core/bitchat_manager.h"
-#include "bitchat/helpers/user_interface_helper.h"
 #include "bitchat/platform/bluetooth_factory.h"
 #include "bitchat/platform/bluetooth_interface.h"
 #include "bitchat/runners/bluetooth_announce_runner.h"
@@ -53,27 +52,27 @@ int main()
     auto consoleUserInterface = std::make_shared<bitchat::ConsoleUserInterface>();
 
     // Create and initialize manager
-    auto manager = BitchatManager::shared();
+    auto manager = std::make_shared<BitchatManager>();
 
     // Initialize manager
-    if (!BitchatManager::shared()->initialize(consoleUserInterface, bluetoothNetworkInterface, networkService, messageService, cryptoService, noiseService, bluetoothAnnounceRunner, cleanupRunner))
+    if (!manager->initialize(consoleUserInterface, bluetoothNetworkInterface, networkService, messageService, cryptoService, noiseService, bluetoothAnnounceRunner, cleanupRunner))
     {
         spdlog::error("Failed to initialize BitchatManager");
         return EXIT_FAILURE;
     }
 
     // Start manager
-    if (!BitchatManager::shared()->start())
+    if (!manager->start())
     {
         spdlog::error("Failed to start BitchatManager");
         return EXIT_FAILURE;
     }
 
     // Start user interface
-    BitchatManager::shared()->getUserInterface()->start();
+    manager->getUserInterface()->start();
 
     // Stop manager
-    BitchatManager::shared()->stop();
+    manager->stop();
 
     return EXIT_SUCCESS;
 }

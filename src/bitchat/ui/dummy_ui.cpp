@@ -8,7 +8,7 @@ DummyUserInterface::DummyUserInterface()
     // Pass
 }
 
-bool DummyUserInterface::initialize([[maybe_unused]] std::shared_ptr<MessageService> messageService)
+bool DummyUserInterface::initialize([[maybe_unused]] std::shared_ptr<BitchatManager> manager, [[maybe_unused]] std::shared_ptr<MessageService> messageService)
 {
     return true;
 }

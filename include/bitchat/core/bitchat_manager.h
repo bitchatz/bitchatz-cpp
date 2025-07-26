@@ -17,20 +17,15 @@ namespace bitchat
 // Forward declarations
 class BluetoothAnnounceRunner;
 class CleanupRunner;
+class IUserInterface;
+class MessageService;
 
 // BitchatManager: Main orchestrator that coordinates all components
-class BitchatManager
+class BitchatManager : public std::enable_shared_from_this<BitchatManager>
 {
 public:
-    // Singleton access
-    static std::shared_ptr<BitchatManager> shared();
-
     BitchatManager();
     ~BitchatManager();
-
-    // Copy constructor and assignment operator disabled for thread safety
-    BitchatManager(const BitchatManager &) = delete;
-    BitchatManager &operator=(const BitchatManager &) = delete;
 
     // Initialize the manager
     bool initialize(
@@ -67,13 +62,7 @@ public:
     std::shared_ptr<CryptoService> getCryptoService() const;
     std::shared_ptr<NoiseService> getNoiseService() const;
 
-#ifdef UNIT_TEST
-    static void resetInstance();
-#endif
 private:
-    // Static instance
-    static std::shared_ptr<BitchatManager> instance;
-
     // Bluetooth interface
     std::shared_ptr<IBluetoothNetwork> bluetoothNetworkInterface;
 

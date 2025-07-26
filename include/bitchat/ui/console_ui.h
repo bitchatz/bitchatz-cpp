@@ -19,7 +19,7 @@ public:
     ~ConsoleUserInterface() = default;
 
     // Initialize the UI with message service
-    bool initialize(std::shared_ptr<MessageService> messageService) override;
+    bool initialize(std::shared_ptr<BitchatManager> manager, std::shared_ptr<MessageService> messageService) override;
 
     // Message event callbacks
     void onMessageReceived(const BitchatMessage &message) override;
@@ -55,6 +55,7 @@ public:
 protected:
     bool initialized = false;
     std::shared_ptr<MessageService> messageService;
+    std::shared_ptr<BitchatManager> manager;
     std::shared_ptr<spdlog::logger> logger;
 };
 

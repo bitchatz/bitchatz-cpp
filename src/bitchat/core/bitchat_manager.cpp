@@ -14,18 +14,6 @@
 namespace bitchat
 {
 
-std::shared_ptr<BitchatManager> BitchatManager::instance = nullptr;
-
-std::shared_ptr<BitchatManager> BitchatManager::shared()
-{
-    if (!instance)
-    {
-        instance = std::make_shared<BitchatManager>();
-    }
-
-    return instance;
-}
-
 BitchatManager::BitchatManager()
 {
     // Pass
@@ -81,7 +69,7 @@ bool BitchatManager::initialize(
     }
 
     // Initialize UI with message service
-    if (!userInterface->initialize(messageService))
+    if (!userInterface->initialize(shared_from_this(), messageService))
     {
         spdlog::error("Failed to initialize UserInterface");
         return false;
@@ -193,12 +181,5 @@ std::shared_ptr<NoiseService> BitchatManager::getNoiseService() const
 {
     return noiseService;
 }
-
-#ifdef UNIT_TEST
-void BitchatManager::resetInstance()
-{
-    instance.reset();
-}
-#endif
 
 } // namespace bitchat

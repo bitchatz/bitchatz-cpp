@@ -16,7 +16,7 @@ ConsoleUserInterface::ConsoleUserInterface()
     // Pass
 }
 
-bool ConsoleUserInterface::initialize(std::shared_ptr<MessageService> messageService)
+bool ConsoleUserInterface::initialize(std::shared_ptr<BitchatManager> manager, std::shared_ptr<MessageService> messageService)
 {
     if (initialized)
     {
@@ -25,12 +25,19 @@ bool ConsoleUserInterface::initialize(std::shared_ptr<MessageService> messageSer
 
     initialized = true;
 
+    if (!manager)
+    {
+        spdlog::error("ConsoleUserInterface: Cannot initialize with null manager");
+        return false;
+    }
+
     if (!messageService)
     {
         spdlog::error("ConsoleUserInterface: Cannot initialize with null message service");
         return false;
     }
 
+    this->manager = manager;
     this->messageService = messageService;
 
     // Set up callbacks to route all events through ConsoleUserInterface
@@ -245,24 +252,24 @@ void ConsoleUserInterface::start()
             }
             else if (line == "/help")
             {
-                BitchatManager::shared()->getUserInterface()->showHelp();
+                showHelp();
             }
             else if (line.rfind("/j ", 0) == 0)
             {
                 std::string channel = line.substr(3);
-                BitchatManager::shared()->joinChannel(channel);
+                manager->joinChannel(channel);
 
                 showChatMessageSuccess(fmt::format("Joined channel: {}", channel));
             }
             else if (line == "/j")
             {
-                BitchatManager::shared()->joinChannel("");
+                manager->joinChannel("");
                 showChatMessageSuccess("Joined main chat");
             }
             else if (line.rfind("/nick ", 0) == 0)
             {
                 std::string nickname = line.substr(6);
-                BitchatManager::shared()->changeNickname(nickname);
+                manager->changeNickname(nickname);
                 showChatMessageSuccess(fmt::format("Nickname changed to: {}", nickname));
             }
             else if (line == "/w")
@@ -288,7 +295,7 @@ void ConsoleUserInterface::start()
             else
             {
                 // Send message
-                if (BitchatManager::shared()->sendMessage(line))
+                if (manager->sendMessage(line))
                 {
                     showChatMessage(fmt::format("{} You: {}", getChatPrefix(), line));
                 }

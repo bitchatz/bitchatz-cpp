@@ -15,31 +15,12 @@ IdentityData::IdentityData()
 
 std::string IdentityData::generatePeerID()
 {
-    auto cryptoService = BitchatManager::shared()->getCryptoService();
-
-    auto randomBytes = cryptoService->generateRandomBytes(8);
-    if (randomBytes.empty())
-    {
-        throw std::runtime_error("Failed to generate random bytes for peer ID");
-    }
-
-    std::string peerID;
-    for (uint8_t byte : randomBytes)
-    {
-        char hex[3];
-        snprintf(hex, sizeof(hex), "%02x", byte);
-        peerID += hex;
-    }
-
-    return peerID;
+    return "";
 }
 
-std::vector<uint8_t> IdentityData::generateIdentityHash(const std::string &peerID, const std::string &channelName)
+std::vector<uint8_t> IdentityData::generateIdentityHash([[maybe_unused]] const std::string &peerID, [[maybe_unused]] const std::string &channelName)
 {
-    auto cryptoService = BitchatManager::shared()->getCryptoService();
-
-    std::string combined = peerID + channelName;
-    return cryptoService->sha256(combined);
+    return {};
 }
 
 } // namespace bitchat

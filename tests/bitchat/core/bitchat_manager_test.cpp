@@ -39,12 +39,8 @@ TEST(BitchatManagerTest, Initialize)
     auto dummyUserInterface = std::make_shared<bitchat::DummyUserInterface>();
 
     // Test the manager
-    auto manager = BitchatManager::shared();
+    auto manager = std::make_shared<BitchatManager>();
     ASSERT_TRUE(manager->initialize(dummyUserInterface, bluetoothNetwork, networkService, messageService, cryptoService, noiseService, announceRunner, cleanupRunner));
     ASSERT_TRUE(manager->start());
     manager->stop();
-
-#ifdef UNIT_TEST
-    BitchatManager::resetInstance();
-#endif
 }
