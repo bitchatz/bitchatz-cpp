@@ -30,10 +30,6 @@ bool CryptoService::initialize()
         return false;
     }
 
-    // Initialize OpenSSL
-    OpenSSL_add_all_algorithms();
-    ERR_load_crypto_strings();
-
     return true;
 }
 
@@ -46,9 +42,6 @@ void CryptoService::cleanup()
         EVP_PKEY_free(static_cast<EVP_PKEY *>(signingPrivateKey));
         signingPrivateKey = nullptr;
     }
-
-    EVP_cleanup();
-    ERR_free_strings();
 }
 
 bool CryptoService::generateOrLoadKeyPair(const std::string &keyFile)

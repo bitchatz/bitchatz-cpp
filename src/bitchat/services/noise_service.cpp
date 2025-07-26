@@ -31,9 +31,15 @@ void NoiseService::cleanup()
     sessions.clear();
 
     // Clear OpenSSL
-    ERR_clear_error();
-    EVP_cleanup();
+    CRYPTO_set_locking_callback(nullptr);
+    CRYPTO_set_id_callback(nullptr);
+
+    ERR_remove_state(0);
+
     ERR_free_strings();
+    EVP_cleanup();
+
+    CRYPTO_cleanup_all_ex_data();
 }
 
 std::shared_ptr<NoiseSession> NoiseService::createSession(const std::string &peerID, NoiseRole role)
