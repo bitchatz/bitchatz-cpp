@@ -45,7 +45,7 @@ protected:
 
     void TearDown() override
     {
-        BitchatManager::shared().reset();
+        // Pass
     }
 };
 
