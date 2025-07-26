@@ -54,9 +54,6 @@ public:
     void setPeerConnectedCallback(PeerConnectedCallback callback);
     void setPeerDisconnectedCallback(PeerDisconnectedCallback callback);
 
-    // Check if network is ready
-    bool isReady() const;
-
 private:
     // Bluetooth interface
     std::shared_ptr<IBluetoothNetwork> bluetoothNetworkInterface;

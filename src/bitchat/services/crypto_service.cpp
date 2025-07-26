@@ -23,6 +23,14 @@ CryptoService::~CryptoService()
 
 bool CryptoService::initialize()
 {
+    // Generate or load key pair
+    if (!generateOrLoadKeyPair("bitchat-pk.pem"))
+    {
+        spdlog::error("Failed to generate or load key pair");
+        return false;
+    }
+
+    // Initialize OpenSSL
     OpenSSL_add_all_algorithms();
     ERR_load_crypto_strings();
 

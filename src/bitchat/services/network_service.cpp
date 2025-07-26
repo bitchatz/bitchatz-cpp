@@ -134,7 +134,7 @@ void NetworkService::stop()
 
 bool NetworkService::sendPacket(const BitchatPacket &packet)
 {
-    if (!bluetoothNetworkInterface || !isReady())
+    if (!bluetoothNetworkInterface)
     {
         return false;
     }
@@ -144,7 +144,7 @@ bool NetworkService::sendPacket(const BitchatPacket &packet)
 
 bool NetworkService::sendPacketToPeer(const BitchatPacket &packet, const std::string &peerID)
 {
-    if (!bluetoothNetworkInterface || !isReady())
+    if (!bluetoothNetworkInterface)
     {
         return false;
     }
@@ -165,11 +165,6 @@ void NetworkService::setPeerConnectedCallback(PeerConnectedCallback callback)
 void NetworkService::setPeerDisconnectedCallback(PeerDisconnectedCallback callback)
 {
     peerDisconnectedCallback = callback;
-}
-
-bool NetworkService::isReady() const
-{
-    return bluetoothNetworkInterface && bluetoothNetworkInterface->isReady();
 }
 
 void NetworkService::onPeerConnected(const std::string &peripheralID)

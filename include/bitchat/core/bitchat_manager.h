@@ -67,25 +67,6 @@ public:
     std::shared_ptr<CryptoService> getCryptoService() const;
     std::shared_ptr<NoiseService> getNoiseService() const;
 
-    // Set callbacks for UI updates
-    using MessageCallback = std::function<void(const BitchatMessage &)>;
-    using PeerJoinedCallback = std::function<void(const std::string &, const std::string &)>;
-    using PeerLeftCallback = std::function<void(const std::string &, const std::string &)>;
-    using PeerConnectedCallback = std::function<void(const std::string &)>;
-    using PeerDisconnectedCallback = std::function<void(const std::string &)>;
-    using StatusCallback = std::function<void(const std::string &)>;
-    using ChannelJoinedCallback = std::function<void(const std::string &)>;
-    using ChannelLeftCallback = std::function<void(const std::string &)>;
-
-    void setMessageCallback(MessageCallback callback);
-    void setPeerJoinedCallback(PeerJoinedCallback callback);
-    void setPeerLeftCallback(PeerLeftCallback callback);
-    void setPeerConnectedCallback(PeerConnectedCallback callback);
-    void setPeerDisconnectedCallback(PeerDisconnectedCallback callback);
-    void setStatusCallback(StatusCallback callback);
-    void setChannelJoinedCallback(ChannelJoinedCallback callback);
-    void setChannelLeftCallback(ChannelLeftCallback callback);
-
 private:
     // Static instance
     static std::shared_ptr<BitchatManager> instance;
@@ -103,27 +84,6 @@ private:
     // Runners
     std::shared_ptr<BluetoothAnnounceRunner> announceRunner;
     std::shared_ptr<CleanupRunner> cleanupRunner;
-
-    // Callbacks
-    MessageCallback messageCallback;
-    PeerJoinedCallback peerJoinedCallback;
-    PeerLeftCallback peerLeftCallback;
-    PeerConnectedCallback peerConnectedCallback;
-    PeerDisconnectedCallback peerDisconnectedCallback;
-    StatusCallback statusCallback;
-    ChannelJoinedCallback channelJoinedCallback;
-    ChannelLeftCallback channelLeftCallback;
-
-    // Internal methods
-    void setupCallbacks();
-    void onMessageReceived(const BitchatMessage &message);
-    void onPeerJoined(const std::string &peerID, const std::string &nickname);
-    void onPeerLeft(const std::string &peerID, const std::string &nickname);
-    void onPeerConnected(const std::string &peripheralID);
-    void onPeerDisconnected(const std::string &peripheralID);
-    void onStatusUpdate(const std::string &status);
-    void onChannelJoined(const std::string &channel);
-    void onChannelLeft(const std::string &channel);
 };
 
 } // namespace bitchat

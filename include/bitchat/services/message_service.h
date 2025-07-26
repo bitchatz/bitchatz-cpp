@@ -2,6 +2,7 @@
 
 #include "bitchat/core/bitchat_data.h"
 #include "bitchat/protocol/packet.h"
+#include "bitchat/ui/ui_interface.h"
 #include <functional>
 #include <map>
 #include <memory>
@@ -43,24 +44,37 @@ public:
     // Start identity announce
     void startIdentityAnnounce();
 
+    // Peer joined
+    void peerJoined(const std::string &peerID, const std::string &nickname);
+
+    // Peer left
+    void peerLeft(const std::string &peerID, const std::string &nickname);
+
+    // Peer connected
+    void peerConnected(const std::string &peripheralID);
+
+    // Peer disconnected
+    void peerDisconnected(const std::string &peripheralID);
+
+    // Centralized packet processing - main entry point for all packets
+    void processPacket(const BitchatPacket &packet, const std::string &peripheralID);
+
     // Set callbacks for message events
     using MessageReceivedCallback = std::function<void(const BitchatMessage &)>;
     using ChannelJoinedCallback = std::function<void(const std::string &)>;
     using ChannelLeftCallback = std::function<void(const std::string &)>;
     using PeerJoinedCallback = std::function<void(const std::string &, const std::string &)>;
     using PeerLeftCallback = std::function<void(const std::string &, const std::string &)>;
+    using PeerConnectedCallback = std::function<void(const std::string &)>;
+    using PeerDisconnectedCallback = std::function<void(const std::string &)>;
 
     void setMessageReceivedCallback(MessageReceivedCallback callback);
     void setChannelJoinedCallback(ChannelJoinedCallback callback);
     void setChannelLeftCallback(ChannelLeftCallback callback);
     void setPeerJoinedCallback(PeerJoinedCallback callback);
     void setPeerLeftCallback(PeerLeftCallback callback);
-
-    // Centralized packet processing - main entry point for all packets
-    void processPacket(const BitchatPacket &packet, const std::string &peripheralID);
-
-    // Check if service is ready
-    bool isReady() const;
+    void setPeerConnectedCallback(PeerConnectedCallback callback);
+    void setPeerDisconnectedCallback(PeerDisconnectedCallback callback);
 
 private:
     // Dependencies
@@ -74,6 +88,8 @@ private:
     ChannelLeftCallback channelLeftCallback;
     PeerJoinedCallback peerJoinedCallback;
     PeerLeftCallback peerLeftCallback;
+    PeerConnectedCallback peerConnectedCallback;
+    PeerDisconnectedCallback peerDisconnectedCallback;
 
     // Message-related packet processing
     void processMessagePacket(const BitchatPacket &packet);

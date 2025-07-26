@@ -64,6 +64,18 @@ bool ConsoleUserInterface::initialize(std::shared_ptr<MessageService> messageSer
     });
     // clang-format on
 
+    // clang-format off
+    messageService->setPeerConnectedCallback([this](const std::string &peripheralID) {
+        onPeerConnected(peripheralID);
+    });
+    // clang-format on
+
+    // clang-format off
+    messageService->setPeerDisconnectedCallback([this](const std::string &peripheralID) {
+        onPeerDisconnected(peripheralID);
+    });
+    // clang-format on
+
     // Create a colored console sink for chat messages
     auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
 
@@ -81,43 +93,42 @@ bool ConsoleUserInterface::initialize(std::shared_ptr<MessageService> messageSer
 
 void ConsoleUserInterface::onMessageReceived(const BitchatMessage &message)
 {
-    spdlog::debug("onMessageReceived callback called - Sender: {}, Content: {}, Channel: {}", message.getSender(), message.getContent(), message.getChannel());
-    showChatMessage(fmt::format("[{}] {}: {}", getChatPrefix(), message.getSender(), message.getContent()));
+    showChatMessage(fmt::format("{} {}: {}", getChatPrefix(), message.getSender(), message.getContent()));
 }
 
 void ConsoleUserInterface::onPeerJoined([[maybe_unused]] const std::string &peerID, const std::string &nickname)
 {
-    showChatMessageInfo(fmt::format("[{}] *** {} joined ***", getChatPrefix(), nickname));
+    showChatMessageInfo(fmt::format("{} *** {} joined ***", getChatPrefix(), nickname));
 }
 
 void ConsoleUserInterface::onPeerLeft([[maybe_unused]] const std::string &peerID, const std::string &nickname)
 {
-    showChatMessageInfo(fmt::format("[{}] *** {} left ***", getChatPrefix(), nickname));
+    showChatMessageInfo(fmt::format("{} *** {} left ***", getChatPrefix(), nickname));
 }
 
 void ConsoleUserInterface::onPeerConnected(const std::string &peripheralID)
 {
-    showChatMessageInfo(fmt::format("[{}] *** {} connected ***", getChatPrefix(), peripheralID));
+    showChatMessageInfo(fmt::format("{} *** {} connected ***", getChatPrefix(), peripheralID));
 }
 
 void ConsoleUserInterface::onPeerDisconnected(const std::string &peripheralID)
 {
-    showChatMessageInfo(fmt::format("[{}] *** {} disconnected ***", getChatPrefix(), peripheralID));
+    showChatMessageInfo(fmt::format("{} *** {} disconnected ***", getChatPrefix(), peripheralID));
 }
 
 void ConsoleUserInterface::onChannelJoined(const std::string &channel)
 {
-    showChatMessageSuccess(fmt::format("[{}] *** Joined channel: {} ***", getChatPrefix(), channel));
+    showChatMessageSuccess(fmt::format("{} *** Joined channel: {} ***", getChatPrefix(), channel));
 }
 
 void ConsoleUserInterface::onChannelLeft(const std::string &channel)
 {
-    showChatMessageInfo(fmt::format("[{}] *** Left channel: {} ***", getChatPrefix(), channel));
+    showChatMessageInfo(fmt::format("{} *** Left channel: {} ***", getChatPrefix(), channel));
 }
 
 void ConsoleUserInterface::onStatusUpdate(const std::string &status)
 {
-    showChatMessageInfo(fmt::format("Status: {}", status));
+    showChatMessageInfo(fmt::format("{} Status: {}", getChatPrefix(), status));
 }
 
 void ConsoleUserInterface::showPeers()
