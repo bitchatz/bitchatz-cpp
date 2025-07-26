@@ -2,7 +2,7 @@
 
 ## Getting Started
 
-The Bitchat application provides a simple command-line interface for real-time messaging over Bluetooth Low Energy. Here's how to get started:
+The Bitchat application provides a simple command-line interface for real-time messaging over Bluetooth Low Energy with end-to-end encryption. Here's how to get started:
 
 ### Starting the Application
 
@@ -37,6 +37,7 @@ Nickname: User_12345
 | `/help` | Show available commands | `/help` |
 | `/exit` | Exit the application | `/exit` |
 | `/clear` | Clear the terminal screen | `/clear` |
+| `/status` | Show current status | `/status` |
 
 ### Channel Management
 
@@ -110,6 +111,7 @@ People online:
 - **Channel Support** 📢: Join different channels for organized conversations
 - **Private Messages** 🔒: Send direct messages to specific users
 - **Action Messages** 🎭: Use `/me` for roleplay and actions
+- **Message Encryption** 🔐: All messages are encrypted using Noise protocol
 
 ### Peer Discovery 🔍
 
@@ -127,10 +129,19 @@ People online:
 
 ### Security Features 🔐
 
-- **Message Signing** ✍️: All messages are cryptographically signed
+- **End-to-End Encryption** 🔒: All messages are encrypted using Noise protocol
+- **Message Signing** ✍️: All messages are cryptographically signed with Ed25519
 - **Identity Verification** ✅: Verify message authenticity
-- **Tamper Protection** 🛡️: Messages cannot be modified in transit
+- **Forward Secrecy** 🛡️: Each session uses unique ephemeral keys
+- **Perfect Forward Secrecy** 🔐: Compromised keys don't affect past communications
 - **Privacy** 🔒: No central server stores your messages
+
+### Advanced Security
+
+- **Noise Protocol** 🤝: Industry-standard cryptographic protocol
+- **Key Exchange** 🔑: Secure key establishment with mutual verification
+- **Session Management** 📋: Automatic session creation and management
+- **Channel Security** 🔐: Encrypted channels with optional password protection
 
 ## Best Practices
 
@@ -141,6 +152,7 @@ People online:
 3. **Use Clear Nicknames** 👤: Choose recognizable nicknames
 4. **Monitor Signal Strength** 📊: Use `/w` to check connection quality
 5. **Be Patient** ⏳: Allow time for peer discovery and message relay
+6. **Trust the Encryption** 🔐: All communications are automatically encrypted
 
 ### Troubleshooting
 
@@ -150,6 +162,7 @@ People online:
 | Messages not sending | Check signal strength with `/w` command |
 | App not connecting | Restart the application and check Bluetooth permissions |
 | High latency | Move closer to other devices or check for interference |
+| Encryption errors | Restart the application to establish new secure sessions |
 
 ### Channel Etiquette
 
@@ -157,6 +170,7 @@ People online:
 - **Be Respectful** 🤝: Treat other users with courtesy
 - **Avoid Spam** 🚫: Don't send excessive messages
 - **Help New Users** 💡: Guide newcomers with `/help` and tips
+- **Respect Privacy** 🔒: Remember that messages are encrypted but visible to nearby devices
 
 ## Advanced Usage
 
@@ -164,7 +178,7 @@ People online:
 
 ```bash
 # Check network status
-/w
+/status
 
 # View detailed peer information
 /peers
@@ -173,15 +187,24 @@ People online:
 # Look for RSSI values in peer list
 ```
 
+### Security Information
+
+- **Session Establishment** 🤝: Secure sessions are automatically established when peers connect
+- **Key Verification** ✅: Public keys are exchanged and verified during handshake
+- **Encryption Status** 🔐: All messages are automatically encrypted
+- **Session Management** 📋: Sessions are automatically managed and rekeyed as needed
+
 ### Performance Tips
 
 - **Close Other Bluetooth Apps** 📱: Reduce interference from other BLE applications
 - **Optimize Device Placement** 📍: Position devices for better signal reception
 - **Use Short Messages** 📝: Shorter messages transmit faster
 - **Monitor Battery** 🔋: BLE scanning can use significant power
+- **Trust the Encryption** 🔐: Don't worry about encryption overhead - it's optimized
 
 ### Customization
 
 - **Nickname Management** 👤: Use memorable, unique nicknames
 - **Channel Organization** 📂: Create topic-specific channels
 - **Message Style** ✨: Use emojis and formatting for better communication
+- **Security Awareness** 🔐: Understand that your messages are secure but visible to nearby devices

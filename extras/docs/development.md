@@ -30,7 +30,7 @@ make
 
 ```bash
 # Install dependencies
-sudo apt-get install cmake libssl-dev libbluetooth-dev
+sudo apt-get install pkg-config cmake libssl-dev libbluetooth-dev
 
 # Build
 mkdir build && cd build
@@ -76,7 +76,7 @@ make
 
 ```bash
 # Install dependencies
-sudo apt-get install cmake libssl-dev libbluetooth-dev
+sudo apt-get install pkg-config cmake libssl-dev libbluetooth-dev
 
 # Clone and setup
 git clone https://github.com/bitchatz/bitchat-cpp.git
@@ -117,6 +117,7 @@ class BitchatManager { };
 
 // Methods: camelCase
 void sendMessage(const std::string& message);
+bool initialize();
 
 // Variables: camelCase
 PacketReceivedCallback packetReceivedCallback;
@@ -134,12 +135,32 @@ std::string peripheralID;
 ### File Organization
 
 ```
+include/bitchat/
+├── core/           # Core application logic (BitchatManager, BitchatData)
+├── services/       # Service layer (CryptoService, MessageService, etc.)
+├── noise/          # Noise protocol implementation
+├── protocol/       # Network protocol (Packet, PacketSerializer)
+├── platform/       # Platform abstraction (BluetoothInterface)
+├── ui/             # User interface (ConsoleUI, DummyUI)
+├── runners/        # Background runners (BluetoothAnnounceRunner, CleanupRunner)
+├── helpers/        # Utility helpers (CompressionHelper, DateTimeHelper)
+├── identity/       # Identity management
+└── compression/    # Data compression utilities
+
 src/bitchat/
-├── core/           # Core application logic
-├── crypto/         # Cryptography and security
-├── compression/    # Data compression
-├── protocol/       # Network protocol
-└── platform/       # Platform abstraction
+├── core/           # Core implementation
+├── services/       # Service implementations
+├── noise/          # Noise protocol implementation
+├── protocol/       # Protocol implementation
+├── ui/             # UI implementations
+├── runners/        # Runner implementations
+├── helpers/        # Helper implementations
+├── identity/       # Identity implementation
+└── compression/    # Compression implementation
+
+src/platforms/
+├── apple/          # macOS/iOS platform implementation
+└── linux/          # Linux platform implementation
 ```
 
 ### Error Handling
@@ -177,7 +198,7 @@ Create `src/platforms/your_platform/bluetooth.cpp`:
 #include "bitchat/platform/bluetooth_interface.h"
 #include "platforms/your_platform/bluetooth.h"
 
-class YourPlatformBluetooth : public bitchat::BluetoothInterface {
+class YourPlatformBluetooth : public bitchat::IBluetoothNetwork {
 public:
     YourPlatformBluetooth() = default;
     ~YourPlatformBluetooth() override = default;
@@ -187,49 +208,45 @@ public:
         return true;
     }
 
-    bool startScanning() override {
-        // Start BLE scanning
+    bool start() override {
+        // Start BLE advertising and scanning
         return true;
     }
 
-    bool stopScanning() override {
-        // Stop BLE scanning
+    void stop() override {
+        // Stop all Bluetooth operations
+    }
+
+    bool sendPacket(const bitchat::BitchatPacket& packet) override {
+        // Send packet to all connected peers
         return true;
     }
 
-    bool startAdvertising() override {
-        // Start BLE advertising
+    bool sendPacketToPeer(const bitchat::BitchatPacket& packet, const std::string& peerID) override {
+        // Send packet to specific peer
         return true;
     }
 
-    bool stopAdvertising() override {
-        // Stop BLE advertising
+    bool isReady() const override {
+        // Check if Bluetooth is ready
         return true;
     }
 
-    bool connect(const std::string& deviceID) override {
-        // Connect to specific device
-        return true;
+    void setPeerConnectedCallback(bitchat::PeerConnectedCallback callback) override {
+        // Set peer connected callback
     }
 
-    bool disconnect(const std::string& deviceID) override {
-        // Disconnect from device
-        return true;
+    void setPeerDisconnectedCallback(bitchat::PeerDisconnectedCallback callback) override {
+        // Set peer disconnected callback
     }
 
-    bool sendData(const std::string& deviceID, const std::vector<uint8_t>& data) override {
-        // Send data to device
-        return true;
+    void setPacketReceivedCallback(bitchat::PacketReceivedCallback callback) override {
+        // Set packet received callback
     }
 
-    std::vector<bitchat::PeerInfo> getDiscoveredPeers() override {
-        // Return list of discovered peers
-        return {};
-    }
-
-    std::vector<bitchat::PeerInfo> getConnectedPeers() override {
-        // Return list of connected peers
-        return {};
+    size_t getConnectedPeersCount() const override {
+        // Return connected peers count
+        return 0;
     }
 };
 ```
@@ -247,7 +264,7 @@ namespace bitchat {
 namespace platforms {
 namespace your_platform {
 
-class Bluetooth : public BluetoothInterface {
+class Bluetooth : public IBluetoothNetwork {
     // Implementation details
 };
 
@@ -264,12 +281,14 @@ Update `src/platforms/bluetooth_factory.cpp`:
 #include "bitchat/platform/bluetooth_factory.h"
 #include "platforms/your_platform/bluetooth.h"
 
-std::shared_ptr<bitchat::BluetoothInterface>
+std::shared_ptr<bitchat::IBluetoothNetwork>
 bitchat::BluetoothFactory::createBluetoothInterface() {
     #ifdef YOUR_PLATFORM_DEFINE
         return std::make_shared<platforms::your_platform::Bluetooth>();
     #elif defined(APPLE)
         return std::make_shared<platforms::apple::Bluetooth>();
+    #elif defined(LINUX)
+        return std::make_shared<platforms::linux::Bluetooth>();
     #else
         throw std::runtime_error("No Bluetooth implementation available for this platform");
     #endif
@@ -447,7 +466,7 @@ Use conventional commit format:
 feat: add Windows Bluetooth support
 fix: resolve memory leak in packet serializer
 docs: update usage guide with new commands
-test: add unit tests for crypto manager
+test: add unit tests for crypto service
 ```
 
 ### Code Review Checklist
@@ -464,7 +483,7 @@ test: add unit tests for crypto manager
 - [x] macOS Bluetooth implementation
 - [ ] Windows Bluetooth implementation
 - [ ] Linux Bluetooth implementation
-- [ ] Unit tests and integration tests
+- [x] Unit tests and integration tests
 - [x] CI/CD pipeline
 - [ ] Performance optimizations
 - [x] Message encryption (end-to-end)

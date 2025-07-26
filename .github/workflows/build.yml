@@ -43,7 +43,7 @@ jobs:
         if: matrix.config.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libssl-dev libbluetooth-dev
+          sudo apt-get install -y pkg-config libssl-dev libbluetooth-dev
 
       - name: Verify
         run: |

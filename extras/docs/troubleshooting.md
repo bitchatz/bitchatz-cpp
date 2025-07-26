@@ -52,6 +52,23 @@ brew install llvm
 # Windows: Use Visual Studio 2019 or later
 ```
 
+#### Missing Dependencies
+
+**Problem**: Build fails due to missing libraries
+
+**Solution**:
+```bash
+# Install all required dependencies
+# macOS
+brew install cmake openssl
+
+# Ubuntu/Debian
+sudo apt-get install pkg-config cmake libssl-dev libbluetooth-dev
+
+# Windows (with vcpkg)
+vcpkg install openssl
+```
+
 ### Runtime Issues
 
 #### Bluetooth Not Working
@@ -163,6 +180,73 @@ brew install llvm
    - Use shorter messages
    - Avoid sending large files
 
+### Security and Encryption Issues
+
+#### Noise Protocol Handshake Failures
+
+**Problem**: Secure sessions fail to establish
+
+**Symptoms**:
+- "Noise handshake failed" errors
+- Messages not being encrypted
+- Connection timeouts during handshake
+
+**Solutions**:
+
+1. **Restart Application**:
+   ```bash
+   /exit
+   # Restart to clear session state
+   ```
+
+2. **Check Key Generation**:
+   - Ensure CryptoService initialized properly
+   - Check for key file permissions
+
+3. **Verify Protocol Compatibility**:
+   - Ensure all devices are running compatible versions
+   - Check for protocol version mismatches
+
+#### Encryption Errors
+
+**Problem**: Messages fail to encrypt or decrypt
+
+**Solutions**:
+
+1. **Clear Session State**:
+   ```bash
+   /exit
+   # Restart to establish new sessions
+   ```
+
+2. **Check Key Integrity**:
+   - Verify key files are not corrupted
+   - Regenerate keys if necessary
+
+3. **Monitor Session Status**:
+   - Check if sessions are properly established
+   - Look for session timeout errors
+
+#### Signature Verification Failures
+
+**Problem**: Message signatures fail to verify
+
+**Solutions**:
+
+1. **Check Clock Synchronization**:
+   - Ensure device clocks are reasonably synchronized
+   - Check for timestamp validation errors
+
+2. **Verify Key Exchange**:
+   - Ensure public keys were properly exchanged
+   - Check for key verification errors
+
+3. **Restart Secure Sessions**:
+   ```bash
+   /exit
+   # Restart to re-establish secure sessions
+   ```
+
 ### Platform-Specific Issues
 
 #### macOS Issues
@@ -254,6 +338,10 @@ sudo systemctl status bluetooth
    - Reduce maximum number of simultaneous connections
    - Disconnect from distant peers
 
+4. **Monitor Service Performance**:
+   - Check NoiseService session management
+   - Monitor CryptoService operations
+
 #### High Memory Usage
 
 **Problem**: Application uses excessive memory
@@ -274,6 +362,7 @@ sudo systemctl status bluetooth
 3. **Check for Memory Leaks**:
    - Use debug build for profiling
    - Monitor memory usage over time
+   - Check service memory usage
 
 #### Battery Drain
 
@@ -296,6 +385,10 @@ sudo systemctl status bluetooth
    # Close application when not chatting
    ```
 
+4. **Monitor Encryption Overhead**:
+   - Noise protocol operations are optimized
+   - Session caching reduces repeated handshakes
+
 ### Debug Information
 
 #### Enable Debug Logging
@@ -312,9 +405,13 @@ export BITCHAT_LOG_LEVEL=debug
 
 ```
 [INFO] Bluetooth initialized successfully
+[INFO] CryptoService initialized
+[INFO] NoiseService initialized
 [WARN] Connection quality poor: -75 dBm
 [ERROR] Failed to send message: Connection timeout
 [DEBUG] Packet received: 256 bytes from peer 12345
+[DEBUG] Noise handshake completed with peer 12345
+[DEBUG] Message encrypted successfully
 ```
 
 #### Network Diagnostics
@@ -326,8 +423,24 @@ export BITCHAT_LOG_LEVEL=debug
 # View all discovered peers
 /peers
 
+# Check application status
+/status
+
 # Monitor connection quality
 # Look for RSSI values in output
+```
+
+#### Security Diagnostics
+
+```bash
+# Check if sessions are established
+# Look for Noise handshake messages in debug logs
+
+# Monitor encryption status
+# Check for encryption/decryption errors in logs
+
+# Verify key exchange
+# Look for key exchange completion messages
 ```
 
 ### Getting Help
@@ -341,6 +454,7 @@ export BITCHAT_LOG_LEVEL=debug
    - Error messages
    - Debug logs
    - Steps to reproduce
+   - Security-related errors
 
 #### Reporting Issues
 
@@ -352,6 +466,7 @@ When reporting issues, include:
 - **Steps to Reproduce**: Detailed steps
 - **Expected vs Actual Behavior**: What you expected vs what happened
 - **Debug Logs**: Output with debug logging enabled
+- **Security Context**: Any encryption or authentication errors
 
 #### Community Support
 
