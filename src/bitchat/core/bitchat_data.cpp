@@ -61,13 +61,13 @@ std::string BitchatData::getNickname() const
 
 void BitchatData::setCurrentChannel(const std::string &channel)
 {
-    std::lock_guard<std::mutex> lock(channelMutex);
+    std::lock_guard<std::mutex> lock(currentChannelMutex);
     currentChannel = channel;
 }
 
 std::string BitchatData::getCurrentChannel() const
 {
-    std::lock_guard<std::mutex> lock(channelMutex);
+    std::lock_guard<std::mutex> lock(currentChannelMutex);
     return currentChannel;
 }
 
@@ -187,7 +187,7 @@ std::optional<BitchatPeer> BitchatData::getPeerInfo(const std::string &peerID) c
 
 void BitchatData::addMessageToHistory(const BitchatMessage &message, const std::string &channel)
 {
-    std::lock_guard<std::mutex> lock(historyMutex);
+    std::lock_guard<std::mutex> lock(messageHistoryMutex);
 
     std::string targetChannel = channel.empty() ? currentChannel : channel;
 
@@ -203,7 +203,7 @@ void BitchatData::addMessageToHistory(const BitchatMessage &message, const std::
 
 std::vector<BitchatMessage> BitchatData::getMessageHistory(const std::string &channel) const
 {
-    std::lock_guard<std::mutex> lock(historyMutex);
+    std::lock_guard<std::mutex> lock(messageHistoryMutex);
 
     std::string targetChannel = channel.empty() ? currentChannel : channel;
 
@@ -218,7 +218,7 @@ std::vector<BitchatMessage> BitchatData::getMessageHistory(const std::string &ch
 
 void BitchatData::clearMessageHistory(const std::string &channel)
 {
-    std::lock_guard<std::mutex> lock(historyMutex);
+    std::lock_guard<std::mutex> lock(messageHistoryMutex);
 
     if (channel.empty())
     {
@@ -234,7 +234,7 @@ void BitchatData::clearMessageHistory(const std::string &channel)
 
 void BitchatData::clearAllMessageHistory()
 {
-    std::lock_guard<std::mutex> lock(historyMutex);
+    std::lock_guard<std::mutex> lock(messageHistoryMutex);
     messageHistory.clear();
 }
 
@@ -242,13 +242,13 @@ void BitchatData::clearAllMessageHistory()
 
 bool BitchatData::wasMessageProcessed(const std::string &messageID) const
 {
-    std::lock_guard<std::mutex> lock(processedMutex);
+    std::lock_guard<std::mutex> lock(processedMessagesMutex);
     return processedMessages.find(messageID) != processedMessages.end();
 }
 
 void BitchatData::markMessageProcessed(const std::string &messageID)
 {
-    std::lock_guard<std::mutex> lock(processedMutex);
+    std::lock_guard<std::mutex> lock(processedMessagesMutex);
     processedMessages.insert(messageID);
 
     // Limit processed messages size
@@ -262,35 +262,8 @@ void BitchatData::markMessageProcessed(const std::string &messageID)
 
 void BitchatData::clearProcessedMessages()
 {
-    std::lock_guard<std::mutex> lock(processedMutex);
+    std::lock_guard<std::mutex> lock(processedMessagesMutex);
     processedMessages.clear();
-}
-
-// Application State
-
-void BitchatData::setInitialized(bool initialized)
-{
-    this->initialized.store(initialized);
-}
-
-bool BitchatData::isInitialized() const
-{
-    return initialized.load();
-}
-
-void BitchatData::setStarted(bool started)
-{
-    this->started.store(started);
-}
-
-bool BitchatData::isStarted() const
-{
-    return started.load();
-}
-
-bool BitchatData::isReady() const
-{
-    return initialized.load() && started.load();
 }
 
 // Utility Methods
@@ -316,7 +289,7 @@ void BitchatData::cleanupStalePeers()
 
 void BitchatData::cleanupOldMessages(size_t maxHistorySize)
 {
-    std::lock_guard<std::mutex> lock(historyMutex);
+    std::lock_guard<std::mutex> lock(messageHistoryMutex);
 
     for (auto &[channel, messages] : messageHistory)
     {
@@ -331,7 +304,7 @@ void BitchatData::cleanupOldMessages(size_t maxHistorySize)
 
 void BitchatData::cleanupOldProcessedMessages(size_t maxProcessedSize)
 {
-    std::lock_guard<std::mutex> lock(processedMutex);
+    std::lock_guard<std::mutex> lock(processedMessagesMutex);
 
     if (processedMessages.size() > maxProcessedSize)
     {

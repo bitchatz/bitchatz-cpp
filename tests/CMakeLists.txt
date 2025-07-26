@@ -5,7 +5,8 @@ set(TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/bitchat/helpers/string_helper_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/bitchat/helpers/protocol_helper_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/bitchat/helpers/datetime_helper_test.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/bitchat/helpers/chat_helper_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/bitchat/helpers/user_interface_helper_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/mock/bluetooth_interface_dummy.cpp
 )
 
 # Create test executable

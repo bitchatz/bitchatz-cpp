@@ -40,6 +40,7 @@ const uint32_t BLE_CHARACTERISTIC_PERMISSIONS =
 const size_t MAX_HISTORY_SIZE = 1000;
 const size_t MAX_PROCESSED_MESSAGES = 1000;
 const int PEER_TIMEOUT_SECONDS = 180;
+const int ANNOUNCE_INTERVAL_SECONDS = 15;
 
 // Noise Protocol Constants
 const size_t NOISE_MAX_MESSAGE_SIZE = 65535;

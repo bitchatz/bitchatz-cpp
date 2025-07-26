@@ -2,12 +2,13 @@
 
 #include "bitchat/core/bitchat_data.h"
 #include "bitchat/helpers/compression_helper.h"
-#include "bitchat/platform/bluetooth_factory.h"
+#include "bitchat/platform/bluetooth_interface.h"
 #include "bitchat/protocol/packet.h"
 #include "bitchat/services/crypto_service.h"
 #include "bitchat/services/message_service.h"
 #include "bitchat/services/network_service.h"
 #include "bitchat/services/noise_service.h"
+#include "bitchat/ui/ui_interface.h"
 #include <memory>
 
 namespace bitchat
@@ -33,6 +34,8 @@ public:
 
     // Initialize the manager
     bool initialize(
+        std::shared_ptr<IUserInterface> userInterface,
+        std::shared_ptr<IBluetoothNetwork> bluetoothNetworkInterface,
         std::shared_ptr<NetworkService> networkService,
         std::shared_ptr<MessageService> messageService,
         std::shared_ptr<CryptoService> cryptoService,
@@ -57,10 +60,8 @@ public:
     // Nickname operations
     void changeNickname(const std::string &nickname);
 
-    // Status
-    bool isReady() const;
-
     // Service getters
+    std::shared_ptr<IUserInterface> getUserInterface() const;
     std::shared_ptr<NetworkService> getNetworkService() const;
     std::shared_ptr<MessageService> getMessageService() const;
     std::shared_ptr<CryptoService> getCryptoService() const;
@@ -89,7 +90,11 @@ private:
     // Static instance
     static std::shared_ptr<BitchatManager> instance;
 
+    // Bluetooth interface
+    std::shared_ptr<IBluetoothNetwork> bluetoothNetworkInterface;
+
     // Core services
+    std::shared_ptr<IUserInterface> userInterface;
     std::shared_ptr<NetworkService> networkService;
     std::shared_ptr<MessageService> messageService;
     std::shared_ptr<CryptoService> cryptoService;
@@ -98,9 +103,6 @@ private:
     // Runners
     std::shared_ptr<BluetoothAnnounceRunner> announceRunner;
     std::shared_ptr<CleanupRunner> cleanupRunner;
-
-    // Bluetooth interface
-    std::shared_ptr<BluetoothInterface> bluetoothInterface;
 
     // Callbacks
     MessageCallback messageCallback;

@@ -7,6 +7,7 @@
 #include "bitchat/protocol/packet.h"
 #include "bitchat/runners/bluetooth_announce_runner.h"
 #include "bitchat/runners/cleanup_runner.h"
+#include <iostream>
 #include <openssl/evp.h>
 #include <spdlog/spdlog.h>
 
@@ -21,21 +22,23 @@ std::shared_ptr<BitchatManager> BitchatManager::shared()
     {
         instance = std::make_shared<BitchatManager>();
     }
+
     return instance;
 }
 
 BitchatManager::BitchatManager()
 {
-    spdlog::debug("BitchatManager constructor called");
+    // Pass
 }
 
 BitchatManager::~BitchatManager()
 {
-    spdlog::debug("BitchatManager destructor called");
-    stop();
+    // Pass
 }
 
 bool BitchatManager::initialize(
+    std::shared_ptr<IUserInterface> userInterface,
+    std::shared_ptr<IBluetoothNetwork> bluetoothNetworkInterface,
     std::shared_ptr<NetworkService> networkService,
     std::shared_ptr<MessageService> messageService,
     std::shared_ptr<CryptoService> cryptoService,
@@ -43,11 +46,9 @@ bool BitchatManager::initialize(
     std::shared_ptr<BluetoothAnnounceRunner> announceRunner,
     std::shared_ptr<CleanupRunner> cleanupRunner)
 {
-    if (BitchatData::shared()->isInitialized())
-    {
-        spdlog::warn("BitchatManager already initialized");
-        return true;
-    }
+    // Store interfaces
+    this->userInterface = userInterface;
+    this->bluetoothNetworkInterface = bluetoothNetworkInterface;
 
     // Store services
     this->networkService = networkService;
@@ -59,143 +60,91 @@ bool BitchatManager::initialize(
     this->announceRunner = announceRunner;
     this->cleanupRunner = cleanupRunner;
 
-    try
+    // Generate local peer ID
+    std::string localPeerID = StringHelper::randomPeerID();
+    spdlog::info("Generated local peer ID: {}", localPeerID);
+
+    // Set peer ID
+    BitchatData::shared()->setPeerID(localPeerID);
+
+    // Initialize services
+    if (!networkService->initialize(bluetoothNetworkInterface, announceRunner, cleanupRunner))
     {
-        // Generate local peer ID
-        std::string localPeerID = StringHelper::randomPeerID();
-        spdlog::info("Generated local peer ID: {}", localPeerID);
-
-        // Set peer ID
-        BitchatData::shared()->setPeerID(localPeerID);
-
-        // Create Bluetooth interface
-        bluetoothInterface = createBluetoothInterface();
-
-        if (!bluetoothInterface)
-        {
-            spdlog::error("Failed to create Bluetooth interface");
-            return false;
-        }
-
-        // Initialize services
-        if (!networkService->initialize(bluetoothInterface, announceRunner, cleanupRunner))
-        {
-            spdlog::error("Failed to initialize NetworkService");
-            return false;
-        }
-
-        if (!cryptoService->initialize())
-        {
-            spdlog::error("Failed to initialize CryptoService");
-            return false;
-        }
-
-        // Generate or load key pair
-        if (!cryptoService->generateOrLoadKeyPair("bitchat-pk.pem"))
-        {
-            spdlog::error("Failed to generate or load key pair");
-            return false;
-        }
-
-        if (!messageService->initialize(networkService, cryptoService, noiseService))
-        {
-            spdlog::error("Failed to initialize MessageService");
-            return false;
-        }
-
-        // Send initial identity announce
-        messageService->startIdentityAnnounce();
-
-        // Set up callbacks
-        setupCallbacks();
-
-        // Set initialization state
-        BitchatData::shared()->setInitialized(true);
-        spdlog::info("BitchatManager initialized successfully");
-
-        return true;
-    }
-    catch (const std::exception &e)
-    {
-        spdlog::error("Exception during initialization: {}", e.what());
+        spdlog::error("Failed to initialize NetworkService");
         return false;
     }
+
+    if (!cryptoService->initialize())
+    {
+        spdlog::error("Failed to initialize CryptoService");
+        return false;
+    }
+
+    // Generate or load key pair
+    if (!cryptoService->generateOrLoadKeyPair("bitchat-pk.pem"))
+    {
+        spdlog::error("Failed to generate or load key pair");
+        return false;
+    }
+
+    if (!messageService->initialize(networkService, cryptoService, noiseService))
+    {
+        spdlog::error("Failed to initialize MessageService");
+        return false;
+    }
+
+    // Initialize UI with message service
+    if (!userInterface->initialize(messageService))
+    {
+        spdlog::error("Failed to initialize UserInterface");
+        return false;
+    }
+
+    // Set up callbacks
+    setupCallbacks();
+
+    spdlog::info("BitchatManager initialized successfully");
+
+    return true;
 }
 
 bool BitchatManager::start()
 {
-    if (!BitchatData::shared()->isInitialized())
+    // Start network service
+    if (!networkService->start())
     {
-        spdlog::error("BitchatManager not initialized");
+        spdlog::error("Failed to start NetworkService");
         return false;
     }
 
-    if (BitchatData::shared()->isStarted())
-    {
-        spdlog::warn("BitchatManager already started");
-        return true;
-    }
+    // Send initial identity announce
+    messageService->startIdentityAnnounce();
 
-    try
-    {
-        if (!networkService->start())
-        {
-            spdlog::error("Failed to start NetworkService");
-            return false;
-        }
-
-        // Set started state
-        BitchatData::shared()->setStarted(true);
-        spdlog::info("BitchatManager started successfully");
-
-        return true;
-    }
-    catch (const std::exception &e)
-    {
-        spdlog::error("Exception during start: {}", e.what());
-        return false;
-    }
+    return true;
 }
 
 void BitchatManager::stop()
 {
-    if (!BitchatData::shared()->isStarted())
-    {
-        return;
-    }
-
-    try
+    // Stop network service
+    if (networkService)
     {
         networkService->stop();
-        BitchatData::shared()->setStarted(false);
-
-        spdlog::info("BitchatManager stopped");
     }
-    catch (const std::exception &e)
+
+    // Stop user interface
+    if (userInterface)
     {
-        spdlog::error("Exception during stop: {}", e.what());
+        userInterface->stop();
     }
 }
 
 bool BitchatManager::sendMessage(const std::string &content)
 {
-    if (!isReady())
-    {
-        spdlog::error("BitchatManager not ready");
-        return false;
-    }
-
     return messageService->sendMessage(content);
 }
 
 bool BitchatManager::sendPrivateMessage(const std::string &content, const std::string &recipientNickname)
 {
-    if (!isReady())
-    {
-        spdlog::error("BitchatManager not ready");
-        return false;
-    }
-
     return messageService->sendPrivateMessage(content, recipientNickname);
 }
 
@@ -222,11 +171,6 @@ void BitchatManager::leaveChannel()
 void BitchatManager::changeNickname(const std::string &nickname)
 {
     BitchatData::shared()->setNickname(nickname);
-}
-
-bool BitchatManager::isReady() const
-{
-    return BitchatData::shared()->isReady() && networkService && messageService && networkService->isReady() && messageService->isReady();
 }
 
 void BitchatManager::setMessageCallback(MessageCallback callback)
@@ -398,6 +342,11 @@ void BitchatManager::onChannelLeft(const std::string &channel)
     {
         channelLeftCallback(channel);
     }
+}
+
+std::shared_ptr<IUserInterface> BitchatManager::getUserInterface() const
+{
+    return userInterface;
 }
 
 std::shared_ptr<NetworkService> BitchatManager::getNetworkService() const

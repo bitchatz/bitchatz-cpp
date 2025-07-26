@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bitchat/core/bitchat_data.h"
+#include "bitchat/platform/bluetooth_interface.h"
 #include "bitchat/protocol/packet.h"
 #include <atomic>
 #include <functional>
@@ -17,7 +18,7 @@ namespace bitchat
 // Forward declarations
 class BluetoothAnnounceRunner;
 class CleanupRunner;
-class BluetoothInterface;
+class IBluetoothNetwork;
 
 // NetworkService: Manages network operations, peer discovery, and message routing
 class NetworkService
@@ -27,7 +28,7 @@ public:
     ~NetworkService();
 
     // Initialize the network service
-    bool initialize(std::shared_ptr<BluetoothInterface> bluetoothInterface, std::shared_ptr<BluetoothAnnounceRunner> announceRunner, std::shared_ptr<CleanupRunner> cleanupRunner);
+    bool initialize(std::shared_ptr<IBluetoothNetwork> bluetoothNetworkInterface, std::shared_ptr<BluetoothAnnounceRunner> announceRunner, std::shared_ptr<CleanupRunner> cleanupRunner);
 
     // Start network operations
     bool start();
@@ -40,6 +41,9 @@ public:
 
     // Send a packet to a specific peer
     bool sendPacketToPeer(const BitchatPacket &packet, const std::string &peerID);
+
+    // Set the Bluetooth network interface
+    void setBluetoothNetworkInterface(std::shared_ptr<IBluetoothNetwork> bluetoothNetworkInterface);
 
     // Set callbacks
     using PacketReceivedCallback = std::function<void(const BitchatPacket &, const std::string &)>;
@@ -55,7 +59,7 @@ public:
 
 private:
     // Bluetooth interface
-    std::shared_ptr<BluetoothInterface> bluetoothInterface;
+    std::shared_ptr<IBluetoothNetwork> bluetoothNetworkInterface;
 
     // Runners
     std::shared_ptr<BluetoothAnnounceRunner> announceRunner;

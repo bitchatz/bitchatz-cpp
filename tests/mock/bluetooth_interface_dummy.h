@@ -12,11 +12,11 @@
 namespace bitchat
 {
 
-class LinuxBluetoothNetwork : public IBluetoothNetwork
+class DummyBluetoothNetwork : public IBluetoothNetwork
 {
 public:
-    LinuxBluetoothNetwork();
-    ~LinuxBluetoothNetwork() override;
+    DummyBluetoothNetwork();
+    ~DummyBluetoothNetwork() override = default;
 
     bool initialize() override;
     bool start() override;
@@ -29,26 +29,6 @@ public:
     void setPeerDisconnectedCallback(PeerDisconnectedCallback callback) override;
     void setPacketReceivedCallback(PacketReceivedCallback callback) override;
     size_t getConnectedPeersCount() const override;
-
-private:
-    void scanThreadFunc();
-    void readerThreadFunc(const std::string &deviceID, int socket);
-    void acceptThreadFunc();
-
-    int deviceID;
-    int hciSocket;
-    int rfcommSocket;
-
-    std::thread scanThread;
-    std::thread acceptThread;
-    std::atomic<bool> stopThreads;
-
-    PacketReceivedCallback packetReceivedCallback;
-    PeerConnectedCallback peerConnectedCallback;
-    PeerDisconnectedCallback peerDisconnectedCallback;
-
-    std::map<std::string, int> connectedSockets;
-    std::mutex socketsMutex;
 };
 
 } // namespace bitchat

@@ -1,5 +1,6 @@
 #include "bitchat/runners/bluetooth_announce_runner.h"
 #include "bitchat/core/bitchat_data.h"
+#include "bitchat/core/constants.h"
 #include "bitchat/helpers/datetime_helper.h"
 #include "bitchat/helpers/string_helper.h"
 #include "bitchat/protocol/packet_serializer.h"
@@ -21,14 +22,14 @@ BluetoothAnnounceRunner::~BluetoothAnnounceRunner()
     stop();
 }
 
-void BluetoothAnnounceRunner::setBluetoothInterface(std::shared_ptr<BluetoothInterface> bluetooth)
+void BluetoothAnnounceRunner::setBluetoothNetworkInterface(std::shared_ptr<IBluetoothNetwork> bluetoothNetworkInterface)
 {
-    bluetoothInterface = bluetooth;
+    this->bluetoothNetworkInterface = bluetoothNetworkInterface;
 }
 
 bool BluetoothAnnounceRunner::start()
 {
-    if (!bluetoothInterface)
+    if (!bluetoothNetworkInterface)
     {
         spdlog::error("BluetoothAnnounceRunner: Cannot start without Bluetooth interface");
         return false;
@@ -101,13 +102,13 @@ void BluetoothAnnounceRunner::runnerLoop()
             announcePacket.setTimestamp(DateTimeHelper::getCurrentTimestamp());
 
             // Send announce packet
-            if (bluetoothInterface && bluetoothInterface->isReady())
+            if (bluetoothNetworkInterface && bluetoothNetworkInterface->isReady())
             {
-                bluetoothInterface->sendPacket(announcePacket);
+                bluetoothNetworkInterface->sendPacket(announcePacket);
             }
 
             // Sleep for announce interval
-            std::this_thread::sleep_for(std::chrono::seconds(ANNOUNCE_INTERVAL));
+            std::this_thread::sleep_for(std::chrono::seconds(constants::ANNOUNCE_INTERVAL_SECONDS));
         }
         catch (const std::exception &e)
         {

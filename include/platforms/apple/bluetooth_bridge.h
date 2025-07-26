@@ -21,13 +21,13 @@ namespace bitchat
 {
 
 /**
- * @brief Bridge class that implements the C++ BluetoothInterface
+ * @brief Bridge class that implements the C++ IBluetoothNetwork
  *
  * This class acts as a bridge between the C++ codebase and the Objective-C
  * Bluetooth implementation. It translates C++ calls to Objective-C method calls
  * and handles callback conversions between the two languages.
  */
-class AppleBluetoothBridge : public bitchat::BluetoothInterface
+class AppleBluetoothNetworkBridge : public bitchat::IBluetoothNetwork
 {
 private:
     AppleBluetooth *impl;                                  // Objective-C implementation instance
@@ -42,12 +42,12 @@ public:
     /**
      * @brief Constructor - Initializes the bridge and sets up callback translations
      */
-    AppleBluetoothBridge();
+    AppleBluetoothNetworkBridge();
 
     /**
      * @brief Destructor - Clean up Objective-C object
      */
-    ~AppleBluetoothBridge();
+    ~AppleBluetoothNetworkBridge();
 
     /**
      * @brief Initialize the Bluetooth system

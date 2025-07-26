@@ -313,7 +313,7 @@ void MessageService::processMessagePacket(const BitchatPacket &packet)
 
         if (message.getChannel() == currentChannel)
         {
-            spdlog::debug("Message is for current channel: {}", currentChannel);
+            spdlog::debug("Message is for current channel: '{}'", currentChannel);
             shouldAddToHistory = true;
         }
         else if (message.getChannel().empty() && currentChannel.empty())

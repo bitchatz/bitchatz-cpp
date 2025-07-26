@@ -9,10 +9,8 @@
 
 namespace bitchat
 {
-namespace testing
-{
 
-class MockBluetoothInterface : public BluetoothInterface
+class MockBluetoothNetwork : public IBluetoothNetwork
 {
 public:
     MOCK_METHOD(bool, initialize, (), (override));
@@ -27,5 +25,4 @@ public:
     MOCK_METHOD(size_t, getConnectedPeersCount, (), (const, override));
 };
 
-} // namespace testing
 } // namespace bitchat

@@ -5,9 +5,9 @@
 namespace bitchat
 {
 
-std::shared_ptr<BluetoothInterface> createBluetoothInterface()
+std::shared_ptr<IBluetoothNetwork> createBluetoothNetworkInterface()
 {
-    return std::make_shared<LinuxBluetooth>();
+    return std::make_shared<LinuxBluetoothNetwork>();
 }
 
 } // namespace bitchat

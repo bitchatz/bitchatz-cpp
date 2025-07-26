@@ -49,7 +49,7 @@ run-leaks:
 
 test:
 	rm -rf build
-	cmake -B build . -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENABLE_TESTS=ON -DENABLE_ASAN=ON
+	cmake -B build . -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENABLE_TESTS=ON -DENABLE_ASAN=ON -DBUILD_EXECUTABLE=OFF
 	cmake --build build
 	cd build && ctest --output-on-failure --verbose
 

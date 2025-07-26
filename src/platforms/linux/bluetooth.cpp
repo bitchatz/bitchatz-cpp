@@ -19,7 +19,7 @@
 namespace bitchat
 {
 
-LinuxBluetooth::LinuxBluetooth()
+LinuxBluetoothNetwork::LinuxBluetoothNetwork()
     : deviceID(-1)
     , hciSocket(-1)
     , rfcommSocket(-1)
@@ -51,7 +51,7 @@ LinuxBluetooth::LinuxBluetooth()
     spdlog::info("Bluetooth adapter address: {}", addr);
 }
 
-LinuxBluetooth::~LinuxBluetooth()
+LinuxBluetoothNetwork::~LinuxBluetoothNetwork()
 {
     stop();
 
@@ -68,23 +68,23 @@ LinuxBluetooth::~LinuxBluetooth()
     }
 }
 
-bool LinuxBluetooth::initialize()
+bool LinuxBluetoothNetwork::initialize()
 {
-    spdlog::info("LinuxBluetooth initialized.");
+    spdlog::info("LinuxBluetoothNetwork initialized.");
     return true;
 }
 
-bool LinuxBluetooth::start()
+bool LinuxBluetoothNetwork::start()
 {
     stopThreads = false;
-    scanThread = std::thread(&LinuxBluetooth::scanThreadFunc, this);
-    acceptThread = std::thread(&LinuxBluetooth::acceptThreadFunc, this);
+    scanThread = std::thread(&LinuxBluetoothNetwork::scanThreadFunc, this);
+    acceptThread = std::thread(&LinuxBluetoothNetwork::acceptThreadFunc, this);
     spdlog::info("Bluetooth scanning and acceptance threads started.");
 
     return true;
 }
 
-void LinuxBluetooth::stop()
+void LinuxBluetoothNetwork::stop()
 {
     stopThreads = true;
     spdlog::info("Stopping Bluetooth threads...");
@@ -110,7 +110,7 @@ void LinuxBluetooth::stop()
     spdlog::info("Bluetooth threads stopped and sockets closed.");
 }
 
-bool LinuxBluetooth::sendPacket(const BitchatPacket &packet)
+bool LinuxBluetoothNetwork::sendPacket(const BitchatPacket &packet)
 {
     PacketSerializer serializer;
     std::vector<uint8_t> data = serializer.serializePacket(packet);
@@ -139,7 +139,7 @@ bool LinuxBluetooth::sendPacket(const BitchatPacket &packet)
     return sentToAny;
 }
 
-bool LinuxBluetooth::sendPacketToPeer(const BitchatPacket &packet, const std::string &peerID)
+bool LinuxBluetoothNetwork::sendPacketToPeer(const BitchatPacket &packet, const std::string &peerID)
 {
     PacketSerializer serializer;
     std::vector<uint8_t> data = serializer.serializePacket(packet);
@@ -162,33 +162,33 @@ bool LinuxBluetooth::sendPacketToPeer(const BitchatPacket &packet, const std::st
     return false;
 }
 
-bool LinuxBluetooth::isReady() const
+bool LinuxBluetoothNetwork::isReady() const
 {
     return deviceID >= 0 && hciSocket >= 0;
 }
 
-void LinuxBluetooth::setPeerConnectedCallback(PeerConnectedCallback callback)
+void LinuxBluetoothNetwork::setPeerConnectedCallback(PeerConnectedCallback callback)
 {
     peerConnectedCallback = callback;
 }
 
-void LinuxBluetooth::setPeerDisconnectedCallback(PeerDisconnectedCallback callback)
+void LinuxBluetoothNetwork::setPeerDisconnectedCallback(PeerDisconnectedCallback callback)
 {
     peerDisconnectedCallback = callback;
 }
 
-void LinuxBluetooth::setPacketReceivedCallback(PacketReceivedCallback callback)
+void LinuxBluetoothNetwork::setPacketReceivedCallback(PacketReceivedCallback callback)
 {
     packetReceivedCallback = callback;
 }
 
-size_t LinuxBluetooth::getConnectedPeersCount() const
+size_t LinuxBluetoothNetwork::getConnectedPeersCount() const
 {
     std::lock_guard<std::mutex> lock(const_cast<std::mutex &>(socketsMutex));
     return connectedSockets.size();
 }
 
-void LinuxBluetooth::scanThreadFunc()
+void LinuxBluetoothNetwork::scanThreadFunc()
 {
     inquiry_info *ii = new inquiry_info[255];
     int maxRsp = 255;
@@ -248,7 +248,7 @@ void LinuxBluetooth::scanThreadFunc()
                     peerConnectedCallback(deviceID);
                 }
 
-                std::thread(&LinuxBluetooth::readerThreadFunc, this, deviceID, s).detach();
+                std::thread(&LinuxBluetoothNetwork::readerThreadFunc, this, deviceID, s).detach();
             }
             else
             {
@@ -266,7 +266,7 @@ void LinuxBluetooth::scanThreadFunc()
     delete[] ii;
 }
 
-void LinuxBluetooth::acceptThreadFunc()
+void LinuxBluetoothNetwork::acceptThreadFunc()
 {
     struct sockaddr_rc locAddr, remAddr;
     memset(&locAddr, 0, sizeof(locAddr));
@@ -327,13 +327,13 @@ void LinuxBluetooth::acceptThreadFunc()
             peerConnectedCallback(deviceID);
         }
 
-        std::thread(&LinuxBluetooth::readerThreadFunc, this, deviceID, client).detach();
+        std::thread(&LinuxBluetoothNetwork::readerThreadFunc, this, deviceID, client).detach();
     }
 
     spdlog::info("Bluetooth accept thread stopped.");
 }
 
-void LinuxBluetooth::readerThreadFunc(const std::string &deviceID, int socket)
+void LinuxBluetoothNetwork::readerThreadFunc(const std::string &deviceID, int socket)
 {
     char buf[4096];
     ssize_t bytesRead;

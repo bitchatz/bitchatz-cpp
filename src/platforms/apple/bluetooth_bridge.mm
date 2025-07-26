@@ -8,10 +8,10 @@ namespace bitchat
 {
 
 // ============================================================================
-// C++ Bridge Layer - Implements BluetoothInterface and forwards to Objective-C
+// C++ Bridge Layer - Implements IBluetoothNetwork and forwards to Objective-C
 // ============================================================================
 
-AppleBluetoothBridge::AppleBluetoothBridge()
+AppleBluetoothNetworkBridge::AppleBluetoothNetworkBridge()
     : impl(nil), serializer(std::make_shared<PacketSerializer>())
 {
     // Create the Objective-C Bluetooth implementation
@@ -60,7 +60,7 @@ AppleBluetoothBridge::AppleBluetoothBridge()
     }
 }
 
-AppleBluetoothBridge::~AppleBluetoothBridge()
+AppleBluetoothNetworkBridge::~AppleBluetoothNetworkBridge()
 {
     if (impl)
     {
@@ -69,7 +69,7 @@ AppleBluetoothBridge::~AppleBluetoothBridge()
     }
 }
 
-bool AppleBluetoothBridge::initialize()
+bool AppleBluetoothNetworkBridge::initialize()
 {
     if (!impl)
     {
@@ -80,7 +80,7 @@ bool AppleBluetoothBridge::initialize()
     return [impl initialize];
 }
 
-bool AppleBluetoothBridge::start()
+bool AppleBluetoothNetworkBridge::start()
 {
     if (!impl)
     {
@@ -91,7 +91,7 @@ bool AppleBluetoothBridge::start()
     return [impl start];
 }
 
-void AppleBluetoothBridge::stop()
+void AppleBluetoothNetworkBridge::stop()
 {
     if (impl)
     {
@@ -100,7 +100,7 @@ void AppleBluetoothBridge::stop()
     }
 }
 
-bool AppleBluetoothBridge::sendPacket(const BitchatPacket &packet)
+bool AppleBluetoothNetworkBridge::sendPacket(const BitchatPacket &packet)
 {
     if (!impl)
     {
@@ -117,7 +117,7 @@ bool AppleBluetoothBridge::sendPacket(const BitchatPacket &packet)
     return [impl sendPacket:nsData];
 }
 
-bool AppleBluetoothBridge::sendPacketToPeer(const BitchatPacket &packet, const std::string &peerID)
+bool AppleBluetoothNetworkBridge::sendPacketToPeer(const BitchatPacket &packet, const std::string &peerID)
 {
     if (!impl)
     {
@@ -137,7 +137,7 @@ bool AppleBluetoothBridge::sendPacketToPeer(const BitchatPacket &packet, const s
     return [impl sendPacket:nsData toPeer:nsPeerID];
 }
 
-bool AppleBluetoothBridge::isReady() const
+bool AppleBluetoothNetworkBridge::isReady() const
 {
     if (!impl)
     {
@@ -148,25 +148,25 @@ bool AppleBluetoothBridge::isReady() const
     return [impl isReady];
 }
 
-void AppleBluetoothBridge::setPeerConnectedCallback(PeerConnectedCallback callback)
+void AppleBluetoothNetworkBridge::setPeerConnectedCallback(PeerConnectedCallback callback)
 {
     // Store C++ callback function
     peerConnectedCallback = callback;
 }
 
-void AppleBluetoothBridge::setPeerDisconnectedCallback(PeerDisconnectedCallback callback)
+void AppleBluetoothNetworkBridge::setPeerDisconnectedCallback(PeerDisconnectedCallback callback)
 {
     // Store C++ callback function
     peerDisconnectedCallback = callback;
 }
 
-void AppleBluetoothBridge::setPacketReceivedCallback(PacketReceivedCallback callback)
+void AppleBluetoothNetworkBridge::setPacketReceivedCallback(PacketReceivedCallback callback)
 {
     // Store C++ callback function
     packetReceivedCallback = callback;
 }
 
-size_t AppleBluetoothBridge::getConnectedPeersCount() const
+size_t AppleBluetoothNetworkBridge::getConnectedPeersCount() const
 {
     if (!impl)
     {

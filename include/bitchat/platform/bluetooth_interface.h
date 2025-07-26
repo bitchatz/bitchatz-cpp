@@ -17,12 +17,12 @@ using PeerConnectedCallback = std::function<void(const std::string &peripheralID
 using PeerDisconnectedCallback = std::function<void(const std::string &peripheralID)>;
 using PacketReceivedCallback = std::function<void(const BitchatPacket &packet, const std::string &peripheralID)>;
 
-// Abstract Bluetooth interface that platforms must implement
+// Abstract Bluetooth network interface that platforms must implement
 // This interface handles only BLE transport, all business logic is in BitchatManager
-class BluetoothInterface
+class IBluetoothNetwork
 {
 public:
-    virtual ~BluetoothInterface() = default;
+    virtual ~IBluetoothNetwork() = default;
 
     // Initialize Bluetooth subsystem
     virtual bool initialize() = 0;

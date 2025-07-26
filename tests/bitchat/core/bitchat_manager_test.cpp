@@ -8,34 +8,40 @@
 #include "bitchat/services/message_service.h"
 #include "bitchat/services/network_service.h"
 #include "bitchat/services/noise_service.h"
-#include "fixtures/fixture_bitchat_manager.h"
+#include "bitchat/ui/dummy_ui.h"
+#include "mock/bluetooth_announce_runner_mock.h"
+#include "mock/bluetooth_interface_mock.h"
+#include "mock/cleanup_runner_mock.h"
 
 using namespace bitchat;
 using namespace ::testing;
 
-TEST_F(BitchatManagerFixture, Initialize)
+TEST(BitchatManagerTest, Initialize)
 {
-    // Create a mock instance
-    auto mockInterface = std::make_shared<bitchat::testing::MockBluetoothInterface>();
-    bitchat::setMockBluetoothInterface(mockInterface);
-
     // Set up expectations
-    EXPECT_CALL(*mockInterface, setPacketReceivedCallback(::NotNull())).Times(1);
-    EXPECT_CALL(*mockInterface, setPeerConnectedCallback(::NotNull())).Times(1);
-    EXPECT_CALL(*mockInterface, setPeerDisconnectedCallback(::NotNull())).Times(1);
-    EXPECT_CALL(*mockInterface, initialize()).WillOnce(::testing::Return(true));
-    EXPECT_CALL(*mockInterface, start()).WillOnce(::testing::Return(true));
+    auto bluetoothNetwork = std::make_shared<MockBluetoothNetwork>();
+    EXPECT_CALL(*bluetoothNetwork, setPacketReceivedCallback(::NotNull())).Times(1);
+    EXPECT_CALL(*bluetoothNetwork, setPeerConnectedCallback(::NotNull())).Times(1);
+    EXPECT_CALL(*bluetoothNetwork, setPeerDisconnectedCallback(::NotNull())).Times(1);
+    EXPECT_CALL(*bluetoothNetwork, isReady()).WillOnce(::testing::Return(true));
+    EXPECT_CALL(*bluetoothNetwork, initialize()).WillOnce(::testing::Return(true));
+    EXPECT_CALL(*bluetoothNetwork, start()).WillOnce(::testing::Return(true));
+    EXPECT_CALL(*bluetoothNetwork, sendPacket).WillOnce(::testing::Return(true));
+    EXPECT_CALL(*bluetoothNetwork, stop());
 
     // Create services
     auto networkService = std::make_shared<NetworkService>();
     auto messageService = std::make_shared<MessageService>();
     auto cryptoService = std::make_shared<CryptoService>();
     auto noiseService = std::make_shared<NoiseService>();
-    auto announceRunner = std::make_shared<BluetoothAnnounceRunner>();
-    auto cleanupRunner = std::make_shared<CleanupRunner>();
+    auto announceRunner = std::make_shared<MockBluetoothAnnounceRunner>();
+    auto cleanupRunner = std::make_shared<MockCleanupRunner>();
+
+    // Create UI
+    auto dummyUserInterface = std::make_shared<bitchat::DummyUserInterface>();
 
     // Test the manager
     BitchatManager manager;
-    EXPECT_TRUE(manager.initialize(networkService, messageService, cryptoService, noiseService, announceRunner, cleanupRunner));
+    EXPECT_TRUE(manager.initialize(dummyUserInterface, bluetoothNetwork, networkService, messageService, cryptoService, noiseService, announceRunner, cleanupRunner));
     EXPECT_TRUE(manager.start());
 }

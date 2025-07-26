@@ -16,19 +16,19 @@ class CleanupRunner
 {
 public:
     CleanupRunner();
-    ~CleanupRunner();
+    virtual ~CleanupRunner();
 
     // Initialize the cleanup runner
-    bool initialize(std::shared_ptr<NetworkService> networkService);
+    virtual bool initialize(std::shared_ptr<NetworkService> networkService);
 
     // Start the cleanup loop
-    bool start();
+    virtual bool start();
 
     // Stop the cleanup loop
-    void stop();
+    virtual void stop();
 
     // Check if the runner is running
-    bool isRunning() const;
+    virtual bool isRunning() const;
 
 private:
     // Network service reference
@@ -40,7 +40,7 @@ private:
     std::thread runnerThread;
 
     // Internal methods
-    void runnerLoop();
+    virtual void runnerLoop();
 
     // Constants
     static constexpr int CLEANUP_INTERVAL = 30; // seconds

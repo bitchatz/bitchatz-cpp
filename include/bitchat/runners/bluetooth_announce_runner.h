@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bitchat/core/constants.h"
 #include "bitchat/platform/bluetooth_interface.h"
 #include "bitchat/protocol/packet.h"
 #include <atomic>
@@ -11,30 +12,30 @@ namespace bitchat
 {
 
 // Forward declarations
-class BluetoothInterface;
+class IBluetoothNetwork;
 
 // BluetoothAnnounceRunner: Handles periodic announce packet sending
 class BluetoothAnnounceRunner
 {
 public:
     BluetoothAnnounceRunner();
-    ~BluetoothAnnounceRunner();
+    virtual ~BluetoothAnnounceRunner();
 
     // Set the Bluetooth interface
-    void setBluetoothInterface(std::shared_ptr<BluetoothInterface> bluetooth);
+    virtual void setBluetoothNetworkInterface(std::shared_ptr<IBluetoothNetwork> bluetoothNetwork);
 
     // Start the announce loop
-    bool start();
+    virtual bool start();
 
     // Stop the announce loop
-    void stop();
+    virtual void stop();
 
     // Check if the runner is running
-    bool isRunning() const;
+    virtual bool isRunning() const;
 
 private:
     // Bluetooth interface
-    std::shared_ptr<BluetoothInterface> bluetoothInterface;
+    std::shared_ptr<IBluetoothNetwork> bluetoothNetworkInterface;
 
     // Threading
     std::atomic<bool> shouldExit;
@@ -42,10 +43,7 @@ private:
     std::thread runnerThread;
 
     // Internal methods
-    void runnerLoop();
-
-    // Constants
-    static constexpr int ANNOUNCE_INTERVAL = 15; // seconds
+    virtual void runnerLoop();
 };
 
 } // namespace bitchat

@@ -26,12 +26,12 @@ NetworkService::~NetworkService()
     stop();
 }
 
-bool NetworkService::initialize(std::shared_ptr<BluetoothInterface> bluetoothInterface, std::shared_ptr<BluetoothAnnounceRunner> announceRunner, std::shared_ptr<CleanupRunner> cleanupRunner)
+bool NetworkService::initialize(std::shared_ptr<IBluetoothNetwork> bluetoothNetworkInterface, std::shared_ptr<BluetoothAnnounceRunner> announceRunner, std::shared_ptr<CleanupRunner> cleanupRunner)
 {
-    // Set Bluetooth interface
-    this->bluetoothInterface = bluetoothInterface;
+    // Set Bluetooth network interface
+    this->bluetoothNetworkInterface = bluetoothNetworkInterface;
 
-    if (!bluetoothInterface)
+    if (!bluetoothNetworkInterface)
     {
         spdlog::error("NetworkService: Bluetooth interface is null");
         return false;
@@ -41,21 +41,21 @@ bool NetworkService::initialize(std::shared_ptr<BluetoothInterface> bluetoothInt
     this->announceRunner = announceRunner;
     this->cleanupRunner = cleanupRunner;
 
-    // Set up Bluetooth callbacks
+    // Set up Bluetooth network callbacks
     // clang-format off
-    bluetoothInterface->setPacketReceivedCallback([this](const BitchatPacket &packet, const std::string &peripheralID) {
+    bluetoothNetworkInterface->setPacketReceivedCallback([this](const BitchatPacket &packet, const std::string &peripheralID) {
         onPacketReceived(packet, peripheralID);
     });
     // clang-format on
 
     // clang-format off
-    bluetoothInterface->setPeerConnectedCallback([this](const std::string &peripheralID) {
+    bluetoothNetworkInterface->setPeerConnectedCallback([this](const std::string &peripheralID) {
         onPeerConnected(peripheralID);
     });
     // clang-format on
 
     // clang-format off
-    bluetoothInterface->setPeerDisconnectedCallback([this](const std::string &peripheralID) {
+    bluetoothNetworkInterface->setPeerDisconnectedCallback([this](const std::string &peripheralID) {
         onPeerDisconnected(peripheralID);
     });
     // clang-format on
@@ -63,7 +63,7 @@ bool NetworkService::initialize(std::shared_ptr<BluetoothInterface> bluetoothInt
     // Initialize runners
     if (announceRunner)
     {
-        announceRunner->setBluetoothInterface(bluetoothInterface);
+        announceRunner->setBluetoothNetworkInterface(bluetoothNetworkInterface);
     }
 
     spdlog::info("NetworkService initialized");
@@ -73,21 +73,21 @@ bool NetworkService::initialize(std::shared_ptr<BluetoothInterface> bluetoothInt
 
 bool NetworkService::start()
 {
-    if (!bluetoothInterface)
+    if (!bluetoothNetworkInterface)
     {
-        spdlog::error("NetworkService: Cannot start without Bluetooth interface");
+        spdlog::error("NetworkService: Cannot start without Bluetooth network interface");
         return false;
     }
 
-    if (!bluetoothInterface->initialize())
+    if (!bluetoothNetworkInterface->initialize())
     {
-        spdlog::error("NetworkService: Failed to initialize Bluetooth interface");
+        spdlog::error("NetworkService: Failed to initialize Bluetooth network interface");
         return false;
     }
 
-    if (!bluetoothInterface->start())
+    if (!bluetoothNetworkInterface->start())
     {
-        spdlog::error("NetworkService: Failed to start Bluetooth interface");
+        spdlog::error("NetworkService: Failed to start Bluetooth network interface");
         return false;
     }
 
@@ -124,9 +124,9 @@ void NetworkService::stop()
         cleanupRunner->stop();
     }
 
-    if (bluetoothInterface)
+    if (bluetoothNetworkInterface)
     {
-        bluetoothInterface->stop();
+        bluetoothNetworkInterface->stop();
     }
 
     spdlog::info("NetworkService stopped");
@@ -134,22 +134,22 @@ void NetworkService::stop()
 
 bool NetworkService::sendPacket(const BitchatPacket &packet)
 {
-    if (!bluetoothInterface || !isReady())
+    if (!bluetoothNetworkInterface || !isReady())
     {
         return false;
     }
 
-    return bluetoothInterface->sendPacket(packet);
+    return bluetoothNetworkInterface->sendPacket(packet);
 }
 
 bool NetworkService::sendPacketToPeer(const BitchatPacket &packet, const std::string &peerID)
 {
-    if (!bluetoothInterface || !isReady())
+    if (!bluetoothNetworkInterface || !isReady())
     {
         return false;
     }
 
-    return bluetoothInterface->sendPacketToPeer(packet, peerID);
+    return bluetoothNetworkInterface->sendPacketToPeer(packet, peerID);
 }
 
 void NetworkService::setPacketReceivedCallback(PacketReceivedCallback callback)
@@ -169,7 +169,7 @@ void NetworkService::setPeerDisconnectedCallback(PeerDisconnectedCallback callba
 
 bool NetworkService::isReady() const
 {
-    return bluetoothInterface && bluetoothInterface->isReady();
+    return bluetoothNetworkInterface && bluetoothNetworkInterface->isReady();
 }
 
 void NetworkService::onPeerConnected(const std::string &peripheralID)
@@ -221,9 +221,14 @@ void NetworkService::relayPacket(const BitchatPacket &packet)
     {
         if (peer.getPeerID() != senderID)
         {
-            bluetoothInterface->sendPacketToPeer(relayPacket, peer.getPeerID());
+            bluetoothNetworkInterface->sendPacketToPeer(relayPacket, peer.getPeerID());
         }
     }
+}
+
+void NetworkService::setBluetoothNetworkInterface(std::shared_ptr<IBluetoothNetwork> bluetoothNetworkInterface)
+{
+    this->bluetoothNetworkInterface = bluetoothNetworkInterface;
 }
 
 } // namespace bitchat

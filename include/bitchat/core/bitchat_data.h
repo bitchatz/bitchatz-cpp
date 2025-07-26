@@ -69,21 +69,6 @@ public:
     void markMessageProcessed(const std::string &messageID);
     void clearProcessedMessages();
 
-    // Application State
-
-    // Initialization state
-    void setInitialized(bool initialized);
-    bool isInitialized() const;
-
-    // Started state
-    void setStarted(bool started);
-    bool isStarted() const;
-
-    // Ready state (combination of initialized and started)
-    bool isReady() const;
-
-    // Utility Methods
-
     // Generate unique message ID
     std::string generateMessageID() const;
 
@@ -106,7 +91,7 @@ private:
     std::string nickname;
 
     // Channel Management
-    mutable std::mutex channelMutex;
+    mutable std::mutex currentChannelMutex;
     std::string currentChannel;
 
     // Peer Management
@@ -114,17 +99,12 @@ private:
     std::vector<BitchatPeer> peers;
 
     // Message History
-    mutable std::mutex historyMutex;
+    mutable std::mutex messageHistoryMutex;
     std::map<std::string, std::vector<BitchatMessage>> messageHistory;
 
     // Processed Messages Tracking
-    mutable std::mutex processedMutex;
+    mutable std::mutex processedMessagesMutex;
     std::set<std::string> processedMessages;
-
-    // Application State
-    mutable std::mutex stateMutex;
-    std::atomic<bool> initialized{false};
-    std::atomic<bool> started{false};
 };
 
 } // namespace bitchat
