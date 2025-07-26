@@ -26,7 +26,6 @@ TEST(BitchatManagerTest, Initialize)
     EXPECT_CALL(*bluetoothNetwork, initialize()).WillOnce(::testing::Return(true));
     EXPECT_CALL(*bluetoothNetwork, start()).WillOnce(::testing::Return(true));
     EXPECT_CALL(*bluetoothNetwork, sendPacket).WillOnce(::testing::Return(true));
-    EXPECT_CALL(*bluetoothNetwork, stop());
 
     // Create services
     auto networkService = std::make_shared<NetworkService>();
@@ -40,7 +39,12 @@ TEST(BitchatManagerTest, Initialize)
     auto dummyUserInterface = std::make_shared<bitchat::DummyUserInterface>();
 
     // Test the manager
-    BitchatManager manager;
-    EXPECT_TRUE(manager.initialize(dummyUserInterface, bluetoothNetwork, networkService, messageService, cryptoService, noiseService, announceRunner, cleanupRunner));
-    EXPECT_TRUE(manager.start());
+    auto manager = BitchatManager::shared();
+    ASSERT_TRUE(manager->initialize(dummyUserInterface, bluetoothNetwork, networkService, messageService, cryptoService, noiseService, announceRunner, cleanupRunner));
+    ASSERT_TRUE(manager->start());
+    manager->stop();
+
+#ifdef UNIT_TEST
+    BitchatManager::resetInstance();
+#endif
 }

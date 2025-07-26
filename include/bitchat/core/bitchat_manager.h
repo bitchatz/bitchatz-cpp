@@ -67,6 +67,9 @@ public:
     std::shared_ptr<CryptoService> getCryptoService() const;
     std::shared_ptr<NoiseService> getNoiseService() const;
 
+#ifdef UNIT_TEST
+    static void resetInstance();
+#endif
 private:
     // Static instance
     static std::shared_ptr<BitchatManager> instance;

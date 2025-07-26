@@ -62,9 +62,6 @@ private:
     std::shared_ptr<BluetoothAnnounceRunner> announceRunner;
     std::shared_ptr<CleanupRunner> cleanupRunner;
 
-    // Threading
-    std::atomic<bool> shouldExit;
-
     // Callbacks
     PacketReceivedCallback packetReceivedCallback;
     PeerConnectedCallback peerConnectedCallback;

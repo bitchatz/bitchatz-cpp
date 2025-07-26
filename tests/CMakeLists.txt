@@ -29,6 +29,7 @@ target_link_libraries(bitchat_tests
 
 # Apply compiler flags
 apply_compiler_flags(bitchat_tests)
+target_compile_definitions(bitchat_tests PRIVATE UNIT_TEST)
 
 # AddressSanitizer
 if(ENABLE_ASAN)

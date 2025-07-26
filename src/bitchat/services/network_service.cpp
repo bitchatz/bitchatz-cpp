@@ -17,8 +17,8 @@ namespace bitchat
 {
 
 NetworkService::NetworkService()
-    : shouldExit(false)
 {
+    // Pass
 }
 
 NetworkService::~NetworkService()
@@ -91,8 +91,6 @@ bool NetworkService::start()
         return false;
     }
 
-    shouldExit = false;
-
     // Start runners
     if (announceRunner)
     {
@@ -111,9 +109,6 @@ bool NetworkService::start()
 
 void NetworkService::stop()
 {
-    shouldExit = true;
-
-    // Stop runners
     if (announceRunner)
     {
         announceRunner->stop();

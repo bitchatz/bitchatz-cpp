@@ -194,4 +194,11 @@ std::shared_ptr<NoiseService> BitchatManager::getNoiseService() const
     return noiseService;
 }
 
+#ifdef UNIT_TEST
+void BitchatManager::resetInstance()
+{
+    instance.reset();
+}
+#endif
+
 } // namespace bitchat
