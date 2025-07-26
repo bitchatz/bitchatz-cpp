@@ -184,104 +184,23 @@ void NetworkService::onPeerConnected(const std::string &peripheralID)
 
 void NetworkService::onPeerDisconnected(const std::string &peripheralID)
 {
-    auto peers = BitchatData::shared()->getPeers();
-    for (const auto &peer : peers)
+    spdlog::info("Peer disconnected with UUID: {}", peripheralID);
+
+    if (peerDisconnectedCallback)
     {
-        if (peer.getPeripheralID() == peripheralID)
-        {
-            std::string peerID = peer.getPeerID();
-            std::string nickname = peer.getNickname();
-            BitchatData::shared()->removePeer(peerID);
-
-            spdlog::info("Peer disconnected with UUID: {} ({})", peripheralID, nickname);
-
-            if (peerDisconnectedCallback)
-            {
-                peerDisconnectedCallback(peerID, nickname);
-            }
-            break;
-        }
+        peerDisconnectedCallback(peripheralID);
     }
 }
 
 void NetworkService::onPacketReceived(const BitchatPacket &packet, const std::string &peripheralID)
 {
-    processPacket(packet, peripheralID);
-}
-
-void NetworkService::processPacket(const BitchatPacket &packet, const std::string &peripheralID)
-{
-    // Validate packet
-    if (!packet.isValid())
+    // Delegate all packet processing to MessageService via callback
+    if (packetReceivedCallback)
     {
-        spdlog::warn("Received invalid packet from {}", StringHelper::toHex(packet.getSenderID()));
-        return;
+        packetReceivedCallback(packet, peripheralID);
     }
 
-    // Check if we've already processed this message
-    std::string messageID = StringHelper::toHex(packet.getSenderID()) + "_" + std::to_string(packet.getTimestamp());
-
-    if (BitchatData::shared()->wasMessageProcessed(messageID))
-    {
-        return;
-    }
-
-    BitchatData::shared()->markMessageProcessed(messageID);
-
-    // Process based on packet type
-    switch (packet.getType())
-    {
-    case PKT_TYPE_ANNOUNCE:
-        processAnnouncePacket(packet, peripheralID);
-        break;
-    case PKT_TYPE_MESSAGE:
-        spdlog::debug("Received MESSAGE packet from {}", StringHelper::toHex(packet.getSenderID()));
-        if (packetReceivedCallback)
-        {
-            packetReceivedCallback(packet, peripheralID);
-        }
-        break;
-    case PKT_TYPE_LEAVE:
-        spdlog::debug("Received LEAVE packet from {}", StringHelper::toHex(packet.getSenderID()));
-        if (packetReceivedCallback)
-        {
-            packetReceivedCallback(packet, peripheralID);
-        }
-        break;
-    case PKT_TYPE_NOISE_HANDSHAKE_INIT:
-        spdlog::info("Received NOISE_HANDSHAKE_INIT from {} (payload size: {})", StringHelper::toHex(packet.getSenderID()), packet.getPayload().size());
-        if (packetReceivedCallback)
-        {
-            packetReceivedCallback(packet, peripheralID);
-        }
-        break;
-    case PKT_TYPE_NOISE_HANDSHAKE_RESP:
-        spdlog::info("Received NOISE_HANDSHAKE_RESP from {}", StringHelper::toHex(packet.getSenderID()));
-        if (packetReceivedCallback)
-        {
-            packetReceivedCallback(packet, peripheralID);
-        }
-        break;
-    case PKT_TYPE_NOISE_ENCRYPTED:
-        spdlog::info("Received NOISE_ENCRYPTED from {}", StringHelper::toHex(packet.getSenderID()));
-        if (packetReceivedCallback)
-        {
-            packetReceivedCallback(packet, peripheralID);
-        }
-        break;
-    case PKT_TYPE_NOISE_IDENTITY_ANNOUNCE:
-        spdlog::info("Received NOISE_IDENTITY_ANNOUNCE from {}", StringHelper::toHex(packet.getSenderID()));
-        if (packetReceivedCallback)
-        {
-            packetReceivedCallback(packet, peripheralID);
-        }
-        break;
-    default:
-        spdlog::debug("Received packet type: {}", packet.getTypeString());
-        break;
-    }
-
-    // Relay packet if needed
+    // Relay packet if needed (this is still handled by NetworkService)
     if (packet.getTTL() > 0)
     {
         relayPacket(packet);
@@ -304,55 +223,6 @@ void NetworkService::relayPacket(const BitchatPacket &packet)
         {
             bluetoothInterface->sendPacketToPeer(relayPacket, peer.getPeerID());
         }
-    }
-}
-
-void NetworkService::processAnnouncePacket(const BitchatPacket &packet, const std::string &peripheralID)
-{
-    try
-    {
-        PacketSerializer serializer;
-        std::string nickname;
-        serializer.parseAnnouncePayload(packet.getPayload(), nickname);
-
-        std::string peerID = StringHelper::toHex(packet.getSenderID());
-
-        // Check if peer is already in the list
-        auto existingPeer = BitchatData::shared()->getPeerInfo(peerID);
-        if (existingPeer)
-        {
-            // Update existing peer
-            BitchatPeer updatedPeer = *existingPeer;
-            updatedPeer.updateLastSeen();
-
-            if (!peripheralID.empty())
-            {
-                updatedPeer.setPeripheralID(peripheralID);
-            }
-
-            BitchatData::shared()->updatePeer(updatedPeer);
-
-            spdlog::debug("Updated existing peer: {} ({})", peerID, nickname);
-
-            return;
-        }
-        else
-        {
-            // Add new peer
-            BitchatPeer peer(StringHelper::toHex(packet.getSenderID()), nickname);
-            peer.updateLastSeen();
-            peer.setPeripheralID(peripheralID);
-            BitchatData::shared()->addPeer(peer);
-        }
-
-        // Notify about new peer connection
-        onPeerConnected(peerID);
-
-        spdlog::debug("Processed announce from: {} ({})", peerID, nickname);
-    }
-    catch (const std::exception &e)
-    {
-        spdlog::error("Error processing announce packet: {}", e.what());
     }
 }
 

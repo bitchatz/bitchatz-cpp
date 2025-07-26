@@ -18,7 +18,7 @@ class NetworkService;
 class CryptoService;
 class NoiseService;
 
-// MessageService: Manages chat messages, history, and message processing
+// MessageService: Centralized packet processing and message management
 class MessageService
 {
 public:
@@ -40,16 +40,23 @@ public:
     // Leave current channel
     void leaveChannel();
 
-    // Set callbacks
+    // Start identity announce
+    void startIdentityAnnounce();
+
+    // Set callbacks for message events
     using MessageReceivedCallback = std::function<void(const BitchatMessage &)>;
     using ChannelJoinedCallback = std::function<void(const std::string &)>;
     using ChannelLeftCallback = std::function<void(const std::string &)>;
+    using PeerJoinedCallback = std::function<void(const std::string &, const std::string &)>;
+    using PeerLeftCallback = std::function<void(const std::string &, const std::string &)>;
 
     void setMessageReceivedCallback(MessageReceivedCallback callback);
     void setChannelJoinedCallback(ChannelJoinedCallback callback);
     void setChannelLeftCallback(ChannelLeftCallback callback);
+    void setPeerJoinedCallback(PeerJoinedCallback callback);
+    void setPeerLeftCallback(PeerLeftCallback callback);
 
-    // Process incoming packet
+    // Centralized packet processing - main entry point for all packets
     void processPacket(const BitchatPacket &packet, const std::string &peripheralID);
 
     // Check if service is ready
@@ -61,19 +68,36 @@ private:
     std::shared_ptr<CryptoService> cryptoService;
     std::shared_ptr<NoiseService> noiseService;
 
-    // Callbacks
+    // Message event callbacks
     MessageReceivedCallback messageReceivedCallback;
     ChannelJoinedCallback channelJoinedCallback;
     ChannelLeftCallback channelLeftCallback;
+    PeerJoinedCallback peerJoinedCallback;
+    PeerLeftCallback peerLeftCallback;
 
-    // Internal methods
-    void onPacketReceived(const BitchatPacket &packet, const std::string &peripheralID);
+    // Message-related packet processing
     void processMessagePacket(const BitchatPacket &packet);
     void processChannelAnnouncePacket(const BitchatPacket &packet);
+
+    // Network-related packet processing
+    void processAnnouncePacket(const BitchatPacket &packet, const std::string &peripheralID);
+    void processLeavePacket(const BitchatPacket &packet);
+
+    // Noise protocol packet processing
+    void processNoiseHandshakeInitPacket(const BitchatPacket &packet);
+    void processNoiseHandshakeRespPacket(const BitchatPacket &packet);
+    void processNoiseEncryptedPacket(const BitchatPacket &packet);
+    void processNoiseIdentityAnnouncePacket(const BitchatPacket &packet);
+
+    // Utility methods
     BitchatPacket createMessagePacket(const BitchatMessage &message);
     BitchatPacket createAnnouncePacket();
     BitchatPacket createChannelAnnouncePacket(const std::string &channel, bool joining);
     std::string generateMessageID() const;
+
+    // Helper methods
+    bool shouldProcessPacket(const BitchatPacket &packet) const;
+    void markPacketProcessed(const BitchatPacket &packet);
 };
 
 } // namespace bitchat

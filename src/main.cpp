@@ -24,12 +24,32 @@ void onMessageReceived(const BitchatMessage &message)
 
 void onPeerJoined(const std::string & /*peerID*/, const std::string &nickname)
 {
-    ChatHelper::info("*** {} joined ***", nickname);
+    ChatHelper::info("{} *** {} joined ***", ChatHelper::getChatPrefix(), nickname);
 }
 
 void onPeerLeft(const std::string & /*peerID*/, const std::string &nickname)
 {
-    ChatHelper::info("*** {} left ***", nickname);
+    ChatHelper::info("{} *** {} left ***", ChatHelper::getChatPrefix(), nickname);
+}
+
+void onPeerConnected(const std::string &peripheralID)
+{
+    ChatHelper::info("{} *** {} connected ***", ChatHelper::getChatPrefix(), peripheralID);
+}
+
+void onPeerDisconnected(const std::string &peripheralID)
+{
+    ChatHelper::info("{} *** {} disconnected ***", ChatHelper::getChatPrefix(), peripheralID);
+}
+
+void onChannelJoined(const std::string &channel)
+{
+    ChatHelper::success("{} *** Joined channel: {} ***", ChatHelper::getChatPrefix(), channel);
+}
+
+void onChannelLeft(const std::string &channel)
+{
+    ChatHelper::info("{} *** Left channel: {} ***", ChatHelper::getChatPrefix(), channel);
 }
 
 void onStatusUpdate(const std::string &status)
@@ -157,6 +177,10 @@ int main()
     BitchatManager::shared()->setMessageCallback(onMessageReceived);
     BitchatManager::shared()->setPeerJoinedCallback(onPeerJoined);
     BitchatManager::shared()->setPeerLeftCallback(onPeerLeft);
+    BitchatManager::shared()->setPeerConnectedCallback(onPeerConnected);
+    BitchatManager::shared()->setPeerDisconnectedCallback(onPeerDisconnected);
+    BitchatManager::shared()->setChannelJoinedCallback(onChannelJoined);
+    BitchatManager::shared()->setChannelLeftCallback(onChannelLeft);
     BitchatManager::shared()->setStatusCallback(onStatusUpdate);
 
     // Initialize with services and runners

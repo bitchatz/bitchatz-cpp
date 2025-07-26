@@ -44,7 +44,7 @@ public:
     // Set callbacks
     using PacketReceivedCallback = std::function<void(const BitchatPacket &, const std::string &)>;
     using PeerConnectedCallback = std::function<void(const std::string &)>;
-    using PeerDisconnectedCallback = std::function<void(const std::string &, const std::string &)>;
+    using PeerDisconnectedCallback = std::function<void(const std::string &)>;
 
     void setPacketReceivedCallback(PacketReceivedCallback callback);
     void setPeerConnectedCallback(PeerConnectedCallback callback);
@@ -73,8 +73,6 @@ private:
     void onPeerConnected(const std::string &peripheralID);
     void onPeerDisconnected(const std::string &peripheralID);
     void onPacketReceived(const BitchatPacket &packet, const std::string &peripheralID);
-    void processPacket(const BitchatPacket &packet, const std::string &peripheralID);
-    void processAnnouncePacket(const BitchatPacket &packet, const std::string &peripheralID);
     void relayPacket(const BitchatPacket &packet);
 };
 
