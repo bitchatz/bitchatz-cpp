@@ -2,8 +2,6 @@
 #include "bitchat/core/constants.h"
 #include "bitchat/helpers/noise_helper.h"
 #include "bitchat/noise/noise_session_default.h"
-#include <openssl/err.h>
-#include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <spdlog/spdlog.h>
 
@@ -16,30 +14,6 @@ NoiseService::NoiseService()
     {
         throw std::runtime_error("Failed to generate local static key");
     }
-}
-
-NoiseService::~NoiseService()
-{
-    cleanup();
-}
-
-void NoiseService::cleanup()
-{
-    std::lock_guard<std::mutex> lock(sessionsMutex);
-
-    // Clear all sessions
-    sessions.clear();
-
-    // Clear OpenSSL
-    CRYPTO_set_locking_callback(nullptr);
-    CRYPTO_set_id_callback(nullptr);
-
-    ERR_remove_state(0);
-
-    ERR_free_strings();
-    EVP_cleanup();
-
-    CRYPTO_cleanup_all_ex_data();
 }
 
 std::shared_ptr<NoiseSession> NoiseService::createSession(const std::string &peerID, NoiseRole role)
